@@ -7,6 +7,7 @@ import com.bm.wschat.feature.auth.mapper.AuthMapper;
 import com.bm.wschat.feature.auth.model.RefreshToken;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.service.UserService;
+import com.bm.wschat.shared.exception.InvalidRefreshTokenException;
 import com.bm.wschat.shared.security.jwt.JwtService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -38,12 +39,11 @@ public class AuthService {
         String accessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
-        return new  AuthResponse(
+        return new AuthResponse(
                 accessToken,
                 refreshToken.getToken(),
                 jwtService.getJwtExpiration(),
-                authMapper.toAuthResponse(user)
-        );
+                authMapper.toAuthResponse(user));
     }
 
     @Transactional
@@ -64,9 +64,8 @@ public class AuthService {
                             newAccessToken,
                             newRefreshToken.getToken(),
                             jwtService.getJwtExpiration(),
-                            authMapper.toAuthResponse(user)
-                    );
+                            authMapper.toAuthResponse(user));
                 })
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
     }
 }
