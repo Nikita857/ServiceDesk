@@ -1,7 +1,8 @@
 package com.bm.wschat.shared.exception.handler;
 
-
 import com.bm.wschat.shared.common.ApiResponse;
+import com.bm.wschat.shared.exception.InvalidRefreshTokenException;
+
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +71,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Access denied"));
+    }
+
+    @ExceptionHandler(com.bm.wschat.shared.exception.ExpiredTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleExpiredTokenException(
+            com.bm.wschat.shared.exception.ExpiredTokenException ex) {
+        log.warn("Token expired: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidRefreshTokenException(
+            InvalidRefreshTokenException ex) {
+        log.warn("Invalid refresh token: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
