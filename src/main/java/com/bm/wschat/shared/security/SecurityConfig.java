@@ -33,7 +33,7 @@ public class SecurityConfig {
         private final JwtAuthFilter jwtAuthFilter;
 
         @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .csrf(AbstractHttpConfigurer::disable)
@@ -50,10 +50,10 @@ public class SecurityConfig {
                                                 .httpStrictTransportSecurity(hsts -> hsts
                                                                 .maxAgeInSeconds(31536000)
                                                                 .includeSubDomains(true)))
-                                .securityMatcher("/api/v1/**")
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
-                                                                "/api/v1/auth/**")
+                                                                "/api/v1/auth/**",
+                                                                "/ws/**")
                                                 .permitAll()
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
@@ -82,7 +82,8 @@ public class SecurityConfig {
         }
 
         @Bean
-        public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) {
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+                        throws Exception {
                 return authenticationConfiguration.getAuthenticationManager();
         }
 }
