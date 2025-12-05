@@ -30,7 +30,6 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @NotBlank
     @Column(nullable = false, unique = true, length = 100)
     private String username;
@@ -115,6 +114,14 @@ public class User implements UserDetails {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    public boolean isAdmin() {
+        return roles != null && roles.contains("ROLE_ADMIN");
+    }
+
+    public boolean isSpecialist() {
+        return specialist || (roles != null && roles.contains("ROLE_SPECIALIST"));
     }
 
 }
