@@ -1,14 +1,17 @@
 package com.bm.wschat.shared.exception.handler;
 
 import com.bm.wschat.shared.common.ApiResponse;
+import com.bm.wschat.shared.exception.ExpiredTokenException;
 import com.bm.wschat.shared.exception.InvalidRefreshTokenException;
 
+import com.bm.wschat.shared.exception.JwtAuthenticationException;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
@@ -79,7 +82,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
     }
 
-    @ExceptionHandler(com.bm.wschat.shared.exception.ExpiredTokenException.class)
+    @ExceptionHandler(JwtAuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJwtException(JwtAuthenticationException ex) {
+        log.warn("JWT Authentication failed: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Authentication failed: " + ex.getMessage()));
+    }
+
+    @ExceptionHandler(ExpiredTokenException.class)
     public ResponseEntity<ApiResponse<Void>> handleExpiredTokenException(
             com.bm.wschat.shared.exception.ExpiredTokenException ex) {
         log.warn("Token expired: {}", ex.getMessage());
@@ -91,6 +102,14 @@ public class GlobalExceptionHandler {
             InvalidRefreshTokenException ex) {
         log.warn("Invalid refresh token: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationCredentialsNotFoundException(
+            AuthenticationCredentialsNotFoundException ex) {
+        log.warn("Unauthorized: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

@@ -41,10 +41,12 @@ public class SupportLine {
     private String description;
 
     // SLA в минутах
+    @Builder.Default
     @Column(name = "sla_minutes")
     private Integer slaMinutes = 1440; // 24 часа по умолчанию
 
     // Режим распределения
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AssignmentMode assignmentMode = AssignmentMode.FIRST_AVAILABLE;
@@ -61,10 +63,12 @@ public class SupportLine {
     private Set<User> specialists = new HashSet<>();
 
     // Для round-robin
+    @Builder.Default
     @Column(name = "last_assigned_index")
     private Integer lastAssignedIndex = 0;
 
     // Порядок отображения
+    @Builder.Default
     @Column(name = "display_order")
     private Integer displayOrder = 100;
 
@@ -72,9 +76,11 @@ public class SupportLine {
     private Instant deletedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private Instant createdAt = Instant.now();
 
     @Column(name = "updated_at")
+    @Builder.Default
     private Instant updatedAt = Instant.now();
 
     @Version

@@ -73,6 +73,7 @@ public class Attachment {
     @Column(name = "mime_type", length = 100)
     private String mimeType;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AttachmentType type = AttachmentType.SCREENSHOT;
@@ -86,6 +87,7 @@ public class Attachment {
     private Instant deletedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private Instant createdAt = Instant.now();
 
     @Version

@@ -35,22 +35,25 @@ public class Category {
     private Long id;
 
     @NotBlank
-    @Column(nullable = false, length = 150)
+    @Column(nullable = false, length = 150, unique = true)
     private String name;
 
     @Column(length = 500)
     private String description;
 
     // ← Добавь тип категории — это критично!
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CategoryType type = CategoryType.GENERAL; // USER_VISIBLE, SUPPORT_ONLY, etc.
 
     // ← Приоритет/порядок отображения
+    @Builder.Default
     @Column(name = "display_order")
     private Integer displayOrder = 100;
 
     // ← Можно ли пользователю выбирать эту категорию?
+    @Builder.Default
     @Column(name = "user_selectable", nullable = false)
     private boolean userSelectable = true;
 
@@ -61,9 +64,11 @@ public class Category {
     @Version
     private Long version;
 
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Builder.Default
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 

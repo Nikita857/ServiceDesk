@@ -16,9 +16,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    @Transactional(readOnly = true)
-    public @NotNull UserDetails loadUserByUsername(@NotNull String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username).orElseThrow(
-                () -> new UsernameNotFoundException(username));
+    public @NotNull UserDetails loadUserByUsername(@NotNull String username)
+            throws UsernameNotFoundException {
+        return userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 }

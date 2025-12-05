@@ -77,15 +77,18 @@ public class Assignment {
     @Column(length = 1000)
     private String note; // "Сложный кейс — нужна 2-я линия", "Клиент просил Петрова"
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private AssignmentMode mode = AssignmentMode.FIRST_AVAILABLE;
 
     // ← КРИТИЧНО: статус назначения
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AssignmentStatus status = AssignmentStatus.PENDING;
 
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 

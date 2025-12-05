@@ -66,11 +66,13 @@ public class Message {
     @NotAudited
     private User sender; // null = системное сообщение
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "sender_type", nullable = false, length = 20)
     private SenderType senderType = SenderType.USER;
 
     // ← ВАЖНО: внутренние сообщения (видны только специалистам)
+    @Builder.Default
     @Column(name = "is_internal", nullable = false)
     private boolean internal = false;
 
@@ -96,9 +98,11 @@ public class Message {
     private List<Attachment> attachments = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @Builder.Default
     private Instant createdAt = Instant.now();
 
     @Column(name = "updated_at")
+    @Builder.Default
     private Instant updatedAt = Instant.now();
 
     @Version

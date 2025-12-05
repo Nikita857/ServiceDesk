@@ -32,13 +32,14 @@ import java.util.Optional;
         @Index(name = "idx_ticket_deleted", columnList = "deleted_at"), // для soft delete
         @Index(name = "idx_ticket_telegram_thread", columnList = "telegram_message_thread_id")
 })
-@SQLRestriction("deleted_at IS NULL")  // ← Вот так! Заменил @Where
+@SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE tickets SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Ticket {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -51,7 +52,6 @@ public class Ticket {
     @Column(nullable = false)
     private String description;
 
-    /** Link to 1C object (external link field) */
     @Column(name = "link_1c", length = 1000)
     private String link1c;
 
@@ -63,26 +63,28 @@ public class Ticket {
     @ManyToOne
     @JoinColumn(name = "assigned_to_id")
     @NotAudited
-    private User assignedTo; // specific specialist (can be null)
+    private User assignedTo;
 
     @ManyToOne
     @JoinColumn(name = "support_line_id")
-    private SupportLine supportLine; // the line currently responsible
+    private SupportLine supportLine;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TicketStatus status = TicketStatus.NEW;
 
     @ManyToOne
     @JoinColumn(name = "category_user_id")
-    private Category categoryUser; // category chosen by user
+    private Category categoryUser;
 
     @ManyToOne
     @JoinColumn(name = "category_support_id")
-    private Category categorySupport; // category set by specialist
+    private Category categorySupport;
 
     @Column(name = "time_spent_seconds")
-    private Long timeSpentSeconds = 0L; // accumulated time spent on ticket
+    @Builder.Default
+    private Long timeSpentSeconds = 0L;
 
     @Builder.Default
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -101,6 +103,7 @@ public class Ticket {
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TimeEntry> timeEntries = new ArrayList<>();
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TicketPriority priority = TicketPriority.MEDIUM;
@@ -110,25 +113,28 @@ public class Ticket {
     private Instant closedAt;
 
     @Column(name = "deleted_at")
-    private Instant deletedAt; // soft delete
+    private Instant deletedAt;
 
-    private Integer rating; // 1-5
+    private Integer rating;
     private String feedback;
 
     @Column(name = "telegram_message_thread_id")
-    private Long telegramMessageThreadId; // ← КРИТИЧНО для Telegram
+    private Long telegramMessageThreadId;
 
     @Column(name = "telegram_last_bot_message_id")
     private Long telegramLastBotMessageId;
 
+    @Builder.Default
     private boolean escalated = false;
 
     @Version
     private Long version;
 
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Builder.Default
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 

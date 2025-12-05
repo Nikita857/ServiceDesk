@@ -76,6 +76,7 @@ public class WikiArticle {
     private String tags; // "1c, зарплата, ошибка"
 
     // ← Или лучше — отдельная связь @ElementCollection
+    @Builder.Default
     @ElementCollection
     @CollectionTable(name = "wiki_article_tags", joinColumns = @JoinColumn(name = "article_id"))
     @Column(name = "tag")
@@ -96,16 +97,20 @@ public class WikiArticle {
     @NotAudited
     private User updatedBy;
 
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Builder.Default
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 
     // ← Статистика
+    @Builder.Default
     @Column(name = "view_count", nullable = false)
     private Long viewCount = 0L;
 
+    @Builder.Default
     @Column(name = "like_count", nullable = false)
     private Long likeCount = 0L;
 

@@ -57,6 +57,7 @@ public class User implements UserDetails {
     @Column(name = "refresh_token_expiry_date")
     private Instant refreshTokenExpiryDate;
 
+    @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "role", length = 50)

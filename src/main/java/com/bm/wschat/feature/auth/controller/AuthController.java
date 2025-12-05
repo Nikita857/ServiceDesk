@@ -23,19 +23,20 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
-        AuthResponse response = authService.login(request);
-        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+        return ResponseEntity.ok(
+                ApiResponse.success("Login successful", authService.login(request)));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        AuthResponse response = authService.refreshToken(request);
-        return ResponseEntity.ok(ApiResponse.success("Token refreshed successfully", response));
+        return ResponseEntity.ok(
+                ApiResponse.success("Token refreshed successfully", authService.refreshToken(request)));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal User user) {
         refreshTokenService.deleteByUserId(user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Successfully logged out"));
+        return ResponseEntity.ok(
+                ApiResponse.success("Successfully logged out"));
     }
 }

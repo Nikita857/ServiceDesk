@@ -1,5 +1,6 @@
 package com.bm.wschat.feature.ticket.model;
 
+// Режим назначения
 public enum AssignmentMode {
     FIRST_AVAILABLE,   // на линию — кто первый взял
     ROUND_ROBIN,       // по очереди

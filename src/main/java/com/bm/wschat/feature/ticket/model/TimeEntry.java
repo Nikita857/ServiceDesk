@@ -69,10 +69,12 @@ public class TimeEntry {
     private LocalDate workDate; // например, "вчера работал 2 часа"
 
     // ← Биллинг: оплачивается ли клиенту?
+    @Builder.Default
     @Column(nullable = false)
     private boolean billable = true;
 
     // ← Тип активности (для аналитики)
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "activity_type", length = 30)
     private TimeEntryType activityType = TimeEntryType.WORK;
@@ -81,9 +83,11 @@ public class TimeEntry {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    @Builder.Default
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 

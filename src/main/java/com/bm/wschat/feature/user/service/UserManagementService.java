@@ -33,7 +33,7 @@ public class UserManagementService {
         }
 
         // Check if user already exists
-        if (userRepository.findByUsername(username).isPresent()) {
+        if (userRepository.findByUsernameIgnoreCase(username).isPresent()) {
             throw new DataIntegrityViolationException("User with username '" + username + "' already exists");
         }
 
