@@ -15,4 +15,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByTypeOrderByDisplayOrderAsc(CategoryType type);
 
     List<Category> findAllByOrderByDisplayOrderAsc();
+
+    boolean existsByName(String name);
 }
