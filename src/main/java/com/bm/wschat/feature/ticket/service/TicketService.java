@@ -36,13 +36,19 @@ public class TicketService {
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
 
-    private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.IN_PROGRESS);
-    private static final Set<TicketStatus> ALLOWED_FROM_IN_PROGRESS = Set.of(TicketStatus.PENDING,
+    // Status workflow based on TicketStatus enum
+    private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
+            TicketStatus.CANCELLED);
+    private static final Set<TicketStatus> ALLOWED_FROM_OPEN = Set.of(TicketStatus.PENDING, TicketStatus.RESOLVED,
+            TicketStatus.ESCALATED);
+    private static final Set<TicketStatus> ALLOWED_FROM_PENDING = Set.of(TicketStatus.OPEN);
+    private static final Set<TicketStatus> ALLOWED_FROM_ESCALATED = Set.of(TicketStatus.OPEN, TicketStatus.PENDING,
             TicketStatus.RESOLVED);
-    private static final Set<TicketStatus> ALLOWED_FROM_PENDING = Set.of(TicketStatus.IN_PROGRESS);
     private static final Set<TicketStatus> ALLOWED_FROM_RESOLVED = Set.of(TicketStatus.CLOSED, TicketStatus.REOPENED);
     private static final Set<TicketStatus> ALLOWED_FROM_CLOSED = Set.of(TicketStatus.REOPENED);
-    private static final Set<TicketStatus> ALLOWED_FROM_REOPENED = Set.of(TicketStatus.IN_PROGRESS);
+    private static final Set<TicketStatus> ALLOWED_FROM_REOPENED = Set.of(TicketStatus.OPEN);
+    private static final Set<TicketStatus> ALLOWED_FROM_REJECTED = Set.of();
+    private static final Set<TicketStatus> ALLOWED_FROM_CANCELLED = Set.of();
 
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, Long userId) {
@@ -146,7 +152,8 @@ public class TicketService {
                 .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + lineId));
 
         ticket.setSupportLine(line);
-        ticket.setAssignedTo(null); // сбрасываем конкретного специалиста
+        ticket.setAssignedTo(null);
+        ticket.setStatus(TicketStatus.ESCALATED);
 
         if (line.getSlaMinutes() != null && ticket.getSlaDeadline() == null) {
             ticket.setSlaDeadline(Instant.now().plusSeconds(line.getSlaMinutes() * 60L));
@@ -172,7 +179,7 @@ public class TicketService {
         ticket.setAssignedTo(specialist);
 
         if (ticket.getStatus() == TicketStatus.NEW) {
-            ticket.setStatus(TicketStatus.IN_PROGRESS);
+            ticket.setStatus(TicketStatus.OPEN);
         }
 
         ticket.touchUpdated();
@@ -236,11 +243,14 @@ public class TicketService {
     private boolean isValidStatusTransition(TicketStatus from, TicketStatus to) {
         return switch (from) {
             case NEW -> ALLOWED_FROM_NEW.contains(to);
-            case IN_PROGRESS -> ALLOWED_FROM_IN_PROGRESS.contains(to);
+            case OPEN -> ALLOWED_FROM_OPEN.contains(to);
             case PENDING -> ALLOWED_FROM_PENDING.contains(to);
+            case ESCALATED -> ALLOWED_FROM_ESCALATED.contains(to);
             case RESOLVED -> ALLOWED_FROM_RESOLVED.contains(to);
             case CLOSED -> ALLOWED_FROM_CLOSED.contains(to);
             case REOPENED -> ALLOWED_FROM_REOPENED.contains(to);
+            case REJECTED -> ALLOWED_FROM_REJECTED.contains(to);
+            case CANCELLED -> ALLOWED_FROM_CANCELLED.contains(to);
         };
     }
 }
