@@ -19,7 +19,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.naming.AuthenticationException;
 import java.io.IOException;
 
 @Component
@@ -68,7 +67,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throw new ExpiredTokenException("JWT token has expired");
         } catch (SignatureException | MalformedJwtException e) {
             throw new JwtAuthenticationException("Invalid JWT token", e);
-        }catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException e) {
             throw new UsernameNotFoundException("Username not found", e);
         } catch (Exception e) {
             throw new JwtAuthenticationException("Authentication failed", e);

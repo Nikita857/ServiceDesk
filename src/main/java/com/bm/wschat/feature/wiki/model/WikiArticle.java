@@ -9,7 +9,6 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
-import org.hibernate.envers.RelationTargetAuditMode;
 
 import java.time.Instant;
 import java.util.HashSet;
