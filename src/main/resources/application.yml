@@ -1,6 +1,6 @@
 spring:
   application:
-    name: ws-chat
+    name: servicedesk
 
   # =========================================================
   # PostgreSQL DataSource
@@ -17,17 +17,9 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate  # Changed from create-drop for safety with Flyway
+      ddl-auto: validate  # Flyway manages schema, Hibernate only validates
     show-sql: false
-    open-in-view: false  # Changed to false - best practice
-    properties:
-      hibernate:
-        format_sql: true
-        jdbc:
-          lob:
-            non_contextual_creation: true
-        temp:
-          use_jdbc_metadata_defaults: false
+    open-in-view: false
 
   # =========================================================
   # Flyway Database Migration
@@ -38,13 +30,14 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     out-of-order: false
+    clean-disabled: true  # Prevent accidental clean in production
 
   # =========================================================
   # Web / MVC
   # =========================================================
   web:
     resources:
-      add-mappings: false  # Throw exception when route undefined
+      add-mappings: false
   mvc:
     static-path-pattern: /static/**
 
@@ -53,17 +46,14 @@ spring:
 # =========================================================
 jwt:
   secret: ${JWT_SECRET:mySecretKeyThatShouldBeChangedInProductionAndMustBeAtLeast256BitsLongForHS512}
-  expiration: 86400000  # 24 hours in milliseconds
+  expiration: 86400000
   refresh-token:
-    expiration-ms: 2592000000  # 30 days in milliseconds
+    expiration-ms: 2592000000
 
 # =========================================================
-# Logging (commented out - uncomment when needed)
+# Logging (uncomment when needed)
 # =========================================================
 #logging:
 #  level:
 #    org.hibernate.SQL: debug
-#    org.hibernate.orm.jdbc.bind: trace
-#    org.hibernate.orm.jdbc.extract: trace
-#    com.zaxxer.hikari: DEBUG
 #    org.flywaydb: DEBUG
