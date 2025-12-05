@@ -1,6 +1,7 @@
 package com.bm.wschat.shared.security.jwt;
 
 import com.bm.wschat.shared.exception.ExpiredTokenException;
+import com.bm.wschat.shared.exception.InvalidTokenException;
 import com.bm.wschat.shared.exception.JwtAuthenticationException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -30,9 +31,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain
-    ) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
         if (isPublicPath(path)) {
@@ -55,7 +55,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
+                            null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
@@ -66,15 +67,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (ExpiredJwtException e) {
             throw new ExpiredTokenException("JWT token has expired");
         } catch (SignatureException | MalformedJwtException e) {
-            throw new JwtAuthenticationException("Invalid JWT token", e);
+            throw new InvalidTokenException("Invalid JWT token");
         } catch (UsernameNotFoundException e) {
-            throw new UsernameNotFoundException("Username not found", e);
+            throw new UsernameNotFoundException("Username not found");
         } catch (Exception e) {
-            throw new JwtAuthenticationException("Authentication failed", e);
+            throw new JwtAuthenticationException("Authentication failed");
         }
     }
 
     private boolean isPublicPath(String path) {
-        return path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/webjars/") || path.startsWith("/images/") || path.startsWith("/static/") || path.startsWith("/login") || path.startsWith("/api/auth/");
+        return path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/webjars/")
+                || path.startsWith("/images/") || path.startsWith("/static/") || path.startsWith("/login")
+                || path.startsWith("/api/auth/");
     }
 }
