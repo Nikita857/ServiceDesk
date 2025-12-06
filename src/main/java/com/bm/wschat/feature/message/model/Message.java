@@ -17,27 +17,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(
-        name = "messages",
-        indexes = {
-                // 1. Основной индекс — по тикету + дата (99% всех запросов)
-                @Index(name = "idx_message_ticket_created", columnList = "ticket_id, created_at DESC"),
+@Table(name = "messages", indexes = {
+        // 1. Основной индекс — по тикету + дата (99% всех запросов)
+        @Index(name = "idx_message_ticket_created", columnList = "ticket_id, created_at DESC"),
 
-                // 2. Для пагинации "загрузить старые сообщения"
-                @Index(name = "idx_message_ticket_created_id", columnList = "ticket_id, created_at DESC, id DESC"),
+        // 2. Для пагинации "загрузить старые сообщения"
+        @Index(name = "idx_message_ticket_created_id", columnList = "ticket_id, created_at DESC, id DESC"),
 
-                // 3. Soft delete + быстрый поиск живых сообщений
-                @Index(name = "idx_message_active", columnList = "ticket_id, deleted_at, created_at"),
+        // 3. Soft delete + быстрый поиск живых сообщений
+        @Index(name = "idx_message_active", columnList = "ticket_id, deleted_at, created_at"),
 
-                // 4. По отправителю (аналитика, фильтр "мои сообщения")
-                @Index(name = "idx_message_sender", columnList = "sender_id"),
+        // 4. По отправителю (аналитика, фильтр "мои сообщения")
+        @Index(name = "idx_message_sender", columnList = "sender_id"),
 
-                // 5. По типу (системные, внутренние и т.д.)
-                @Index(name = "idx_message_sender_type", columnList = "sender_type")
-        }
-)
+        // 5. По типу (системные, внутренние и т.д.)
+        @Index(name = "idx_message_sender_type", columnList = "sender_type")
+})
 @Audited
-@SQLRestriction("deleted_at IS NULL")  // только живые сообщения
+@SQLRestriction("deleted_at IS NULL") // только живые сообщения
 @SQLDelete(sql = "UPDATE messages SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Getter
 @Setter
@@ -57,8 +54,7 @@ public class Message {
     private Ticket ticket;
 
     @NotBlank
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -127,7 +123,8 @@ public class Message {
     }
 
     public boolean isReadBy(User user) {
-        if (user == null) return false;
+        if (user == null)
+            return false;
         if (user.isSpecialist()) {
             return readBySpecialistAt != null;
         }

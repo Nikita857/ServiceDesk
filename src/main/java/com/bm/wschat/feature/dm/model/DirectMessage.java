@@ -42,8 +42,7 @@ public class DirectMessage {
     private User recipient;
 
     @NotBlank
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "read_at")

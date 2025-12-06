@@ -53,6 +53,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
     // Envers
+    implementation 'org.hibernate.orm:hibernate-envers'
     annotationProcessor 'org.hibernate.orm:hibernate-envers'
 
     // Tests
