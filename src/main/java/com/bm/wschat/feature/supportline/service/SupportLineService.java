@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -86,8 +85,7 @@ public class SupportLineService {
         SupportLine line = supportLineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + id));
 
-        line.setDeletedAt(Instant.now());
-        supportLineRepository.save(line);
+        supportLineRepository.delete(line); // Soft delete via @SQLDelete
     }
 
     @Transactional
