@@ -10,7 +10,7 @@ public record CreateSupportLineRequest(
 
         @Min(value = 1, message = "SLA must be at least 1 minute") @Max(value = 10080, message = "SLA must not exceed 1 week (10080 minutes)") Integer slaMinutes,
 
-        @NotNull(message = "Assignment mode is required") AssignmentMode assignmentMode,
+        AssignmentMode assignmentMode,
 
         @Min(value = 0, message = "Display order must be non-negative") Integer displayOrder) {
     public CreateSupportLineRequest {
