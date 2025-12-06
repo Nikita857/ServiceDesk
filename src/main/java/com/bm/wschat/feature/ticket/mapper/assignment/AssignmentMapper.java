@@ -33,7 +33,6 @@ public interface AssignmentMapper {
     @Mapping(target = "rejectedReason", ignore = true)
     Assignment toEntity(AssignmentCreateRequest request);
 
-
     // === ENTITY → FULL RESPONSE ===
     @Mapping(target = "ticketId", source = "ticket.id")
     @Mapping(target = "ticketTitle", source = "ticket.title")
@@ -49,13 +48,13 @@ public interface AssignmentMapper {
     @Mapping(target = "toFio", source = "toUser.fio")
     AssignmentResponse toResponse(Assignment assignment);
 
-
     // === ENTITY → SHORT RESPONSE (для списков) ===
     @Mapping(target = "toUsername", source = "toUser.username")
     @Mapping(target = "toFio", source = "toUser.fio")
     @Mapping(target = "mode", source = "mode")
     AssignmentShortResponse toShortResponse(Assignment assignment);
 
+    java.util.List<AssignmentResponse> toResponses(java.util.List<Assignment> assignments);
 
     // === Вспомогательные методы для @Named ===
     @Named("lineById")
