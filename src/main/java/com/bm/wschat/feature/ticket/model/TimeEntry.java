@@ -24,10 +24,7 @@ import java.time.LocalDate;
         @Index(name = "idx_time_date", columnList = "entry_date"),
 
         // 4. Комбинированный для аналитики: "кто сколько наработал за период"
-        @Index(name = "idx_time_specialist_period", columnList = "specialist_id, entry_date"),
-
-        // 5. Для биллинга (если платная поддержка)
-        @Index(name = "idx_time_billable", columnList = "billable, entry_date")})
+        @Index(name = "idx_time_specialist_period", columnList = "specialist_id, entry_date") })
 @SQLRestriction("deleted_at IS NULL") // soft delete (очень рекомендуется!)
 @Audited
 @Getter
@@ -67,11 +64,6 @@ public class TimeEntry {
     // ← Для ручного ввода — можно указать дату отдельно
     @Column(name = "work_date")
     private LocalDate workDate; // например, "вчера работал 2 часа"
-
-    // ← Биллинг: оплачивается ли клиенту?
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean billable = true;
 
     // ← Тип активности (для аналитики)
     @Builder.Default
