@@ -17,7 +17,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create  # Flyway manages schema, Hibernate only validates
+      ddl-auto: create # Flyway manages schema, Hibernate only validates
     show-sql: false
     open-in-view: false
 
@@ -30,7 +30,7 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     out-of-order: false
-    clean-disabled: true  # Prevent accidental clean in production
+    clean-disabled: true # Prevent accidental clean in production
 
   # =========================================================
   # Web / MVC
@@ -50,6 +50,18 @@ jwt:
   refresh-token:
     expiration-ms: 2592000000
 
+app:
+  upload:
+    dir: ./uploads
+    max-file-size-mb: 30
+    allowed-types:
+      - image/jpeg
+      - image/png
+      - image/gif
+      - image/webp
+      - application/pdf
+      - text/plain
+      - application/msword
 # =========================================================
 # Logging (uncomment when needed)
 # =========================================================
