@@ -19,9 +19,16 @@ public class FileStorageConfig {
     private String dir = "./uploads";
 
     /**
-     * Maximum file size in bytes (default 10MB)
+     * Maximum file size in MB (читается из app.upload.max-file-size)
      */
-    private long maxFileSize = 10 * 1024 * 1024;
+    private long maxFileSizeMb;
+
+    /**
+     * Get max file size in bytes
+     */
+    public long getMaxFileSize() {
+        return maxFileSizeMb * 1024 * 1024;
+    }
 
     /**
      * Allowed MIME types
