@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/servicedesk
     username: postgres
-    password: 2w3a236fdj!
+    password: 123456789
     driver-class-name: org.postgresql.Driver
 
   # =========================================================
