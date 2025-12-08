@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -43,7 +44,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    public String generateToken(org.springframework.security.core.userdetails.UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails) {
         return generateToken(
                 Map.of(
                         "role", userDetails.getAuthorities().toArray()[0].toString()),
@@ -52,7 +53,7 @@ public class JwtService {
 
     public String generateToken(
             Map<String, Object> extraClaims,
-            org.springframework.security.core.userdetails.UserDetails userDetails) {
+            UserDetails userDetails) {
         return Jwts
                 .builder()
                 .claims(extraClaims)
@@ -63,7 +64,7 @@ public class JwtService {
                 .compact();
     }
 
-    public boolean isTokenValid(String token, org.springframework.security.core.userdetails.UserDetails userDetails) {
+    public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
