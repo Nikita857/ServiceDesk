@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,4 +38,35 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.assignedTo.id = :specialistId AND t.status NOT IN ('CLOSED', 'RESOLVED')")
     Long countActiveByAssignedTo(@Param("specialistId") Long specialistId);
+
+    // =====================================================================
+    // REPORT QUERIES
+    // =====================================================================
+
+    // Статистика по категориям пользователей
+    @Query("SELECT t.categoryUser.id, t.categoryUser.name, COUNT(t) FROM Ticket t WHERE t.categoryUser IS NOT NULL GROUP BY t.categoryUser.id, t.categoryUser.name ORDER BY COUNT(t) DESC")
+    List<Object[]> countByCategoryUser();
+
+    // Статистика по категориям поддержки
+    @Query("SELECT t.categorySupport.id, t.categorySupport.name, COUNT(t) FROM Ticket t WHERE t.categorySupport IS NOT NULL GROUP BY t.categorySupport.id, t.categorySupport.name ORDER BY COUNT(t) DESC")
+    List<Object[]> countByCategorySupport();
+
+    // Статистика по времени решения (resolvedAt - createdAt)
+    @Query("SELECT COUNT(t), " +
+            "AVG(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))), " +
+            "MIN(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))), " +
+            "MAX(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))) " +
+            "FROM Ticket t WHERE t.resolvedAt IS NOT NULL")
+    List<Object[]> getResolutionTimeStats();
+
+    // Количество решенных тикетов специалистом за период
+    @Query("SELECT COUNT(t) FROM Ticket t WHERE t.assignedTo.id = :specialistId AND t.resolvedAt BETWEEN :from AND :to")
+    Long countResolvedBySpecialistAndPeriod(
+            @Param("specialistId") Long specialistId,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    // Среднее время решения для специалиста
+    @Query("SELECT AVG(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))) FROM Ticket t WHERE t.assignedTo.id = :specialistId AND t.resolvedAt IS NOT NULL")
+    Double getAvgResolutionTimeBySpecialist(@Param("specialistId") Long specialistId);
 }
