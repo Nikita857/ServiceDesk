@@ -3,7 +3,6 @@ package com.bm.wschat.shared.security.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +24,7 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(String token, @NotNull Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
@@ -47,14 +46,13 @@ public class JwtService {
     public String generateToken(org.springframework.security.core.userdetails.UserDetails userDetails) {
         return generateToken(
                 Map.of(
-                        "role", userDetails.getAuthorities().toArray()[0].toString()
-                ), userDetails);
+                        "role", userDetails.getAuthorities().toArray()[0].toString()),
+                userDetails);
     }
 
     public String generateToken(
             Map<String, Object> extraClaims,
-            org.springframework.security.core.userdetails.UserDetails userDetails
-    ) {
+            org.springframework.security.core.userdetails.UserDetails userDetails) {
         return Jwts
                 .builder()
                 .claims(extraClaims)

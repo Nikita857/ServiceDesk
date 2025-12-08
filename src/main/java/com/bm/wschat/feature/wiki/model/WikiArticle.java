@@ -15,28 +15,25 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(
-        name = "wiki_articles",
-        indexes = {
-                // 1. Поиск по заголовку
-                @Index(name = "idx_wiki_title", columnList = "title"),
+@Table(name = "wiki_articles", indexes = {
+        // 1. Поиск по заголовку
+        @Index(name = "idx_wiki_title", columnList = "title"),
 
-                // 2. Поиск по содержимому (для полнотекстового поиска)
-                @Index(name = "idx_wiki_content_fts", columnList = "content"), // только PostgreSQL!
+        // 2. Поиск по содержимому (для полнотекстового поиска)
+        @Index(name = "idx_wiki_content_fts", columnList = "content"), // только PostgreSQL!
 
-                // 3. Soft delete + быстрый доступ
-                @Index(name = "idx_wiki_active", columnList = "deleted_at, id"),
+        // 3. Soft delete + быстрый доступ
+        @Index(name = "idx_wiki_active", columnList = "deleted_at, id"),
 
-                // 4. По автору
-                @Index(name = "idx_wiki_author", columnList = "created_by_id"),
+        // 4. По автору
+        @Index(name = "idx_wiki_author", columnList = "created_by_id"),
 
-                // 5. По дате обновления (главная страница — "недавно изменённые")
-                @Index(name = "idx_wiki_updated", columnList = "updated_at DESC"),
+        // 5. По дате обновления (главная страница — "недавно изменённые")
+        @Index(name = "idx_wiki_updated", columnList = "updated_at DESC"),
 
-                // 6. По тегам (если используешь отдельную таблицу — см. ниже)
-                @Index(name = "idx_wiki_popular", columnList = "view_count DESC")
-        }
-)
+        // 6. По тегам (если используешь отдельную таблицу — см. ниже)
+        @Index(name = "idx_wiki_popular", columnList = "view_count DESC")
+})
 @Audited
 @SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE wiki_articles SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
@@ -58,8 +55,7 @@ public class WikiArticle {
     private String title;
 
     @NotBlank
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content; // Markdown или HTML
 
     // ← Slug для красивых URL: /wiki/how-to-reset-1c
@@ -69,10 +65,6 @@ public class WikiArticle {
     // ← Краткое описание (для превью в поиске)
     @Column(length = 500)
     private String excerpt;
-
-    // ← Теги (быстро и просто — через String + split)
-    @Column(length = 1000)
-    private String tags; // "1c, зарплата, ошибка"
 
     // ← Или лучше — отдельная связь @ElementCollection
     @Builder.Default

@@ -48,8 +48,7 @@ public class Ticket {
     @Column(nullable = false, length = 250)
     private String title;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "link_1c", length = 1000)
@@ -139,7 +138,8 @@ public class Ticket {
     private Instant updatedAt = Instant.now();
 
     public void addTime(long seconds) {
-        if (seconds <= 0) return;
+        if (seconds <= 0)
+            return;
         this.timeSpentSeconds = Optional.ofNullable(this.timeSpentSeconds).orElse(0L) + seconds;
     }
 
