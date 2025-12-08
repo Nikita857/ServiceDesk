@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/servicedesk
     username: postgres
-    password: 123456789
+    password: 2w3a236fdj!
     driver-class-name: org.postgresql.Driver
 
   # =========================================================
@@ -25,7 +25,7 @@ spring:
   # Flyway Database Migration
   # =========================================================
   flyway:
-    enabled: true # Включаем миграции
+    enabled: true
 
   # =========================================================
   # Web / MVC
