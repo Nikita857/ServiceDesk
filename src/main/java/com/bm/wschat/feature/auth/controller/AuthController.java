@@ -1,6 +1,6 @@
 package com.bm.wschat.feature.auth.controller;
 
-import com.bm.wschat.feature.auth.dto.refresh.RefreshTokenRequest;
+import com.bm.wschat.feature.auth.dto.request.RefreshTokenRequest;
 import com.bm.wschat.feature.auth.dto.request.AuthRequest;
 import com.bm.wschat.feature.auth.dto.response.AuthResponse;
 import com.bm.wschat.feature.auth.service.AuthService;
