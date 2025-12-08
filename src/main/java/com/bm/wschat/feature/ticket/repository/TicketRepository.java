@@ -51,12 +51,16 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("SELECT t.categorySupport.id, t.categorySupport.name, COUNT(t) FROM Ticket t WHERE t.categorySupport IS NOT NULL GROUP BY t.categorySupport.id, t.categorySupport.name ORDER BY COUNT(t) DESC")
     List<Object[]> countByCategorySupport();
 
-    // Статистика по времени решения (resolvedAt - createdAt)
-    @Query("SELECT COUNT(t), " +
-            "AVG(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))), " +
-            "MIN(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))), " +
-            "MAX(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))) " +
-            "FROM Ticket t WHERE t.resolvedAt IS NOT NULL")
+    // Статистика по времени решения (resolvedAt - createdAt) - Native query for
+    // PostgreSQL
+    @Query(value = """
+            SELECT COUNT(*),
+                   AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))),
+                   MIN(EXTRACT(EPOCH FROM (resolved_at - created_at))),
+                   MAX(EXTRACT(EPOCH FROM (resolved_at - created_at)))
+            FROM tickets
+            WHERE resolved_at IS NOT NULL AND deleted_at IS NULL
+            """, nativeQuery = true)
     List<Object[]> getResolutionTimeStats();
 
     // Количество решенных тикетов специалистом за период
@@ -66,7 +70,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("from") Instant from,
             @Param("to") Instant to);
 
-    // Среднее время решения для специалиста
-    @Query("SELECT AVG(EXTRACT(EPOCH FROM (t.resolvedAt - t.createdAt))) FROM Ticket t WHERE t.assignedTo.id = :specialistId AND t.resolvedAt IS NOT NULL")
+    // Среднее время решения для специалиста - Native query for PostgreSQL
+    @Query(value = """
+            SELECT AVG(EXTRACT(EPOCH FROM (resolved_at - created_at)))
+            FROM tickets
+            WHERE assigned_to_id = :specialistId AND resolved_at IS NOT NULL AND deleted_at IS NULL
+            """, nativeQuery = true)
     Double getAvgResolutionTimeBySpecialist(@Param("specialistId") Long specialistId);
 }
