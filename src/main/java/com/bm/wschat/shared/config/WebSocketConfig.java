@@ -36,7 +36,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .withSockJS();
 
         // Pure WebSocket endpoint (for native clients)
-        registry.addEndpoint("/ws")
+        registry.addEndpoint("/ws-raw")
                 .setAllowedOriginPatterns("*");
     }
 
