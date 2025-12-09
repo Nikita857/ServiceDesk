@@ -4,15 +4,15 @@
 -----------------------------------------------------------
 -- USERS (idempotent UPSERT)
 -----------------------------------------------------------
-INSERT INTO users (id, username, fio, email, password, active, specialist, created_at, updated_at, version)
+INSERT INTO users (username, fio, email, password, active, specialist, created_at, updated_at, version)
 VALUES
-    (1, 'admin', 'Администратор Системы', 'admin@example.com',
+    ( 'admin', 'Администратор Системы', 'admin@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
 
-    (2, 'specialist', 'Специалист Поддержки', 'specialist@example.com',
+    ( 'specialist', 'Специалист Поддержки', 'specialist@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
 
-    (3, 'user', 'Обычный Пользователь', 'user@example.com',
+    ( 'user', 'Обычный Пользователь', 'user@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0)
     ON CONFLICT (id) DO UPDATE
                             SET username = EXCLUDED.username,
@@ -38,13 +38,13 @@ INSERT INTO user_roles (user_id, role) VALUES
 -----------------------------------------------------------
 -- CATEGORIES (idempotent)
 -----------------------------------------------------------
-INSERT INTO categories (id, name, description, type, user_selectable, display_order, created_at, updated_at, version)
+INSERT INTO categories ( name, description, type, user_selectable, display_order, created_at, updated_at, version)
 VALUES
-    (1, 'Техническая поддержка', 'Проблемы с оборудованием и ПО', 'GENERAL', true, 1, NOW(), NOW(), 0),
-    (2, 'Вопросы по 1С', 'Консультации и ошибки в 1С', 'GENERAL', true, 2, NOW(), NOW(), 0),
-    (3, 'Общие вопросы', 'Вопросы, не вошедшие в другие категории', 'GENERAL', true, 3, NOW(), NOW(), 0),
-    (4, 'Внутренняя категория поддержки', 'Используется только специалистами', 'HIDDEN', false, 4, NOW(), NOW(), 0),
-    (5, 'База знаний', 'Категория для статей Wiki', 'GENERAL', false, 1, NOW(), NOW(), 0)
+    ( 'Техническая поддержка', 'Проблемы с оборудованием и ПО', 'GENERAL', true, 1, NOW(), NOW(), 0),
+    ( 'Вопросы по 1С', 'Консультации и ошибки в 1С', 'GENERAL', true, 2, NOW(), NOW(), 0),
+    ( 'Общие вопросы', 'Вопросы, не вошедшие в другие категории', 'GENERAL', true, 3, NOW(), NOW(), 0),
+    ( 'Внутренняя категория поддержки', 'Используется только специалистами', 'HIDDEN', false, 4, NOW(), NOW(), 0),
+    ( 'База знаний', 'Категория для статей Wiki', 'GENERAL', false, 1, NOW(), NOW(), 0)
     ON CONFLICT (id) DO UPDATE
                             SET name = EXCLUDED.name,
                             description = EXCLUDED.description,
@@ -56,9 +56,9 @@ VALUES
 -----------------------------------------------------------
 -- SUPPORT LINES (idempotent)
 -----------------------------------------------------------
-INSERT INTO support_lines (id, name, description, assignment_mode, created_at, updated_at, version)
+INSERT INTO support_lines (name, description, assignment_mode, created_at, updated_at, version)
 VALUES
-    (1, 'Первая линия поддержки', 'Основная линия для приема заявок', 'FIRST_AVAILABLE', NOW(), NOW(), 0)
+    ( 'Первая линия поддержки', 'Основная линия для приема заявок', 'FIRST_AVAILABLE', NOW(), NOW(), 0)
     ON CONFLICT (id) DO UPDATE
                             SET name = EXCLUDED.name,
                             description = EXCLUDED.description,
@@ -76,20 +76,20 @@ VALUES (1, 2)
 -- TICKETS (idempotent)
 -----------------------------------------------------------
 INSERT INTO tickets (
-    id, title, description, status, priority,
+    title, description, status, priority,
     created_by_id, created_at, updated_at,
     category_user_id, escalated, version
 )
 VALUES
-    (1, 'Не работает принтер',
+    ('Не работает принтер',
      'Принтер не печатает, горит красная лампочка. Модель HP LaserJet 1010.',
      'NEW', 'MEDIUM', 3, NOW(), NOW(), 1, false, 0),
 
-    (2, 'Ошибка в отчете 1С',
+    ('Ошибка в отчете 1С',
      'При формировании отчета "Анализ продаж" за прошлый месяц возникает ошибка "Деление на ноль".',
      'OPEN', 'HIGH', 3, NOW(), NOW(), 2, false, 0),
 
-    (3, 'Как сменить пароль?',
+    ('Как сменить пароль?',
      'Не могу найти в личном кабинете, где можно сменить пароль от входа в систему.',
      'RESOLVED', 'LOW', 3, NOW(), NOW(), 3, false, 0)
     ON CONFLICT (id) DO UPDATE

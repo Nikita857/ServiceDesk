@@ -9,6 +9,7 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ import java.time.Instant;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "MessageWebSocketController", description = "Websocket controller for live message exchange inside of ticket")
 public class MessageWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;

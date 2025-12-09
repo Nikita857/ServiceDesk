@@ -5,6 +5,8 @@ import com.bm.wschat.feature.user.dto.response.UserAuthResponse;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.service.UserManagementService;
 import com.bm.wschat.shared.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import java.util.Set;
 @RequestMapping("/api/v1/admin/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@Tag(name = "User Management", description = "Управление пользователями системы")
 public class UserManagementController {
 
     private final UserManagementService userManagementService;
@@ -25,6 +28,7 @@ public class UserManagementController {
     //Разобраться с ролями и сделать нормальную обработку исключений при ограниченных правах
 
     @PostMapping
+    @Operation(summary = "Создать нового пользователя", description = "Создает нового пользователя с указанными данными и ролями.")
     public ResponseEntity<ApiResponse<UserAuthResponse>> createUser(
             @RequestParam @NotNull String username,
             @RequestParam @NotNull String password,
@@ -42,6 +46,7 @@ public class UserManagementController {
     }
 
     @PutMapping("/{id}/password")
+    @Operation(summary = "Изменить пароль пользователя", description = "Изменяет пароль для указанного пользователя.")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @PathVariable Long id,
             @RequestParam @NotNull String newPassword
@@ -51,12 +56,14 @@ public class UserManagementController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Удалить пользователя", description = "Удаляет пользователя по его уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         userManagementService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("User deleted successfully"));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Получить пользователя по ID", description = "Возвращает информацию о пользователе по его уникальному идентификатору.")
     public ResponseEntity<ApiResponse<UserAuthResponse>> getUser(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("User retrieved successfully",
                 authMapper.toAuthResponse(userManagementService.findUserById(id))));

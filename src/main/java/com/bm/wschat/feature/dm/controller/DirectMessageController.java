@@ -6,6 +6,8 @@ import com.bm.wschat.feature.dm.dto.response.DirectMessageResponse;
 import com.bm.wschat.feature.dm.service.DirectMessageService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,14 +24,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/dm")
 @RequiredArgsConstructor
+@Tag(name = "Direct Messages", description = "Управление личными сообщениями")
 public class DirectMessageController {
 
     private final DirectMessageService dmService;
 
-    /**
-     * Отправить личное сообщение
-     */
     @PostMapping
+    @Operation(summary = "Отправить личное сообщение", description = "Отправляет новое личное сообщение указанному получателю.")
     public ResponseEntity<ApiResponse<DirectMessageResponse>> sendMessage(
             @Valid @RequestBody SendDirectMessageRequest request,
             @AuthenticationPrincipal User user) {
@@ -38,10 +39,8 @@ public class DirectMessageController {
                         dmService.sendMessage(request, user.getId())));
     }
 
-    /**
-     * Получить переписку с пользователем
-     */
     @GetMapping("/conversation/{partnerId}")
+    @Operation(summary = "Получить переписку с другим пользователем", description = "Возвращает пагинированный список личных сообщений между текущим пользователем и указанным партнером.")
     public ResponseEntity<ApiResponse<Page<DirectMessageResponse>>> getConversation(
             @PathVariable Long partnerId,
             @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -50,20 +49,16 @@ public class DirectMessageController {
                 dmService.getConversation(user.getId(), partnerId, pageable)));
     }
 
-    /**
-     * Список всех диалогов
-     */
     @GetMapping("/conversations")
+    @Operation(summary = "Получить список всех диалогов текущего пользователя", description = "Возвращает список всех диалогов, в которых участвует текущий пользователь, с последними сообщениями.")
     public ResponseEntity<ApiResponse<List<ConversationResponse>>> getConversations(
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.success(
                 dmService.getConversations(user.getId())));
     }
 
-    /**
-     * Пометить сообщения от пользователя как прочитанные
-     */
     @PostMapping("/conversation/{partnerId}/read")
+    @Operation(summary = "Пометить сообщения от пользователя как прочитанные", description = "Помечает все непрочитанные личные сообщения от указанного партнера как прочитанные для текущего пользователя.")
     public ResponseEntity<ApiResponse<Integer>> markAsRead(
             @PathVariable Long partnerId,
             @AuthenticationPrincipal User user) {
@@ -71,19 +66,15 @@ public class DirectMessageController {
         return ResponseEntity.ok(ApiResponse.success("Marked " + count + " messages as read", count));
     }
 
-    /**
-     * Количество непрочитанных сообщений
-     */
     @GetMapping("/unread-count")
+    @Operation(summary = "Получить количество непрочитанных личных сообщений", description = "Возвращает общее количество непрочитанных личных сообщений для текущего пользователя.")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.success(dmService.getUnreadCount(user.getId())));
     }
 
-    /**
-     * Удалить сообщение
-     */
     @DeleteMapping("/{messageId}")
+    @Operation(summary = "Удалить личное сообщение", description = "Удаляет указанное личное сообщение (логическое удаление).")
     public ResponseEntity<ApiResponse<Void>> deleteMessage(
             @PathVariable Long messageId,
             @AuthenticationPrincipal User user) {

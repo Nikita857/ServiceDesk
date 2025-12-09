@@ -53,7 +53,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/**",
-                                "/ws/**")
+                                "/ws/**",
+                                "/swagger-ui/**",
+                                "/docs/**",
+                                "/api-docs/**"
+                        )
                         .permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session

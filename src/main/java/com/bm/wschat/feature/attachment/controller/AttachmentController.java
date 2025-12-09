@@ -4,6 +4,8 @@ import com.bm.wschat.feature.attachment.dto.response.AttachmentResponse;
 import com.bm.wschat.feature.attachment.service.AttachmentService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -19,14 +21,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Tag(name = "Attachments", description = "Управление вложениями")
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
 
-    /**
-     * Загрузить вложение к тикету
-     */
     @PostMapping("/tickets/{ticketId}/attachments")
+    @Operation(summary = "Загрузить вложение к тикету")
     public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToTicket(
             @PathVariable Long ticketId,
             @RequestParam("file") MultipartFile file,
@@ -36,10 +37,8 @@ public class AttachmentController {
                         attachmentService.uploadToTicket(ticketId, file, user.getId())));
     }
 
-    /**
-     * Загрузить вложение к сообщению
-     */
     @PostMapping("/messages/{messageId}/attachments")
+    @Operation(summary = "Загрузить вложение к сообщению")
     public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToMessage(
             @PathVariable Long messageId,
             @RequestParam("file") MultipartFile file,
@@ -49,40 +48,32 @@ public class AttachmentController {
                         attachmentService.uploadToMessage(messageId, file, user.getId())));
     }
 
-    /**
-     * Список вложений тикета
-     */
     @GetMapping("/tickets/{ticketId}/attachments")
+    @Operation(summary = "Получить список вложений тикета")
     public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getTicketAttachments(
             @PathVariable Long ticketId) {
         return ResponseEntity.ok(ApiResponse.success(
                 attachmentService.getByTicketId(ticketId)));
     }
 
-    /**
-     * Список вложений сообщения
-     */
     @GetMapping("/messages/{messageId}/attachments")
+    @Operation(summary = "Получить список вложений сообщения")
     public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getMessageAttachments(
             @PathVariable Long messageId) {
         return ResponseEntity.ok(ApiResponse.success(
                 attachmentService.getByMessageId(messageId)));
     }
 
-    /**
-     * Получить информацию о вложении
-     */
     @GetMapping("/attachments/{attachmentId}")
+    @Operation(summary = "Получить информацию о вложении")
     public ResponseEntity<ApiResponse<AttachmentResponse>> getAttachment(
             @PathVariable Long attachmentId) {
         return ResponseEntity.ok(ApiResponse.success(
                 attachmentService.getById(attachmentId)));
     }
 
-    /**
-     * Скачать файл
-     */
     @GetMapping("/attachments/file/{filename}")
+    @Operation(summary = "Скачать файл вложения")
     public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
         Resource resource = attachmentService.download(filename);
 
@@ -95,10 +86,8 @@ public class AttachmentController {
                 .body(resource);
     }
 
-    /**
-     * Удалить вложение
-     */
     @DeleteMapping("/attachments/{attachmentId}")
+    @Operation(summary = "Удалить вложение")
     public ResponseEntity<ApiResponse<Void>> deleteAttachment(
             @PathVariable Long attachmentId,
             @AuthenticationPrincipal User user) {
