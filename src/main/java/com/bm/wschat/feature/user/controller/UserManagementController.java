@@ -34,7 +34,10 @@ public class UserManagementController {
             @RequestParam(defaultValue = "true") Boolean active
     ) {
         User user = userManagementService.createUser(username, password, fio, email, roles, active);
-        UserAuthResponse response = new UserAuthResponse(user.getFio(), user.getUsername(), user.getRoles());
+        UserAuthResponse response = new UserAuthResponse(
+                user.getId(), user.getFio(), user.getUsername(),
+                user.getTelegramId(), user.isSpecialist(), user.getRoles(),
+                user.isActive());
         return ResponseEntity.ok(ApiResponse.success("User created successfully", response));
     }
 

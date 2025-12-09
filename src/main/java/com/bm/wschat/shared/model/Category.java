@@ -45,7 +45,7 @@ public class Category {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private CategoryType type = CategoryType.GENERAL; // USER_VISIBLE, SUPPORT_ONLY, etc.
+    private CategoryType type = CategoryType.GENERAL;
 
     // ← Приоритет/порядок отображения
     @Builder.Default

@@ -3,8 +3,12 @@ package com.bm.wschat.feature.user.dto.response;
 import java.util.Set;
 
 public record UserAuthResponse(
-        String FIO,
+        Long id,
+        String fio,
         String username,
-        Set<String> roles
+        Long telegramId,
+        boolean specialist,
+        Set<String> roles,
+        boolean active
 ) {
 }
