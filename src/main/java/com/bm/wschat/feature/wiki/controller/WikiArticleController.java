@@ -7,6 +7,8 @@ import com.bm.wschat.feature.wiki.dto.response.WikiArticleListResponse;
 import com.bm.wschat.feature.wiki.dto.response.WikiArticleResponse;
 import com.bm.wschat.feature.wiki.service.WikiArticleService;
 import com.bm.wschat.shared.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,15 +24,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/wiki")
 @RequiredArgsConstructor
+@Tag(name = "Wiki Articles", description = "Управление статьями базы знаний")
 public class WikiArticleController {
 
     private final WikiArticleService wikiArticleService;
 
-    /**
-     * Создать статью
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Создать новую статью Wiki", description = "Создает новую статью для базы знаний.")
     public ResponseEntity<ApiResponse<WikiArticleResponse>> createArticle(
             @Valid @RequestBody CreateWikiArticleRequest request,
             @AuthenticationPrincipal User user) {
@@ -39,57 +40,45 @@ public class WikiArticleController {
                         wikiArticleService.createArticle(request, user.getId())));
     }
 
-    /**
-     * Список всех статей
-     */
     @GetMapping
+    @Operation(summary = "Получить список всех статей Wiki", description = "Возвращает пагинированный список всех статей базы знаний.")
     public ResponseEntity<ApiResponse<Page<WikiArticleListResponse>>> getAllArticles(
             @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(wikiArticleService.getAllArticles(pageable)));
     }
 
-    /**
-     * Популярные статьи
-     */
     @GetMapping("/popular")
+    @Operation(summary = "Получить список популярных статей Wiki", description = "Возвращает пагинированный список статей, отсортированных по количеству просмотров.")
     public ResponseEntity<ApiResponse<Page<WikiArticleListResponse>>> getPopularArticles(
             @PageableDefault(size = 10, sort = "viewCount", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(wikiArticleService.getPopularArticles(pageable)));
     }
 
-    /**
-     * Поиск
-     */
     @GetMapping("/search")
+    @Operation(summary = "Поиск статей Wiki", description = "Выполняет полнотекстовый поиск по статьям базы знаний.")
     public ResponseEntity<ApiResponse<Page<WikiArticleListResponse>>> search(
             @RequestParam String q,
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(wikiArticleService.search(q, pageable)));
     }
 
-    /**
-     * По категории
-     */
     @GetMapping("/category/{categoryId}")
+    @Operation(summary = "Получить статьи Wiki по категории", description = "Возвращает пагинированный список статей, принадлежащих к указанной категории.")
     public ResponseEntity<ApiResponse<Page<WikiArticleListResponse>>> getByCategory(
             @PathVariable Long categoryId,
             @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(wikiArticleService.getByCategory(categoryId, pageable)));
     }
 
-    /**
-     * Получить по slug
-     */
     @GetMapping("/{slug}")
+    @Operation(summary = "Получить статью Wiki по SLUG", description = "Возвращает статью базы знаний по ее уникальному SLUG.")
     public ResponseEntity<ApiResponse<WikiArticleResponse>> getBySlug(@PathVariable String slug) {
         return ResponseEntity.ok(ApiResponse.success(wikiArticleService.getBySlug(slug)));
     }
 
-    /**
-     * Обновить статью
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Обновить статью Wiki", description = "Обновляет существующую статью базы знаний.")
     public ResponseEntity<ApiResponse<WikiArticleResponse>> updateArticle(
             @PathVariable Long id,
             @Valid @RequestBody UpdateWikiArticleRequest request,
@@ -98,11 +87,9 @@ public class WikiArticleController {
                 wikiArticleService.updateArticle(id, request, user.getId())));
     }
 
-    /**
-     * Удалить статью
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Удалить статью Wiki", description = "Удаляет статью базы знаний по ее ID (логическое удаление).")
     public ResponseEntity<ApiResponse<Void>> deleteArticle(
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
@@ -110,10 +97,8 @@ public class WikiArticleController {
         return ResponseEntity.ok(ApiResponse.success("Article deleted"));
     }
 
-    /**
-     * Лайкнуть статью
-     */
     @PostMapping("/{id}/like")
+    @Operation(summary = "Поставить лайк статье Wiki", description = "Увеличивает счетчик лайков для статьи базы знаний.")
     public ResponseEntity<ApiResponse<Void>> likeArticle(@PathVariable Long id) {
         wikiArticleService.likeArticle(id);
         return ResponseEntity.ok(ApiResponse.success("Article liked"));

@@ -9,6 +9,8 @@ import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.service.TicketService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,11 +26,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
+@Tag(name = "Tickets", description = "Управление тикетами")
 public class TicketController {
 
     private final TicketService ticketService;
 
     @PostMapping
+    @Operation(summary = "Создать новый тикет", description = "Создает новый тикет от имени текущего аутентифицированного пользователя.")
     public ResponseEntity<ApiResponse<TicketResponse>> createTicket(
             @Valid @RequestBody CreateTicketRequest request,
             @AuthenticationPrincipal User user) {
@@ -38,11 +42,13 @@ public class TicketController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Получить тикет по ID", description = "Возвращает полную информацию о тикете по его уникальному идентификатору.")
     public ResponseEntity<ApiResponse<TicketResponse>> getTicket(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketById(id)));
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Обновить информацию о тикете", description = "Обновляет основные данные существующего тикета.")
     public ResponseEntity<ApiResponse<TicketResponse>> updateTicket(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTicketRequest request) {
@@ -52,6 +58,7 @@ public class TicketController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Удалить тикет", description = "Удаляет тикет по его уникальному идентификатору (логическое удаление).")
     public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
         return ResponseEntity.ok(ApiResponse.success("Ticket deleted successfully"));
@@ -59,6 +66,7 @@ public class TicketController {
 
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
     public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
             @PathVariable Long id,
             @Valid @RequestBody ChangeStatusRequest request) {
@@ -68,6 +76,7 @@ public class TicketController {
 
     @PatchMapping("/{id}/assign-line")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Назначить тикет линии поддержки", description = "Назначает тикет указанной линии поддержки.")
     public ResponseEntity<ApiResponse<TicketResponse>> assignToLine(
             @PathVariable Long id,
             @RequestParam Long lineId) {
@@ -77,6 +86,7 @@ public class TicketController {
 
     @PatchMapping("/{id}/assign-specialist")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Назначить тикет специалисту", description = "Назначает тикет указанному специалисту.")
     public ResponseEntity<ApiResponse<TicketResponse>> assignToSpecialist(
             @PathVariable Long id,
             @RequestParam Long specialistId) {
@@ -85,6 +95,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/category-user")
+    @Operation(summary = "Установить пользовательскую категорию для тикета", description = "Устанавливает или изменяет пользовательскую категорию для тикета.")
     public ResponseEntity<ApiResponse<TicketResponse>> setUserCategory(
             @PathVariable Long id,
             @RequestParam Long categoryId) {
@@ -94,6 +105,7 @@ public class TicketController {
 
     @PatchMapping("/{id}/category-support")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Установить категорию поддержки для тикета", description = "Устанавливает или изменяет категорию поддержки для тикета.")
     public ResponseEntity<ApiResponse<TicketResponse>> setSupportCategory(
             @PathVariable Long id,
             @RequestParam Long categoryId) {
@@ -102,12 +114,14 @@ public class TicketController {
     }
 
     @GetMapping
+    @Operation(summary = "Получить список всех тикетов", description = "Возвращает пагинированный список всех тикетов в системе.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> listTickets(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(ticketService.listTickets(pageable)));
     }
 
     @GetMapping("/my")
+    @Operation(summary = "Получить список моих тикетов", description = "Возвращает пагинированный список тикетов, созданных текущим аутентифицированным пользователем.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getMyTickets(
             @AuthenticationPrincipal User user,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -116,6 +130,7 @@ public class TicketController {
 
     @GetMapping("/assigned")
     @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Получить список назначенных мне тикетов", description = "Возвращает пагинированный список тикетов, назначенных текущему аутентифицированному специалисту.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getAssignedTickets(
             @AuthenticationPrincipal User user,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -123,6 +138,7 @@ public class TicketController {
     }
 
     @GetMapping("/status/{status}")
+    @Operation(summary = "Получить список тикетов по статусу", description = "Возвращает пагинированный список тикетов с указанным статусом.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByStatus(
             @PathVariable TicketStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -130,6 +146,7 @@ public class TicketController {
     }
 
     @GetMapping("/line/{lineId}")
+    @Operation(summary = "Получить список тикетов по линии поддержки", description = "Возвращает пагинированный список тикетов, относящихся к указанной линии поддержки.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByLine(
             @PathVariable Long lineId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
