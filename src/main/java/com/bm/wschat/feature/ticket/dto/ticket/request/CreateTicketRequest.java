@@ -15,7 +15,10 @@ public record CreateTicketRequest(
 
         TicketPriority priority,
 
-        Long supportLineId) {
+        Long supportLineId,
+
+        // Опционально: назначить конкретному специалисту
+        Long assignToUserId) {
     public CreateTicketRequest {
         if (priority == null) {
             priority = TicketPriority.MEDIUM;
