@@ -46,7 +46,15 @@ import java.time.Instant;
 public class Assignment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "assignment_seq"
+    )
+    @SequenceGenerator(
+            name = "assignment_seq",
+            sequenceName = "assignments_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 

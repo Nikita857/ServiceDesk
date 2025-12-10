@@ -45,7 +45,15 @@ import java.util.List;
 public class Message {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "messages_seq"
+    )
+    @SequenceGenerator(
+            name = "messages_seq",
+            sequenceName = "messages_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 

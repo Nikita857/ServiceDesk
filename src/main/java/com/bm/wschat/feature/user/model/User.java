@@ -26,8 +26,17 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User implements UserDetails {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "user_seq"
+    )
+    @SequenceGenerator(
+            name = "user_seq",
+            sequenceName = "users_id_seq",
+            allocationSize = 1
+    )
     private Long id;
 
     @NotBlank
@@ -119,11 +128,11 @@ public class User implements UserDetails {
     }
 
     public boolean isAdmin() {
-        return roles != null && roles.contains("ROLE_ADMIN");
+        return roles != null && roles.contains("ADMIN");
     }
 
     public boolean isSpecialist() {
-        return specialist || (roles != null && roles.contains("ROLE_SPECIALIST"));
+        return specialist || roles.contains("SPECIALIST");
     }
 
 }

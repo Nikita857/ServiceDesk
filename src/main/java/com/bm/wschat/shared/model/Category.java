@@ -30,7 +30,15 @@ import java.time.Instant;
 public class Category {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "category_seq"
+    )
+    @SequenceGenerator(
+            name = "category_seq",
+            sequenceName = "categories_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 

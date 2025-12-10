@@ -29,7 +29,15 @@ import java.time.Instant;
 public class DirectMessage {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "direct_msg_seq"
+    )
+    @SequenceGenerator(
+            name = "direct_msg_seq",
+            sequenceName = "direct_messages_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 

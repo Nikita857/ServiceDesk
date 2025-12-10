@@ -18,7 +18,15 @@ import java.util.Objects;
 public class RefreshToken {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "refresh_token_seq"
+    )
+    @SequenceGenerator(
+            name = "refresh_token_seq",
+            sequenceName = "refresh_tokens_id_seq",
+            allocationSize = 1
+    )
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
