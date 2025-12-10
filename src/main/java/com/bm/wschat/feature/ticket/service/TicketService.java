@@ -77,6 +77,26 @@ public class TicketService {
             ticket.setCategoryUser(category);
         }
 
+        // Прямое назначение специалисту при создании
+        if (request.assignToUserId() != null) {
+            User specialist = userRepository.findById(request.assignToUserId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Specialist not found with id: " + request.assignToUserId()));
+
+            if (!specialist.isSpecialist()) {
+                throw new IllegalArgumentException("User is not a specialist");
+            }
+
+            // Проверка что специалист принадлежит выбранной линии (если линия указана)
+            if (ticket.getSupportLine() != null &&
+                    !ticket.getSupportLine().getSpecialists().contains(specialist)) {
+                throw new IllegalArgumentException("Specialist is not in the selected support line");
+            }
+
+            ticket.setAssignedTo(specialist);
+            ticket.setStatus(TicketStatus.OPEN);
+        }
+
         Ticket saved = ticketRepository.save(ticket);
         return ticketMapper.toResponse(saved);
     }
