@@ -6,6 +6,8 @@ import com.bm.wschat.feature.message.dto.response.MessageResponse;
 import com.bm.wschat.feature.message.mapper.MessageMapper;
 import com.bm.wschat.feature.message.model.Message;
 import com.bm.wschat.feature.message.repository.MessageRepository;
+import com.bm.wschat.feature.notification.model.Notification;
+import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
@@ -20,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ public class MessageService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final MessageMapper messageMapper;
+    private final NotificationService notificationService;
 
     @Transactional
     public MessageResponse sendMessage(Long ticketId, SendMessageRequest request, Long userId) {
@@ -50,7 +55,41 @@ public class MessageService {
         message.setSenderType(sender.isSpecialist() ? SenderType.SYSADMIN : SenderType.USER);
 
         Message saved = messageRepository.save(message);
+
+        // Отправка уведомлений участникам тикета (кроме отправителя)
+        sendMessageNotifications(ticket, sender, saved.getContent());
+
         return messageMapper.toResponse(saved);
+    }
+
+    /**
+     * Отправить уведомления всем участникам тикета о новом сообщении
+     */
+    private void sendMessageNotifications(Ticket ticket, User sender, String messageContent) {
+        Set<Long> recipientIds = new HashSet<>();
+
+        // Создатель тикета
+        if (ticket.getCreatedBy() != null) {
+            recipientIds.add(ticket.getCreatedBy().getId());
+        }
+
+        // Назначенный специалист
+        if (ticket.getAssignedTo() != null) {
+            recipientIds.add(ticket.getAssignedTo().getId());
+        }
+
+        // Удаляем отправителя
+        recipientIds.remove(sender.getId());
+
+        if (!recipientIds.isEmpty()) {
+            Notification notification = Notification.message(
+                    ticket.getId(),
+                    ticket.getTitle(),
+                    sender.getId(),
+                    sender.getFio() != null ? sender.getFio() : sender.getUsername(),
+                    messageContent);
+            notificationService.notifyUsers(recipientIds, notification);
+        }
     }
 
     public Page<MessageResponse> getTicketMessages(Long ticketId, Pageable pageable, User user) {

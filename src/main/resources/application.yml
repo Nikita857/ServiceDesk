@@ -38,6 +38,14 @@ spring:
   mvc:
     static-path-pattern: /static/**
 
+  # =========================================================
+  # File Upload Limits
+  # =========================================================
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 15MB
+
 # =========================================================
 # JWT Configuration
 # =========================================================
@@ -66,3 +74,10 @@ app:
 #  level:
 #    org.hibernate.SQL: debug
 #    org.flywaydb: DEBUG
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /docs

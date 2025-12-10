@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -37,8 +38,43 @@ public class AttachmentService {
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
 
+    // Опасные расширения файлов, которые блокируем
+    private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
+            ".exe", ".bat", ".cmd", ".sh", ".ps1", ".msi", ".dll",
+            ".scr", ".vbs", ".js", ".jar", ".com", ".pif", ".hta");
+
+    // Максимальный размер файла: 10MB
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    /**
+     * Валидация файла перед загрузкой
+     */
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        // Проверка размера
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new IllegalArgumentException("File size exceeds maximum allowed (10MB)");
+        }
+
+        // Проверка расширения
+        String filename = file.getOriginalFilename();
+        if (filename != null) {
+            String lowerName = filename.toLowerCase();
+            for (String ext : BLOCKED_EXTENSIONS) {
+                if (lowerName.endsWith(ext)) {
+                    throw new IllegalArgumentException("File type not allowed: " + ext);
+                }
+            }
+        }
+    }
+
     @Transactional
     public AttachmentResponse uploadToTicket(Long ticketId, MultipartFile file, Long userId) {
+        validateFile(file);
+
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + ticketId));
 
@@ -65,6 +101,8 @@ public class AttachmentService {
 
     @Transactional
     public AttachmentResponse uploadToMessage(Long messageId, MultipartFile file, Long userId) {
+        validateFile(file);
+
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new EntityNotFoundException("Message not found: " + messageId));
 

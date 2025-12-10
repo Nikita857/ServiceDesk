@@ -1,5 +1,7 @@
 package com.bm.wschat.feature.ticket.service;
 
+import com.bm.wschat.feature.notification.model.Notification;
+import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.supportline.model.SupportLine;
 import com.bm.wschat.feature.supportline.repository.SupportLineRepository;
 import com.bm.wschat.feature.ticket.dto.ticket.request.ChangeStatusRequest;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -35,6 +38,7 @@ public class TicketService {
     private final SupportLineRepository supportLineRepository;
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
+    private final NotificationService notificationService;
 
     // Status workflow based on TicketStatus enum
     private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
@@ -76,6 +80,26 @@ public class TicketService {
             ticket.setCategoryUser(category);
         }
 
+        // Прямое назначение специалисту при создании
+        if (request.assignToUserId() != null) {
+            User specialist = userRepository.findById(request.assignToUserId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Specialist not found with id: " + request.assignToUserId()));
+
+            if (!specialist.isSpecialist()) {
+                throw new IllegalArgumentException("User is not a specialist");
+            }
+
+            // Проверка что специалист принадлежит выбранной линии (если линия указана)
+            if (ticket.getSupportLine() != null &&
+                    !ticket.getSupportLine().getSpecialists().contains(specialist)) {
+                throw new IllegalArgumentException("Specialist is not in the selected support line");
+            }
+
+            ticket.setAssignedTo(specialist);
+            ticket.setStatus(TicketStatus.OPEN);
+        }
+
         Ticket saved = ticketRepository.save(ticket);
         return ticketMapper.toResponse(saved);
     }
@@ -84,6 +108,58 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
         return ticketMapper.toResponse(ticket);
+    }
+
+    /**
+     * Get ticket by ID with access check
+     */
+    public TicketResponse getTicketById(Long id, User user) {
+        Ticket ticket = ticketRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+
+        if (!canAccessTicket(ticket, user)) {
+            throw new org.springframework.security.access.AccessDeniedException("You don't have access to this ticket");
+        }
+
+        return ticketMapper.toResponse(ticket);
+    }
+
+    /**
+     * Check if user can access a specific ticket:
+     * - DEVELOPER: can access all
+     * - SPECIALIST: can access tickets from their lines or assigned to them
+     * - USER: can access only their own tickets
+     */
+    public boolean canAccessTicket(Ticket ticket, User user) {
+        // Admin can access all
+        if (user.isAdmin()) {
+            return true;
+        }
+
+        // Creator can always access their own ticket
+        if (ticket.getCreatedBy() != null && ticket.getCreatedBy().getId().equals(user.getId())) {
+            return true;
+        }
+
+        // Assigned specialist can access
+        if (ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(user.getId())) {
+            return true;
+        }
+
+        // Specialist in the same support line can access (if not assigned to specific
+        // person)
+        if (user.isSpecialist() && ticket.getSupportLine() != null) {
+            List<SupportLine> userLines = supportLineRepository.findBySpecialist(user);
+            boolean inSameLine = userLines.stream()
+                    .anyMatch(line -> line.getId().equals(ticket.getSupportLine().getId()));
+
+            // Can access if in same line AND ticket is not assigned to someone else
+            if (inSameLine && ticket.getAssignedTo() == null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Transactional
@@ -140,7 +216,34 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
+
+        // Уведомление об изменении статуса
+        sendStatusChangeNotification(updated, currentStatus, newStatus);
+
         return ticketMapper.toResponse(updated);
+    }
+
+    /**
+     * Отправить уведомления об изменении статуса
+     */
+    private void sendStatusChangeNotification(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus) {
+        Notification notification = Notification.statusChange(
+                ticket.getId(),
+                ticket.getTitle(),
+                oldStatus.name(),
+                newStatus.name());
+
+        // Уведомляем создателя
+        if (ticket.getCreatedBy() != null) {
+            notificationService.notifyUser(ticket.getCreatedBy().getId(), notification);
+        }
+
+        // Уведомляем назначенного (если отличается от создателя)
+        if (ticket.getAssignedTo() != null &&
+                (ticket.getCreatedBy() == null
+                        || !ticket.getAssignedTo().getId().equals(ticket.getCreatedBy().getId()))) {
+            notificationService.notifyUser(ticket.getAssignedTo().getId(), notification);
+        }
     }
 
     @Transactional
@@ -238,6 +341,33 @@ public class TicketService {
     public Page<TicketListResponse> getTicketsByLine(Long lineId, Pageable pageable) {
         Page<Ticket> tickets = ticketRepository.findBySupportLineId(lineId, pageable);
         return tickets.map(ticketMapper::toListResponse);
+    }
+
+    /**
+     * Get tickets visible to a user based on their role:
+     * - USER: only their own tickets (createdBy)
+     * - SYSADMIN/DEV1C: tickets from their support lines + assigned to them
+     * - DEVELOPER: all tickets (admin access)
+     */
+    public Page<TicketListResponse> getVisibleTickets(User user, Pageable pageable) {
+        // DEVELOPER (admin) sees all tickets
+        if (user.isAdmin()) {
+            return listTickets(pageable);
+        }
+
+        // Specialist sees tickets from their lines + assigned to them
+        if (user.isSpecialist()) {
+            List<SupportLine> userLines = supportLineRepository.findBySpecialist(user);
+            if (userLines.isEmpty()) {
+                // Specialist not in any line - see only assigned
+                return getAssignedTickets(user.getId(), pageable);
+            }
+            Page<Ticket> tickets = ticketRepository.findVisibleToSpecialist(userLines, user.getId(), pageable);
+            return tickets.map(ticketMapper::toListResponse);
+        }
+
+        // Regular USER sees only their own tickets
+        return getMyTickets(user.getId(), pageable);
     }
 
     private boolean isValidStatusTransition(TicketStatus from, TicketStatus to) {
