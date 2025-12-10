@@ -66,7 +66,7 @@ public class MessageWebSocketController {
                 .ticket(ticket)
                 .content(request.content())
                 .sender(user)
-                .senderType(user.isSpecialist() ? SenderType.SPECIALIST : SenderType.USER)
+                .senderType(user.isSpecialist() ? SenderType.SYSADMIN : SenderType.USER)
                 .internal(request.internal())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

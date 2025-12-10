@@ -57,7 +57,7 @@ public class TicketController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
     @Operation(summary = "Удалить тикет", description = "Удаляет тикет по его уникальному идентификатору (логическое удаление).")
     public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
@@ -65,7 +65,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
     public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
             @PathVariable Long id,
@@ -75,7 +75,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/assign-line")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Назначить тикет линии поддержки", description = "Назначает тикет указанной линии поддержки.")
     public ResponseEntity<ApiResponse<TicketResponse>> assignToLine(
             @PathVariable Long id,
@@ -85,7 +85,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/assign-specialist")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Назначить тикет специалисту", description = "Назначает тикет указанному специалисту.")
     public ResponseEntity<ApiResponse<TicketResponse>> assignToSpecialist(
             @PathVariable Long id,
@@ -104,7 +104,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/category-support")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Установить категорию поддержки для тикета", description = "Устанавливает или изменяет категорию поддержки для тикета.")
     public ResponseEntity<ApiResponse<TicketResponse>> setSupportCategory(
             @PathVariable Long id,
@@ -129,7 +129,7 @@ public class TicketController {
     }
 
     @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Получить список назначенных мне тикетов", description = "Возвращает пагинированный список тикетов, назначенных текущему аутентифицированному специалисту.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getAssignedTickets(
             @AuthenticationPrincipal User user,

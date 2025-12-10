@@ -31,7 +31,6 @@ public class AssignmentController {
     private final AssignmentService assignmentService;
 
     @PostMapping("/assignments")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
     @Operation(summary = "Создать новое назначение для тикета", description = "Назначает тикет специалисту или линии поддержки.")
     public ResponseEntity<ApiResponse<AssignmentResponse>> createAssignment(
             @Valid @RequestBody AssignmentCreateRequest request,
@@ -42,7 +41,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/assignments/{id}/accept")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Принять назначение тикета", description = "Текущий пользователь принимает назначенную ему задачу по тикету.")
     public ResponseEntity<ApiResponse<AssignmentResponse>> acceptAssignment(
             @PathVariable Long id,
@@ -52,7 +51,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/assignments/{id}/reject")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Отклонить назначение тикета", description = "Текущий пользователь отклоняет назначенную ему задачу по тикету с указанием причины.")
     public ResponseEntity<ApiResponse<AssignmentResponse>> rejectAssignment(
             @PathVariable Long id,
@@ -78,7 +77,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/assignments/pending")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Получить мои ожидающие назначения", description = "Возвращает пагинированный список назначений, ожидающих принятия текущим специалистом.")
     public ResponseEntity<ApiResponse<Page<AssignmentResponse>>> getMyPendingAssignments(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -88,7 +87,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/assignments/pending-count")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Получить количество моих ожидающих назначений", description = "Возвращает количество назначений, ожидающих принятия текущим специалистом.")
     public ResponseEntity<ApiResponse<Long>> getPendingCount(
             @AuthenticationPrincipal User user) {

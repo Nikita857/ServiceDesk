@@ -128,11 +128,12 @@ public class User implements UserDetails {
     }
 
     public boolean isAdmin() {
-        return roles != null && roles.contains("ADMIN");
+        return roles != null && roles.contains(SenderType.DEVELOPER.name());
     }
 
     public boolean isSpecialist() {
-        return specialist || roles.contains("SPECIALIST");
+        Set<String> specialistRoles = Set.of(SenderType.SYSADMIN.name(), SenderType.DEV1C.name());
+        return specialist || roles.stream().anyMatch(specialistRoles::contains);
     }
 
 }

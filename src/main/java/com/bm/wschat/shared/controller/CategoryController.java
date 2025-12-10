@@ -27,7 +27,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Создать новую категорию", description = "Создает новую категорию для тикетов или статей Wiki.")
     public ResponseEntity<ApiResponse<CategoryDetailResponse>> createCategory(
             @Valid @RequestBody CreateCategoryRequest request) {
@@ -62,7 +62,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
     @Operation(summary = "Обновить категорию", description = "Обновляет существующую категорию.")
     public ResponseEntity<ApiResponse<CategoryDetailResponse>> updateCategory(
             @PathVariable Long id,
@@ -72,7 +72,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
     @Operation(summary = "Удалить категорию", description = "Удаляет категорию по ее уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);

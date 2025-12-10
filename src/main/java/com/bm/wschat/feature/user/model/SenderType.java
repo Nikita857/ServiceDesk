@@ -4,10 +4,9 @@ import org.springframework.security.core.GrantedAuthority;
 
 public enum SenderType implements GrantedAuthority {
     USER,
-    SPECIALIST,
-    DEVELOPER,
-    ADMIN,
-    SYSTEM;
+    SYSADMIN,
+    DEV1C,
+    DEVELOPER;
 
     @Override
     public String getAuthority() { return name();}
