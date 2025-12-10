@@ -42,9 +42,11 @@ public class TicketController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Получить тикет по ID", description = "Возвращает полную информацию о тикете по его уникальному идентификатору.")
-    public ResponseEntity<ApiResponse<TicketResponse>> getTicket(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketById(id)));
+    @Operation(summary = "Получить тикет по ID", description = "Возвращает полную информацию о тикете по его уникальному идентификатору (с проверкой доступа).")
+    public ResponseEntity<ApiResponse<TicketResponse>> getTicket(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketById(id, user)));
     }
 
     @PutMapping("/{id}")
@@ -114,10 +116,11 @@ public class TicketController {
     }
 
     @GetMapping
-    @Operation(summary = "Получить список всех тикетов", description = "Возвращает пагинированный список всех тикетов в системе.")
+    @Operation(summary = "Получить список доступных тикетов", description = "Возвращает пагинированный список тикетов, видимых текущему пользователю в зависимости от его роли.")
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> listTickets(
+            @AuthenticationPrincipal User user,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.listTickets(pageable)));
+        return ResponseEntity.ok(ApiResponse.success(ticketService.getVisibleTickets(user, pageable)));
     }
 
     @GetMapping("/my")

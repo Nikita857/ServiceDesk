@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -84,6 +85,58 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
         return ticketMapper.toResponse(ticket);
+    }
+
+    /**
+     * Get ticket by ID with access check
+     */
+    public TicketResponse getTicketById(Long id, User user) {
+        Ticket ticket = ticketRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+
+        if (!canAccessTicket(ticket, user)) {
+            throw new org.springframework.security.access.AccessDeniedException("You don't have access to this ticket");
+        }
+
+        return ticketMapper.toResponse(ticket);
+    }
+
+    /**
+     * Check if user can access a specific ticket:
+     * - DEVELOPER: can access all
+     * - SPECIALIST: can access tickets from their lines or assigned to them
+     * - USER: can access only their own tickets
+     */
+    public boolean canAccessTicket(Ticket ticket, User user) {
+        // Admin can access all
+        if (user.isAdmin()) {
+            return true;
+        }
+
+        // Creator can always access their own ticket
+        if (ticket.getCreatedBy() != null && ticket.getCreatedBy().getId().equals(user.getId())) {
+            return true;
+        }
+
+        // Assigned specialist can access
+        if (ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(user.getId())) {
+            return true;
+        }
+
+        // Specialist in the same support line can access (if not assigned to specific
+        // person)
+        if (user.isSpecialist() && ticket.getSupportLine() != null) {
+            List<SupportLine> userLines = supportLineRepository.findBySpecialist(user);
+            boolean inSameLine = userLines.stream()
+                    .anyMatch(line -> line.getId().equals(ticket.getSupportLine().getId()));
+
+            // Can access if in same line AND ticket is not assigned to someone else
+            if (inSameLine && ticket.getAssignedTo() == null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Transactional
@@ -238,6 +291,33 @@ public class TicketService {
     public Page<TicketListResponse> getTicketsByLine(Long lineId, Pageable pageable) {
         Page<Ticket> tickets = ticketRepository.findBySupportLineId(lineId, pageable);
         return tickets.map(ticketMapper::toListResponse);
+    }
+
+    /**
+     * Get tickets visible to a user based on their role:
+     * - USER: only their own tickets (createdBy)
+     * - SYSADMIN/DEV1C: tickets from their support lines + assigned to them
+     * - DEVELOPER: all tickets (admin access)
+     */
+    public Page<TicketListResponse> getVisibleTickets(User user, Pageable pageable) {
+        // DEVELOPER (admin) sees all tickets
+        if (user.isAdmin()) {
+            return listTickets(pageable);
+        }
+
+        // Specialist sees tickets from their lines + assigned to them
+        if (user.isSpecialist()) {
+            List<SupportLine> userLines = supportLineRepository.findBySpecialist(user);
+            if (userLines.isEmpty()) {
+                // Specialist not in any line - see only assigned
+                return getAssignedTickets(user.getId(), pageable);
+            }
+            Page<Ticket> tickets = ticketRepository.findVisibleToSpecialist(userLines, user.getId(), pageable);
+            return tickets.map(ticketMapper::toListResponse);
+        }
+
+        // Regular USER sees only their own tickets
+        return getMyTickets(user.getId(), pageable);
     }
 
     private boolean isValidStatusTransition(TicketStatus from, TicketStatus to) {
