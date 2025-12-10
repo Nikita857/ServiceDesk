@@ -9,6 +9,7 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -25,6 +27,7 @@ import java.time.Instant;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "MessageWebSocketController", description = "Websocket controller for live message exchange inside of ticket")
 public class MessageWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -63,7 +66,7 @@ public class MessageWebSocketController {
                 .ticket(ticket)
                 .content(request.content())
                 .sender(user)
-                .senderType(user.isSpecialist() ? SenderType.SPECIALIST : SenderType.USER)
+                .senderType(user.isSpecialist() ? SenderType.SYSADMIN : SenderType.USER)
                 .internal(request.internal())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -109,7 +112,7 @@ public class MessageWebSocketController {
         if (principal == null)
             return;
 
-        User user = (User) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal)
+        User user = (User) ((UsernamePasswordAuthenticationToken) principal)
                 .getPrincipal();
 
         TypingIndicator broadcastIndicator = new TypingIndicator(

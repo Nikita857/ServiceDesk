@@ -38,13 +38,21 @@ import java.time.Instant;
 public class Attachment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "attachment_seq"
+    )
+    @SequenceGenerator(
+            name = "attachment_seq",
+            sequenceName = "attachments_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 
     // ← Один из двух: либо к тикету, либо к сообщению (но не оба!)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", nullable = true)
+    @JoinColumn(name = "ticket_id")
     private Ticket ticket;
 
     @ManyToOne(fetch = FetchType.LAZY)

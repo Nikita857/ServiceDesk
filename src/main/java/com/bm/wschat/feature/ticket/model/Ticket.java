@@ -41,7 +41,15 @@ import java.util.Optional;
 public class Ticket {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "ticket_seq"
+    )
+    @SequenceGenerator(
+            name = "ticket_seq",
+            sequenceName = "tickets_id_seq",
+            allocationSize = 1
+    )
     private Long id;
 
     @NotBlank

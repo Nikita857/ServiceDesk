@@ -8,6 +8,8 @@ import com.bm.wschat.feature.supportline.dto.response.SupportLineResponse;
 import com.bm.wschat.feature.supportline.service.SupportLineService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,12 +23,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/support-lines")
 @RequiredArgsConstructor
+@Tag(name = "Support Lines", description = "Управление линиями поддержки")
 public class SupportLineController {
 
     private final SupportLineService supportLineService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
+    @Operation(summary = "Создать новую линию поддержки", description = "Создает новую линию поддержки с указанным именем и описанием.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> createLine(
             @Valid @RequestBody CreateSupportLineRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -35,17 +39,20 @@ public class SupportLineController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Получить линию поддержки по ID", description = "Возвращает информацию о линии поддержки по ее уникальному идентификатору.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> getLine(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success(supportLineService.getLineById(id)));
     }
 
     @GetMapping
+    @Operation(summary = "Получить все линии поддержки", description = "Возвращает список всех доступных линий поддержки.")
     public ResponseEntity<ApiResponse<List<SupportLineListResponse>>> getAllLines() {
         return ResponseEntity.ok(ApiResponse.success(supportLineService.getAllLines()));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
+    @Operation(summary = "Обновить линию поддержки", description = "Обновляет информацию о существующей линии поддержки.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> updateLine(
             @PathVariable Long id,
             @Valid @RequestBody UpdateSupportLineRequest request) {
@@ -54,14 +61,16 @@ public class SupportLineController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
+    @Operation(summary = "Удалить линию поддержки", description = "Удаляет линию поддержки по ее уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteLine(@PathVariable Long id) {
         supportLineService.deleteLine(id);
         return ResponseEntity.ok(ApiResponse.success("Support line deleted successfully"));
     }
 
     @PostMapping("/{lineId}/specialists/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
+    @Operation(summary = "Добавить специалиста к линии поддержки", description = "Добавляет указанного специалиста к указанной линии поддержки.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> addSpecialist(
             @PathVariable Long lineId,
             @PathVariable Long userId) {
@@ -70,7 +79,8 @@ public class SupportLineController {
     }
 
     @DeleteMapping("/{lineId}/specialists/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('DEVELOPER')")
+    @Operation(summary = "Удалить специалиста из линии поддержки", description = "Удаляет указанного специалиста из указанной линии поддержки.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> removeSpecialist(
             @PathVariable Long lineId,
             @PathVariable Long userId) {
@@ -79,12 +89,14 @@ public class SupportLineController {
     }
 
     @GetMapping("/{lineId}/specialists")
+    @Operation(summary = "Получить список специалистов для линии поддержки", description = "Возвращает список всех специалистов, привязанных к указанной линии поддержки.")
     public ResponseEntity<ApiResponse<List<SpecialistResponse>>> getSpecialists(@PathVariable Long lineId) {
         return ResponseEntity.ok(ApiResponse.success(supportLineService.getLineSpecialists(lineId)));
     }
 
     @GetMapping("/my-lines")
-    @PreAuthorize("hasAnyRole('SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','SPECIALIST', 'ADMIN')")
+    @Operation(summary = "Получить линии поддержки текущего специалиста", description = "Возвращает список линий поддержки, к которым привязан текущий аутентифицированный специалист.")
     public ResponseEntity<ApiResponse<List<SupportLineListResponse>>> getMyLines(
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(ApiResponse.success(supportLineService.getLinesBySpecialist(user.getId())));

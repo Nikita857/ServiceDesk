@@ -31,7 +31,15 @@ import java.util.Set;
 public class SupportLine {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "support_line_seq"
+    )
+    @SequenceGenerator(
+            name = "support_line_seq",
+            sequenceName = "support_lines_id_seq",
+            allocationSize = 1
+    )
     private Long id;
 
     @Column(nullable = false, length = 100, unique = true)

@@ -36,7 +36,15 @@ import java.time.LocalDate;
 public class TimeEntry {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "time_entry_seq"
+    )
+    @SequenceGenerator(
+            name = "time_entry_seq",
+            sequenceName = "time_entries_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 

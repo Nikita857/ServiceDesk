@@ -4,6 +4,7 @@ import com.bm.wschat.feature.dm.dto.request.SendDirectMessageRequest;
 import com.bm.wschat.feature.dm.dto.response.DirectMessageResponse;
 import com.bm.wschat.feature.dm.service.DirectMessageService;
 import com.bm.wschat.feature.user.model.User;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,6 +17,7 @@ import java.security.Principal;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "DirectMessageWebSocketController", description = "Websocket controller for real time message exchange")
 public class DirectMessageWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;

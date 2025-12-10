@@ -4,114 +4,175 @@
 -----------------------------------------------------------
 -- USERS (idempotent UPSERT)
 -----------------------------------------------------------
-INSERT INTO users (id, username, fio, email, password, active, specialist, created_at, updated_at, version)
+INSERT INTO users (username, fio, email, password, active, specialist, created_at, updated_at, version)
 VALUES
-    (1, 'admin', 'Администратор Системы', 'admin@example.com',
+    -- Developers (самые сложные вопросы)
+    ('developer1', 'Бугаков Н.В.', 'admin1@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+    ('developer2', 'Иванов И.И.', 'admin2@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+    ('developer3', 'Петров П.П.', 'admin3@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
 
-    (2, 'specialist', 'Специалист Поддержки', 'specialist@example.com',
+    -- 1C Specialists
+    ('specialist1', 'Смиронов А.Е.', 'specialist1@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+    ('specialist2', 'Белозеров А.К.', 'specialist2@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+    ('specialist3', 'Селянин С.А.', 'specialist3@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
 
-    (3, 'user', 'Обычный Пользователь', 'user@example.com',
+    -- Sysadmins — первая линия
+    ('sysadmin1', 'Сивков С.С.', 'sys1@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+    ('sysadmin2', 'Фогель Е.В.', 'sys2@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+    ('sysadmin3', 'Касьянов М.С.', 'sys3@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
+
+    -- Users
+    ('user1', 'Сарипов А.Е.', 'user1@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0),
+    ('user2', 'Канаев В.А.', 'user2@example.com',
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0),
+    ('user3', 'Петенков С.С.', 'user3@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0)
-    ON CONFLICT (id) DO UPDATE
-                            SET username = EXCLUDED.username,
-                            fio = EXCLUDED.fio,
-                            email = EXCLUDED.email,
-                            password = EXCLUDED.password,
-                            active = EXCLUDED.active,
-                            specialist = EXCLUDED.specialist,
-                            updated_at = NOW();
+
+ON CONFLICT (id) DO UPDATE
+    SET username = EXCLUDED.username,
+        fio = EXCLUDED.fio,
+        email = EXCLUDED.email,
+        password = EXCLUDED.password,
+        active = EXCLUDED.active,
+        specialist = EXCLUDED.specialist,
+        updated_at = NOW();
 
 -----------------------------------------------------------
 -- USER ROLES (idempotent)
+-- Новая ролевая модель
 -----------------------------------------------------------
+
 INSERT INTO user_roles (user_id, role) VALUES
-                                           (1, 'ADMIN'),
-                                           (1, 'SPECIALIST'),
-                                           (1, 'USER'),
-                                           (2, 'SPECIALIST'),
-                                           (2, 'USER'),
-                                           (3, 'USER')
-    ON CONFLICT (user_id, role) DO NOTHING;
+
+                                           -- Developers: сложные вопросы
+                                           (1, 'DEVELOPER'), (1, 'USER'),
+                                           (2, 'DEVELOPER'), (2, 'USER'),
+                                           (3, 'DEVELOPER'), (3, 'USER'),
+
+                                           -- 1C specialists: линия вопросов по 1С
+                                           (4, 'DEV1C'), (4, 'USER'),
+                                           (5, 'DEV1C'), (5, 'USER'),
+                                           (6, 'DEV1C'), (6, 'USER'),
+
+                                           -- Sysadmins: основная линия поддержки
+                                           (7, 'SYSADMIN'), (7, 'USER'),
+                                           (8, 'SYSADMIN'), (8, 'USER'),
+                                           (9, 'SYSADMIN'), (9, 'USER'),
+
+                                           -- Regular users
+                                           (10, 'USER'),
+                                           (11, 'USER'),
+                                           (12, 'USER')
+
+ON CONFLICT (user_id, role) DO NOTHING;
 
 -----------------------------------------------------------
--- CATEGORIES (idempotent)
+-- CATEGORIES (направления заявок)
 -----------------------------------------------------------
-INSERT INTO categories (id, name, description, type, user_selectable, display_order, created_at, updated_at, version)
+
+INSERT INTO categories (name, description, type, user_selectable, display_order, created_at, updated_at, version)
 VALUES
-    (1, 'Техническая поддержка', 'Проблемы с оборудованием и ПО', 'GENERAL', true, 1, NOW(), NOW(), 0),
-    (2, 'Вопросы по 1С', 'Консультации и ошибки в 1С', 'GENERAL', true, 2, NOW(), NOW(), 0),
-    (3, 'Общие вопросы', 'Вопросы, не вошедшие в другие категории', 'GENERAL', true, 3, NOW(), NOW(), 0),
-    (4, 'Внутренняя категория поддержки', 'Используется только специалистами', 'HIDDEN', false, 4, NOW(), NOW(), 0),
-    (5, 'База знаний', 'Категория для статей Wiki', 'GENERAL', false, 1, NOW(), NOW(), 0)
-    ON CONFLICT (id) DO UPDATE
-                            SET name = EXCLUDED.name,
-                            description = EXCLUDED.description,
-                            type = EXCLUDED.type,
-                            user_selectable = EXCLUDED.user_selectable,
-                            display_order = EXCLUDED.display_order,
-                            updated_at = NOW();
+    ('Техническая поддержка', 'Оборудование, ПО, сеть – первая линия (SYSADMIN)', 'GENERAL', true, 1, NOW(), NOW(), 0),
+    ('Вопросы по 1С', 'Ошибки и консультации по 1С – линия DEV1C', 'GENERAL', true, 2, NOW(), NOW(), 0),
+    ('Сложные вопросы', 'Эскалация разработчикам – линия DEVELOPER', 'GENERAL', false, 3, NOW(), NOW(), 0),
+    ('Внутренняя категория поддержки', 'Используется только специалистами', 'HIDDEN', false, 4, NOW(), NOW(), 0),
+    ('База знаний', 'Категория для статей Wiki', 'GENERAL', false, 5, NOW(), NOW(), 0)
+
+ON CONFLICT (id) DO UPDATE
+    SET name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        type = EXCLUDED.type,
+        user_selectable = EXCLUDED.user_selectable,
+        display_order = EXCLUDED.display_order,
+        updated_at = NOW();
 
 -----------------------------------------------------------
--- SUPPORT LINES (idempotent)
+-- SUPPORT LINES (3 линии поддержки)
 -----------------------------------------------------------
-INSERT INTO support_lines (id, name, description, assignment_mode, created_at, updated_at, version)
+
+INSERT INTO support_lines (name, description, assignment_mode, created_at, updated_at, version)
 VALUES
-    (1, 'Первая линия поддержки', 'Основная линия для приема заявок', 'FIRST_AVAILABLE', NOW(), NOW(), 0)
-    ON CONFLICT (id) DO UPDATE
-                            SET name = EXCLUDED.name,
-                            description = EXCLUDED.description,
-                            assignment_mode = EXCLUDED.assignment_mode,
-                            updated_at = NOW();
+    ( 'Первая линия (SYSADMIN)', 'Техническая поддержка и общие вопросы', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
+    ( 'Линия 1С (DEV1C)', 'Специалисты по 1С', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
+    ( 'Линия разработчиков (DEVELOPER)', 'Сложные, нестандартные или эскалированные обращения', 'LEAST_LOADED', NOW(), NOW(), 0)
+
+ON CONFLICT (id) DO UPDATE
+    SET name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        assignment_mode = EXCLUDED.assignment_mode,
+        updated_at = NOW();
 
 -----------------------------------------------------------
--- SPECIALISTS IN LINES (idempotent)
+-- SPECIALISTS IN LINES (кто работает на какой линии)
 -----------------------------------------------------------
-INSERT INTO support_line_specialists (line_id, user_id)
-VALUES (1, 2)
-    ON CONFLICT (line_id, user_id) DO NOTHING;
+
+INSERT INTO support_line_specialists (line_id, user_id) VALUES
+                                                            -- Первая линия (SYSADMIN)
+                                                            (1, 7), (1, 8), (1, 9),
+
+                                                            -- Линия 1С (DEV1C)
+                                                            (2, 4), (2, 5), (2, 6),
+
+                                                            -- Линия разработчиков
+                                                            (3, 1), (3, 2), (3, 3)
+
+ON CONFLICT (line_id, user_id) DO NOTHING;
 
 -----------------------------------------------------------
--- TICKETS (idempotent)
+-- SAMPLE TICKETS
 -----------------------------------------------------------
+
 INSERT INTO tickets (
-    id, title, description, status, priority,
+    title, description, status, priority,
     created_by_id, created_at, updated_at,
     category_user_id, escalated, version
 )
 VALUES
-    (1, 'Не работает принтер',
-     'Принтер не печатает, горит красная лампочка. Модель HP LaserJet 1010.',
+    -- Техническая проблема (1 линия)
+    ('Не работает принтер',
+     'Принтер не печатает, горит красная лампочка.',
      'NEW', 'MEDIUM', 3, NOW(), NOW(), 1, false, 0),
 
-    (2, 'Ошибка в отчете 1С',
-     'При формировании отчета "Анализ продаж" за прошлый месяц возникает ошибка "Деление на ноль".',
+    -- Вопрос 1С (2 линия)
+    ('Ошибка в отчете 1С',
+     'Ошибка "Деление на ноль" в отчёте "Анализ продаж".',
      'OPEN', 'HIGH', 3, NOW(), NOW(), 2, false, 0),
 
-    (3, 'Как сменить пароль?',
-     'Не могу найти в личном кабинете, где можно сменить пароль от входа в систему.',
+    -- Простой пользовательский вопрос
+    ('Как сменить пароль?',
+     'Где в личном кабинете сменить пароль?',
      'RESOLVED', 'LOW', 3, NOW(), NOW(), 3, false, 0)
-    ON CONFLICT (id) DO UPDATE
-                            SET title = EXCLUDED.title,
-                            description = EXCLUDED.description,
-                            status = EXCLUDED.status,
-                            priority = EXCLUDED.priority,
-                            updated_at = NOW(),
-                            category_user_id = EXCLUDED.category_user_id;
 
--- Assign ticket 2
+ON CONFLICT (id) DO UPDATE
+    SET title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        status = EXCLUDED.status,
+        priority = EXCLUDED.priority,
+        updated_at = NOW(),
+        category_user_id = EXCLUDED.category_user_id;
+
+-- Назначение тикета #2 на линию 1С
 UPDATE tickets
-SET assigned_to_id = 2, support_line_id = 1, status = 'OPEN'
+SET assigned_to_id = 4, support_line_id = 2, status = 'OPEN'
 WHERE id = 2;
 
--- Resolve ticket 3
+-- Тикет #3 закрыт
 UPDATE tickets
 SET resolved_at = NOW(), closed_at = NOW()
 WHERE id = 3;
 
 -----------------------------------------------------------
--- SEQUENCE FIXES
+-- FIX SEQUENCES
 -----------------------------------------------------------
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));

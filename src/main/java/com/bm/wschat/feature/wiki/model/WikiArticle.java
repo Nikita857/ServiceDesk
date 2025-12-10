@@ -46,7 +46,15 @@ import java.util.Set;
 public class WikiArticle {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "wiki_seq"
+    )
+    @SequenceGenerator(
+            name = "wiki_seq",
+            sequenceName = "wiki_articles_id_seq",
+            allocationSize = 1
+    )
     @EqualsAndHashCode.Include
     private Long id;
 
