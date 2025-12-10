@@ -18,6 +18,7 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -111,7 +112,7 @@ public class MessageWebSocketController {
         if (principal == null)
             return;
 
-        User user = (User) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal)
+        User user = (User) ((UsernamePasswordAuthenticationToken) principal)
                 .getPrincipal();
 
         TypingIndicator broadcastIndicator = new TypingIndicator(
