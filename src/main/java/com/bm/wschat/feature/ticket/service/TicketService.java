@@ -1,5 +1,7 @@
 package com.bm.wschat.feature.ticket.service;
 
+import com.bm.wschat.feature.notification.model.Notification;
+import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.supportline.model.SupportLine;
 import com.bm.wschat.feature.supportline.repository.SupportLineRepository;
 import com.bm.wschat.feature.ticket.dto.ticket.request.ChangeStatusRequest;
@@ -36,6 +38,7 @@ public class TicketService {
     private final SupportLineRepository supportLineRepository;
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
+    private final NotificationService notificationService;
 
     // Status workflow based on TicketStatus enum
     private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
@@ -213,7 +216,34 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
+
+        // Уведомление об изменении статуса
+        sendStatusChangeNotification(updated, currentStatus, newStatus);
+
         return ticketMapper.toResponse(updated);
+    }
+
+    /**
+     * Отправить уведомления об изменении статуса
+     */
+    private void sendStatusChangeNotification(Ticket ticket, TicketStatus oldStatus, TicketStatus newStatus) {
+        Notification notification = Notification.statusChange(
+                ticket.getId(),
+                ticket.getTitle(),
+                oldStatus.name(),
+                newStatus.name());
+
+        // Уведомляем создателя
+        if (ticket.getCreatedBy() != null) {
+            notificationService.notifyUser(ticket.getCreatedBy().getId(), notification);
+        }
+
+        // Уведомляем назначенного (если отличается от создателя)
+        if (ticket.getAssignedTo() != null &&
+                (ticket.getCreatedBy() == null
+                        || !ticket.getAssignedTo().getId().equals(ticket.getCreatedBy().getId()))) {
+            notificationService.notifyUser(ticket.getAssignedTo().getId(), notification);
+        }
     }
 
     @Transactional
