@@ -32,6 +32,7 @@ public class TicketController {
     private final TicketService ticketService;
 
     @PostMapping
+    @PreAuthorize("(hasAnyRole('USER', 'ADMIN'))")
     @Operation(summary = "Создать новый тикет", description = "Создает новый тикет от имени текущего аутентифицированного пользователя.")
     public ResponseEntity<ApiResponse<TicketResponse>> createTicket(
             @Valid @RequestBody CreateTicketRequest request,
@@ -59,7 +60,7 @@ public class TicketController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить тикет", description = "Удаляет тикет по его уникальному идентификатору (логическое удаление).")
     public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
@@ -67,7 +68,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
     public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
             @PathVariable Long id,
@@ -77,7 +78,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/assign-line")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Назначить тикет линии поддержки", description = "Назначает тикет указанной линии поддержки.")
     public ResponseEntity<ApiResponse<TicketResponse>> assignToLine(
             @PathVariable Long id,
@@ -87,7 +88,7 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/assign-specialist")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Назначить тикет специалисту", description = "Назначает тикет указанному специалисту.")
     public ResponseEntity<ApiResponse<TicketResponse>> assignToSpecialist(
             @PathVariable Long id,

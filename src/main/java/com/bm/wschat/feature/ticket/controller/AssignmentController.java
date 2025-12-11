@@ -41,7 +41,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/assignments/{id}/accept")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Принять назначение тикета", description = "Текущий пользователь принимает назначенную ему задачу по тикету.")
     public ResponseEntity<ApiResponse<AssignmentResponse>> acceptAssignment(
             @PathVariable Long id,
@@ -51,7 +51,7 @@ public class AssignmentController {
     }
 
     @PostMapping("/assignments/{id}/reject")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Отклонить назначение тикета", description = "Текущий пользователь отклоняет назначенную ему задачу по тикету с указанием причины.")
     public ResponseEntity<ApiResponse<AssignmentResponse>> rejectAssignment(
             @PathVariable Long id,
@@ -77,7 +77,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/assignments/pending")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Получить мои ожидающие назначения", description = "Возвращает пагинированный список назначений, ожидающих принятия текущим специалистом.")
     public ResponseEntity<ApiResponse<Page<AssignmentResponse>>> getMyPendingAssignments(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
@@ -87,7 +87,7 @@ public class AssignmentController {
     }
 
     @GetMapping("/assignments/pending-count")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Получить количество моих ожидающих назначений", description = "Возвращает количество назначений, ожидающих принятия текущим специалистом.")
     public ResponseEntity<ApiResponse<Long>> getPendingCount(
             @AuthenticationPrincipal User user) {

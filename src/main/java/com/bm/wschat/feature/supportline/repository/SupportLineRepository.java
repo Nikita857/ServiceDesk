@@ -22,4 +22,10 @@ public interface SupportLineRepository extends JpaRepository<SupportLine, Long> 
 
     @Query("SELECT sl FROM SupportLine sl WHERE :specialist MEMBER OF sl.specialists")
     List<SupportLine> findBySpecialist(@Param("specialist") User specialist);
+
+    // Первая линия поддержки (минимальный displayOrder)
+    Optional<SupportLine> findFirstByDeletedAtIsNullOrderByDisplayOrderAsc();
+
+    // Последняя линия поддержки (максимальный displayOrder)
+    Optional<SupportLine> findFirstByDeletedAtIsNullOrderByDisplayOrderDesc();
 }

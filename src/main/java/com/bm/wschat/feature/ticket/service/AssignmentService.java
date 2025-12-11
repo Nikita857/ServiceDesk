@@ -58,6 +58,30 @@ public class AssignmentService {
             throw new IllegalStateException("Ticket already has pending assignment");
         }
 
+        // Получаем линию-источник
+        SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
+                () -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
+
+        // Проверка: нельзя переадресовать на линию с более низким приоритетом (меньшим
+        // displayOrder)
+        // Меньший displayOrder = более высокий приоритет (1-я линия = низкий
+        // displayOrder)
+        if (toLine.getDisplayOrder() < fromLine.getDisplayOrder()) {
+            throw new IllegalArgumentException(
+                    "Cannot reassign ticket to a lower priority support line. " +
+                            "Current line priority: " + fromLine.getDisplayOrder() +
+                            ", Target line priority: " + toLine.getDisplayOrder());
+        }
+
+        // Проверка: нельзя переадресовать если уже на последней (высшей) линии
+        SupportLine lastLine = supportLineRepository.findFirstByDeletedAtIsNullOrderByDisplayOrderDesc()
+                .orElseThrow(() -> new EntityNotFoundException("No support lines configured"));
+
+        if (fromLine.getId().equals(lastLine.getId()) && !fromLine.getId().equals(toLine.getId())) {
+            throw new IllegalArgumentException(
+                    "Cannot reassign ticket from the highest priority support line (" + lastLine.getName() + ")");
+        }
+
         Assignment.AssignmentBuilder builder = Assignment.builder()
                 .ticket(ticket)
                 .toLine(toLine)
@@ -66,11 +90,7 @@ public class AssignmentService {
                 .status(AssignmentStatus.PENDING);
 
         // Откуда назначаем
-        if (request.fromLineId() != null) {
-            SupportLine fromLine = supportLineRepository.findById(request.fromLineId())
-                    .orElseThrow(() -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
-            builder.fromLine(fromLine);
-        }
+        builder.fromLine(fromLine);
         builder.fromUser(assignedBy);
 
         // Если указан конкретный специалист

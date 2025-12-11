@@ -71,6 +71,18 @@ public class TicketService {
             if (line.getSlaMinutes() != null) {
                 ticket.setSlaDeadline(Instant.now().plusSeconds(line.getSlaMinutes() * 60L));
             }
+        } else {
+            // Если линия не указана, назначаем на первую линию поддержки (минимальный
+            // displayOrder)
+            SupportLine firstLine = supportLineRepository.findFirstByDeletedAtIsNullOrderByDisplayOrderAsc()
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "No support lines configured in the system"));
+
+            ticket.setSupportLine(firstLine);
+
+            if (firstLine.getSlaMinutes() != null) {
+                ticket.setSlaDeadline(Instant.now().plusSeconds(firstLine.getSlaMinutes() * 60L));
+            }
         }
 
         if (request.categoryUserId() != null) {

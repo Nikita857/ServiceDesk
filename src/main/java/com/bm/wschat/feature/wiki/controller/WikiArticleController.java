@@ -30,7 +30,7 @@ public class WikiArticleController {
     private final WikiArticleService wikiArticleService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Создать новую статью Wiki", description = "Создает новую статью для базы знаний.")
     public ResponseEntity<ApiResponse<WikiArticleResponse>> createArticle(
             @Valid @RequestBody CreateWikiArticleRequest request,
@@ -77,7 +77,7 @@ public class WikiArticleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Обновить статью Wiki", description = "Обновляет существующую статью базы знаний.")
     public ResponseEntity<ApiResponse<WikiArticleResponse>> updateArticle(
             @PathVariable Long id,

@@ -6,7 +6,8 @@ public enum SenderType implements GrantedAuthority {
     USER,
     SYSADMIN,
     DEV1C,
-    DEVELOPER;
+    DEVELOPER,
+    ADMIN;
 
     @Override
     public String getAuthority() { return name();}
