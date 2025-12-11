@@ -36,7 +36,7 @@ import java.time.Instant;
         }
 )
 @Audited
-@SQLRestriction("deleted_at IS NULL") // если будешь делать soft delete (рекомендую)
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 @Builder
