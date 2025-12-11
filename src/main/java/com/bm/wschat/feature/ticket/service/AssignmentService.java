@@ -13,7 +13,6 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.repository.AssignmentRepository;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
-import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -59,18 +58,28 @@ public class AssignmentService {
             throw new IllegalStateException("Ticket already has pending assignment");
         }
 
-        //TODO вот моя ерунда, с которой нужно разобраться. Проверь корректность реализации логики. Суть в том что чуваки с третьей
-        //линии поддержки не могут переадресовать тикетов на нижестоящие линии
-
+        // Получаем линию-источник
         SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
                 () -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
 
-        if(fromLine
-                .getSpecialists()
-                .stream()
-                .anyMatch(user -> user.getRoles().contains(SenderType.DEVELOPER.name()))
-        ) {
-            throw new IllegalArgumentException("Developers line cannot reassign ticket to lower priority lines");
+        // Проверка: нельзя переадресовать на линию с более низким приоритетом (меньшим
+        // displayOrder)
+        // Меньший displayOrder = более высокий приоритет (1-я линия = низкий
+        // displayOrder)
+        if (toLine.getDisplayOrder() < fromLine.getDisplayOrder()) {
+            throw new IllegalArgumentException(
+                    "Cannot reassign ticket to a lower priority support line. " +
+                            "Current line priority: " + fromLine.getDisplayOrder() +
+                            ", Target line priority: " + toLine.getDisplayOrder());
+        }
+
+        // Проверка: нельзя переадресовать если уже на последней (высшей) линии
+        SupportLine lastLine = supportLineRepository.findFirstByDeletedAtIsNullOrderByDisplayOrderDesc()
+                .orElseThrow(() -> new EntityNotFoundException("No support lines configured"));
+
+        if (fromLine.getId().equals(lastLine.getId()) && !fromLine.getId().equals(toLine.getId())) {
+            throw new IllegalArgumentException(
+                    "Cannot reassign ticket from the highest priority support line (" + lastLine.getName() + ")");
         }
 
         Assignment.AssignmentBuilder builder = Assignment.builder()
