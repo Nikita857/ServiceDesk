@@ -97,6 +97,16 @@ public class TicketController {
                 ticketService.assignToSpecialist(id, specialistId)));
     }
 
+    @PostMapping("/{id}/take")
+    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
+    @Operation(summary = "Взять тикет в работу", description = "Специалист берёт неназначенный тикет в работу и становится его исполнителем.")
+    public ResponseEntity<ApiResponse<TicketResponse>> takeTicket(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ApiResponse.success("Ticket taken successfully",
+                ticketService.takeTicket(id, user.getId())));
+    }
+
     @PatchMapping("/{id}/category-user")
     @Operation(summary = "Установить пользовательскую категорию для тикета", description = "Устанавливает или изменяет пользовательскую категорию для тикета.")
     public ResponseEntity<ApiResponse<TicketResponse>> setUserCategory(

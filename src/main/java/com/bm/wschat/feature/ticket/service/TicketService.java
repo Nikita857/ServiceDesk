@@ -10,8 +10,10 @@ import com.bm.wschat.feature.ticket.dto.ticket.request.UpdateTicketRequest;
 import com.bm.wschat.feature.ticket.dto.ticket.response.TicketListResponse;
 import com.bm.wschat.feature.ticket.dto.ticket.response.TicketResponse;
 import com.bm.wschat.feature.ticket.mapper.TicketMapper;
+import com.bm.wschat.feature.ticket.mapper.assignment.AssignmentMapper;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
+import com.bm.wschat.feature.ticket.repository.AssignmentRepository;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
@@ -19,8 +21,10 @@ import com.bm.wschat.shared.model.Category;
 import com.bm.wschat.shared.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -39,6 +44,8 @@ public class TicketService {
     private final CategoryRepository categoryRepository;
     private final TicketMapper ticketMapper;
     private final NotificationService notificationService;
+    private final AssignmentRepository assignmentRepository;
+    private final AssignmentMapper assignmentMapper;
 
     // Status workflow based on TicketStatus enum
     private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
@@ -113,13 +120,13 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(saved);
+        return toResponseWithAssignment(saved);
     }
 
     public TicketResponse getTicketById(Long id) {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
-        return ticketMapper.toResponse(ticket);
+        return toResponseWithAssignment(ticket);
     }
 
     /**
@@ -133,7 +140,42 @@ public class TicketService {
             throw new org.springframework.security.access.AccessDeniedException("You don't have access to this ticket");
         }
 
-        return ticketMapper.toResponse(ticket);
+        return toResponseWithAssignment(ticket);
+    }
+
+    /**
+     * Хелпер для создания TicketResponse с последним назначением
+     */
+    private TicketResponse toResponseWithAssignment(Ticket ticket) {
+        TicketResponse base = ticketMapper.toResponse(ticket);
+
+        // Получаем последнее назначение для тикета
+        var lastAssignment = assignmentRepository.findLatestByTicketId(ticket.getId())
+                .map(assignmentMapper::toResponse)
+                .orElse(null);
+
+        // Создаём новый response с lastAssignment
+        return new TicketResponse(
+                base.id(),
+                base.title(),
+                base.description(),
+                base.link1c(),
+                base.status(),
+                base.priority(),
+                base.createdBy(),
+                base.assignedTo(),
+                base.supportLine(),
+                base.categoryUser(),
+                base.categorySupport(),
+                base.timeSpentSeconds(),
+                base.messageCount(),
+                base.attachmentCount(),
+                base.slaDeadline(),
+                base.resolvedAt(),
+                base.closedAt(),
+                base.createdAt(),
+                base.updatedAt(),
+                lastAssignment);
     }
 
     /**
@@ -231,6 +273,56 @@ public class TicketService {
 
         // Уведомление об изменении статуса
         sendStatusChangeNotification(updated, currentStatus, newStatus);
+
+        return ticketMapper.toResponse(updated);
+    }
+
+    /**
+     * Взять тикет в работу (стать исполнителем)
+     */
+    @Transactional
+    public TicketResponse takeTicket(Long ticketId, Long userId) {
+        Ticket ticket = ticketRepository.findByIdWithDetails(ticketId)
+                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
+
+        User specialist = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+
+        // Проверка что пользователь - специалист
+        if (!specialist.isSpecialist()) {
+            throw new IllegalArgumentException("Only specialists can take tickets");
+        }
+
+        // Проверка что тикет еще не назначен
+        if (ticket.getAssignedTo() != null) {
+            throw new IllegalStateException("Ticket is already assigned to " +
+                    (ticket.getAssignedTo().getFio() != null ? ticket.getAssignedTo().getFio()
+                            : ticket.getAssignedTo().getUsername()));
+        }
+
+        // Проверка что специалист в той же линии поддержки
+        if (ticket.getSupportLine() != null) {
+            List<SupportLine> userLines = supportLineRepository.findBySpecialist(specialist);
+            boolean inSameLine = userLines.stream()
+                    .anyMatch(line -> line.getId().equals(ticket.getSupportLine().getId()));
+
+            if (!inSameLine) {
+                throw new AccessDeniedException("You are not in the support line of this ticket");
+            }
+        }
+
+        // Назначаем специалиста
+        ticket.setAssignedTo(specialist);
+
+        // Если тикет новый - переводим в статус "В работе"
+        if (ticket.getStatus() == TicketStatus.NEW) {
+            ticket.setStatus(TicketStatus.OPEN);
+        }
+
+        ticket.touchUpdated();
+        Ticket updated = ticketRepository.save(ticket);
+
+        log.info("Ticket {} taken by {}", ticketId, specialist.getUsername());
 
         return ticketMapper.toResponse(updated);
     }

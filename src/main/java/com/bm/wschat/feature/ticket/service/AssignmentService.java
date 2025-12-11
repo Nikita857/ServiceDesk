@@ -62,25 +62,25 @@ public class AssignmentService {
         SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
                 () -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
 
-        // Проверка: нельзя переадресовать на линию с более низким приоритетом (меньшим
+        // Получаем displayOrder с дефолтными значениями (null = 0)
+        int fromOrder = fromLine.getDisplayOrder() != null ? fromLine.getDisplayOrder() : 0;
+        int toOrder = toLine.getDisplayOrder() != null ? toLine.getDisplayOrder() : 0;
+
+        // Проверка: нельзя переадресовать на линию с более низким уровнем (меньшим
         // displayOrder)
-        // Меньший displayOrder = более высокий приоритет (1-я линия = низкий
-        // displayOrder)
-        if (toLine.getDisplayOrder() < fromLine.getDisplayOrder()) {
+        // 1 линия (SYSADMIN) = displayOrder 1 (низкий уровень, сюда идут все тикеты по
+        // умолчанию)
+        // 3 линия (DEVELOPER) = displayOrder 3 (высокий уровень, эксперты)
+        // Переадресация возможна только ВВЕРХ (на более высокий displayOrder)
+        if (toOrder < fromOrder) {
             throw new IllegalArgumentException(
-                    "Cannot reassign ticket to a lower priority support line. " +
-                            "Current line priority: " + fromLine.getDisplayOrder() +
-                            ", Target line priority: " + toLine.getDisplayOrder());
+                    "Cannot reassign ticket to a lower support line. " +
+                            "Current line level: " + fromOrder +
+                            ", Target line level: " + toOrder);
         }
 
-        // Проверка: нельзя переадресовать если уже на последней (высшей) линии
-        SupportLine lastLine = supportLineRepository.findFirstByDeletedAtIsNullOrderByDisplayOrderDesc()
-                .orElseThrow(() -> new EntityNotFoundException("No support lines configured"));
-
-        if (fromLine.getId().equals(lastLine.getId()) && !fromLine.getId().equals(toLine.getId())) {
-            throw new IllegalArgumentException(
-                    "Cannot reassign ticket from the highest priority support line (" + lastLine.getName() + ")");
-        }
+        // Если toOrder == fromOrder - это переназначение на ту же линию (разрешено,
+        // например другому специалисту)
 
         Assignment.AssignmentBuilder builder = Assignment.builder()
                 .ticket(ticket)
@@ -192,7 +192,33 @@ public class AssignmentService {
         assignment.reject(request.reason());
         Assignment saved = assignmentRepository.save(assignment);
 
-        log.info("Assignment rejected: id={}, by={}, reason={}", assignmentId, user.getUsername(), request.reason());
+        // Возвращаем тикет на исходную линию и исходному пользователю
+        Ticket ticket = assignment.getTicket();
+
+        // Возвращаем на линию отправителя
+        if (assignment.getFromLine() != null) {
+            ticket.setSupportLine(assignment.getFromLine());
+        }
+
+        // Возвращаем исходному пользователю (если был)
+        if (assignment.getFromUser() != null) {
+            ticket.setAssignedTo(assignment.getFromUser());
+        } else {
+            // Если конкретного отправителя не было - убираем назначение
+            ticket.setAssignedTo(null);
+        }
+
+        // Убедимся что тикет виден (статус не ESCALATED если вернулся)
+        if (ticket.getStatus() == TicketStatus.ESCALATED) {
+            ticket.setStatus(TicketStatus.OPEN);
+        }
+
+        ticketRepository.save(ticket);
+
+        log.info("Assignment rejected: id={}, by={}, reason={}. Ticket returned to line={}, user={}",
+                assignmentId, user.getUsername(), request.reason(),
+                assignment.getFromLine() != null ? assignment.getFromLine().getName() : "none",
+                assignment.getFromUser() != null ? assignment.getFromUser().getUsername() : "none");
 
         return assignmentMapper.toResponse(saved);
     }

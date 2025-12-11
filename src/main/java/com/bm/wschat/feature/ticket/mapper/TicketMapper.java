@@ -47,6 +47,7 @@ public interface TicketMapper {
 
     @Mapping(target = "messageCount", expression = "java(ticket.getMessages() != null ? ticket.getMessages().size() : 0)")
     @Mapping(target = "attachmentCount", expression = "java(ticket.getAttachments() != null ? ticket.getAttachments().size() : 0)")
+    @Mapping(target = "lastAssignment", ignore = true)
     TicketResponse toResponse(Ticket ticket);
 
     @Mapping(target = "createdByUsername", source = "createdBy.username")
