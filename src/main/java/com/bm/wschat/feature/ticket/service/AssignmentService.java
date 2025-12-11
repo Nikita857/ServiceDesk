@@ -59,6 +59,9 @@ public class AssignmentService {
             throw new IllegalStateException("Ticket already has pending assignment");
         }
 
+        //TODO вот моя ерунда, с которой нужно разобраться. Проверь корректность реализации логики. Суть в том что чуваки с третьей
+        //линии поддержки не могут переадресовать тикетов на нижестоящие линии
+
         SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
                 () -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
 
