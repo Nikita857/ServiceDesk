@@ -41,7 +41,7 @@ ________________________________________________________________________________
 9. Разобраться почему летят логи с ошибками подключения к websocket в консоли браузера
 
 10. Создаю тикет от роли пользователя - авторизуюсь под ролью сисадмина - тикетов нет. Если я все правильно понял то проблема в том что при создании тикета не происходит автоматическое назначение его на первую линию.
-
+11. на фронте убрать кнопку создать тикет для специалистов
 
 2025-12-11T11:57:41.039+03:00  WARN 17760 --- [servicedesk] [io-8080-exec-10] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
 	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
