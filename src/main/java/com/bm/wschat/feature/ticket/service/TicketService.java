@@ -72,16 +72,17 @@ public class TicketService {
                 ticket.setSlaDeadline(Instant.now().plusSeconds(line.getSlaMinutes() * 60L));
             }
         } else {
-            //TODO Проверить качество логики. Я знаю что она плохая, нужен какой то более надженый механизм определения первой линии поддержки
-            //Поскольку на фронте пользователь не выбирает линию поддержки, то по дефолту тикет должен адресовываться на первую линию
-            //И еще на фронте проблема, это значение почему то не передается, я тестировал чере swaqgger, линия поддержки устанавливается и в информации о тикете
-            //эта линия отображается
+            // Если линия не указана, назначаем на первую линию поддержки (минимальный
+            // displayOrder)
+            SupportLine firstLine = supportLineRepository.findFirstByDeletedAtIsNullOrderByDisplayOrderAsc()
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "No support lines configured in the system"));
 
-            SupportLine line = supportLineRepository.findById(1L).orElseThrow(
-                    () -> new EntityNotFoundException("Support line not found with id: " + 1L)
-            );
+            ticket.setSupportLine(firstLine);
 
-            ticket.setSupportLine(line);
+            if (firstLine.getSlaMinutes() != null) {
+                ticket.setSlaDeadline(Instant.now().plusSeconds(firstLine.getSlaMinutes() * 60L));
+            }
         }
 
         if (request.categoryUserId() != null) {
