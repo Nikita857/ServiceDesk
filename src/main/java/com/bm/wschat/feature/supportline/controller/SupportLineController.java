@@ -29,7 +29,7 @@ public class SupportLineController {
     private final SupportLineService supportLineService;
 
     @PostMapping
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Создать новую линию поддержки", description = "Создает новую линию поддержки с указанным именем и описанием.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> createLine(
             @Valid @RequestBody CreateSupportLineRequest request) {
@@ -51,7 +51,7 @@ public class SupportLineController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Обновить линию поддержки", description = "Обновляет информацию о существующей линии поддержки.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> updateLine(
             @PathVariable Long id,
@@ -61,7 +61,7 @@ public class SupportLineController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить линию поддержки", description = "Удаляет линию поддержки по ее уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteLine(@PathVariable Long id) {
         supportLineService.deleteLine(id);
@@ -69,7 +69,7 @@ public class SupportLineController {
     }
 
     @PostMapping("/{lineId}/specialists/{userId}")
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Добавить специалиста к линии поддержки", description = "Добавляет указанного специалиста к указанной линии поддержки.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> addSpecialist(
             @PathVariable Long lineId,
@@ -79,7 +79,7 @@ public class SupportLineController {
     }
 
     @DeleteMapping("/{lineId}/specialists/{userId}")
-    @PreAuthorize("hasRole('DEVELOPER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить специалиста из линии поддержки", description = "Удаляет указанного специалиста из указанной линии поддержки.")
     public ResponseEntity<ApiResponse<SupportLineResponse>> removeSpecialist(
             @PathVariable Long lineId,
@@ -95,7 +95,7 @@ public class SupportLineController {
     }
 
     @GetMapping("/my-lines")
-    @PreAuthorize("hasAnyRole('SYSADMIN','SPECIALIST', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','SPECIALIST','DEVELOPER','ADMIN')")
     @Operation(summary = "Получить линии поддержки текущего специалиста", description = "Возвращает список линий поддержки, к которым привязан текущий аутентифицированный специалист.")
     public ResponseEntity<ApiResponse<List<SupportLineListResponse>>> getMyLines(
             @AuthenticationPrincipal User user) {

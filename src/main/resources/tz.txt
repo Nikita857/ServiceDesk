@@ -34,7 +34,15 @@ ________________________________________________________________________________
    6.1 Пользователь при создании тикета выбирает жестко заданную категорию он отправляет этот тикет, сисадмины его решают и могут указать категорию по их мнению
    такие категории не имеют жестких ограничений и используются для отчетов
 
-7. Запретить переадресацию тикета на другую линию поддержки если тикет уже на третьей линии поддержки
+7. Запретить переадресацию тикета на другую линию поддержки если тикет уже на третьей линии поддержки (Высокий приоритет)
+
+8. На фронте добавить кнопку отклонения принятия переадресации тикета с указанием комментария
+
+9. Разобраться почему летят логи с ошибками в консоли браузера
+
+2025-12-11T11:57:41.039+03:00  WARN 17760 --- [servicedesk] [io-8080-exec-10] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
 _________________________________________________________________________________
 
 Ревью схемы
