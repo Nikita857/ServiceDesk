@@ -18,13 +18,12 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('DEVELOPER')")
+@PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "User Management", description = "Управление пользователями системы")
 public class UserManagementController {
 
     private final UserManagementService userManagementService;
     private final AuthMapper authMapper;
-    //Разобраться с ролями и сделать нормальную обработку исключений при ограниченных правах
 
     @PostMapping
     @Operation(summary = "Создать нового пользователя", description = "Создает нового пользователя с указанными данными и ролями.")

@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('DEVELOPER')")
+@PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Reports", description = "REST контроллер для создания отчетов о работе")
 public class ReportController {
 

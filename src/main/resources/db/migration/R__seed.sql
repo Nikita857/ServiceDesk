@@ -7,11 +7,11 @@
 INSERT INTO users (username, fio, email, password, active, specialist, created_at, updated_at, version)
 VALUES
     -- Developers (самые сложные вопросы)
-    ('developer1', 'Бугаков Н.В.', 'admin1@example.com',
+    ('developer1', 'Бугаков Н.В.', 'dev1@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
-    ('developer2', 'Иванов И.И.', 'admin2@example.com',
+    ('developer2', 'Иванов И.И.', 'dev2@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
-    ('developer3', 'Петров П.П.', 'admin3@example.com',
+    ('developer3', 'Петров П.П.', 'dev3@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0),
 
     -- 1C Specialists
@@ -36,7 +36,11 @@ VALUES
     ('user2', 'Канаев В.А.', 'user2@example.com',
      '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0),
     ('user3', 'Петенков С.С.', 'user3@example.com',
-     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0)
+     '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, false, NOW(), NOW(), 0),
+
+    -- Administrator
+    ('admin', 'Важный Х.У.', 'admin1@example.com',
+    '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true, true, NOW(), NOW(), 0)
 
 ON CONFLICT (id) DO UPDATE
     SET username = EXCLUDED.username,
@@ -72,7 +76,11 @@ INSERT INTO user_roles (user_id, role) VALUES
                                            -- Regular users
                                            (10, 'USER'),
                                            (11, 'USER'),
-                                           (12, 'USER')
+                                           (12, 'USER'),
+
+                                            --Administrator
+                                           (13, 'ADMIN'),
+                                           (13, 'USER')
 
 ON CONFLICT (user_id, role) DO NOTHING;
 
