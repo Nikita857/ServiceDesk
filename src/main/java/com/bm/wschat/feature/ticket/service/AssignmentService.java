@@ -13,6 +13,7 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.repository.AssignmentRepository;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
+import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -58,6 +59,17 @@ public class AssignmentService {
             throw new IllegalStateException("Ticket already has pending assignment");
         }
 
+        SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
+                () -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
+
+        if(fromLine
+                .getSpecialists()
+                .stream()
+                .anyMatch(user -> user.getRoles().contains(SenderType.DEVELOPER.name()))
+        ) {
+            throw new IllegalArgumentException("Developers line cannot reassign ticket to lower priority lines");
+        }
+
         Assignment.AssignmentBuilder builder = Assignment.builder()
                 .ticket(ticket)
                 .toLine(toLine)
@@ -66,11 +78,7 @@ public class AssignmentService {
                 .status(AssignmentStatus.PENDING);
 
         // Откуда назначаем
-        if (request.fromLineId() != null) {
-            SupportLine fromLine = supportLineRepository.findById(request.fromLineId())
-                    .orElseThrow(() -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
-            builder.fromLine(fromLine);
-        }
+        builder.fromLine(fromLine);
         builder.fromUser(assignedBy);
 
         // Если указан конкретный специалист
