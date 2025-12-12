@@ -40,20 +40,20 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(Long ticketId, SendMessageRequest request, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
 
         User sender = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
-//        Моя реализация блокировки отправки отправки сообщений в тикете
+        // Моя реализация блокировки отправки отправки сообщений в тикете
 
-        if(ticket.getStatus().equals(TicketStatus.CLOSED)) {
-            throw new AccessDeniedException("Ticket is closed. You cannot send message");
+        if (ticket.getStatus().equals(TicketStatus.CLOSED)) {
+            throw new AccessDeniedException("Тикет закрыт. Отправка сообщений запрещена");
         }
 
         // Internal messages only for specialists
         if (request.internal() && !sender.isSpecialist()) {
-            throw new AccessDeniedException("Only specialists can send internal messages");
+            throw new AccessDeniedException("Только специалисты могут отправлять внутренние сообщения");
         }
 
         Message message = messageMapper.toEntity(request);
