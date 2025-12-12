@@ -58,17 +58,17 @@ public class AssignmentService {
 
         if (ticket.getStatus().equals(TicketStatus.CLOSED) || ticket.getStatus().equals(TicketStatus.RESOLVED)) {
             throw new IllegalStateException(
-                    "Cannot reassign ticket that already has status closed or resolved");
+                    "Невозможно переназначить тикет со статусом 'Закрыт' или 'Решён'");
         }
 
         // Проверка нет ли уже ожидающего назначения
         if (assignmentRepository.existsByTicketIdAndStatus(request.ticketId(), AssignmentStatus.PENDING)) {
-            throw new IllegalStateException("Ticket already has pending assignment");
+            throw new IllegalStateException("Тикет уже имеет ожидающее назначение");
         }
 
         // Получаем линию-источник
         SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
-                () -> new EntityNotFoundException("From line not found: " + request.fromLineId()));
+                () -> new EntityNotFoundException("Линия поддержки не найдена: " + request.fromLineId()));
 
         // Получаем displayOrder с дефолтными значениями (null = 0)
         int fromOrder = fromLine.getDisplayOrder() != null ? fromLine.getDisplayOrder() : 0;
@@ -80,9 +80,9 @@ public class AssignmentService {
         // высокий displayOrder)
         if (!assignedBy.isAdmin() && toOrder < fromOrder) {
             throw new IllegalArgumentException(
-                    "Cannot reassign ticket to a lower support line. " +
-                            "Current line level: " + fromOrder +
-                            ", Target line level: " + toOrder);
+                    "Нельзя переназначить тикет на линию с более низким приоритетом. " +
+                            "Текущий уровень: " + fromOrder +
+                            ", Целевой уровень: " + toOrder);
         }
 
         // Если toOrder == fromOrder - это переназначение на ту же линию (разрешено,
@@ -102,15 +102,15 @@ public class AssignmentService {
         // Если указан конкретный специалист
         if (request.toUserId() != null) {
             User toUser = userRepository.findById(request.toUserId())
-                    .orElseThrow(() -> new EntityNotFoundException("User not found: " + request.toUserId()));
+                    .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + request.toUserId()));
 
             if (!toUser.isSpecialist()) {
-                throw new IllegalArgumentException("Target user is not a specialist");
+                throw new IllegalArgumentException("Указанный пользователь не является специалистом");
             }
 
             // Проверка что специалист в этой линии
             if (!toLine.getSpecialists().contains(toUser)) {
-                throw new IllegalArgumentException("Specialist is not in the target support line");
+                throw new IllegalArgumentException("Специалист не входит в выбранную линию поддержки");
             }
 
             builder.toUser(toUser);
@@ -148,15 +148,15 @@ public class AssignmentService {
                 .orElseThrow(() -> new EntityNotFoundException("Assignment not found: " + assignmentId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         // Проверка что назначено этому пользователю или на линию где он есть
         if (!canAccept(assignment, user)) {
-            throw new AccessDeniedException("You cannot accept this assignment");
+            throw new AccessDeniedException("Вы не можете принять это назначение");
         }
 
         if (!assignment.isPending()) {
-            throw new IllegalStateException("Assignment is not pending");
+            throw new IllegalStateException("Назначение не находится в ожидании");
         }
 
         assignment.accept();
@@ -182,17 +182,17 @@ public class AssignmentService {
     @Transactional
     public AssignmentResponse rejectAssignment(Long assignmentId, AssignmentRejectRequest request, Long userId) {
         Assignment assignment = assignmentRepository.findByIdWithDetails(assignmentId)
-                .orElseThrow(() -> new EntityNotFoundException("Assignment not found: " + assignmentId));
+                .orElseThrow(() -> new EntityNotFoundException("Назначение не найдено: " + assignmentId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         if (!canAccept(assignment, user)) {
-            throw new AccessDeniedException("You cannot reject this assignment");
+            throw new AccessDeniedException("Вы не можете отклонить это назначение");
         }
 
         if (!assignment.isPending()) {
-            throw new IllegalStateException("Assignment is not pending");
+            throw new IllegalStateException("Назначение не находится в ожидании");
         }
 
         assignment.reject(request.reason());
