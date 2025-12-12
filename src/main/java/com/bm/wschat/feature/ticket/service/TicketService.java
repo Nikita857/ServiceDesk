@@ -283,19 +283,19 @@ public class TicketService {
     @Transactional
     public TicketResponse takeTicket(Long ticketId, Long userId) {
         Ticket ticket = ticketRepository.findByIdWithDetails(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
 
         User specialist = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         // Проверка что пользователь - специалист
         if (!specialist.isSpecialist()) {
-            throw new IllegalArgumentException("Only specialists can take tickets");
+            throw new IllegalArgumentException("Только специалисты могут брать тикеты в работу");
         }
 
         // Проверка что тикет еще не назначен
         if (ticket.getAssignedTo() != null) {
-            throw new IllegalStateException("Ticket is already assigned to " +
+            throw new IllegalStateException("Тикет уже назначен на " +
                     (ticket.getAssignedTo().getFio() != null ? ticket.getAssignedTo().getFio()
                             : ticket.getAssignedTo().getUsername()));
         }
@@ -307,7 +307,7 @@ public class TicketService {
                     .anyMatch(line -> line.getId().equals(ticket.getSupportLine().getId()));
 
             if (!inSameLine) {
-                throw new AccessDeniedException("You are not in the support line of this ticket");
+                throw new AccessDeniedException("Вы не входите в линию поддержки этого тикета");
             }
         }
 
