@@ -85,6 +85,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
+        log.warn("IllegalState: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(JwtAuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJwtException(JwtAuthenticationException ex) {
         log.warn("JWT Authentication failed: {}", ex.getMessage());
