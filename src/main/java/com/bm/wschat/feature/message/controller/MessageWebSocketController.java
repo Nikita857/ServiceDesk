@@ -128,6 +128,7 @@ public class MessageWebSocketController {
                                 ticketId,
                                 user.getId(),
                                 user.getUsername(),
+                                user.getFio(),
                                 indicator.typing());
 
                 messagingTemplate.convertAndSend(
