@@ -53,12 +53,12 @@ public class AssignmentService {
         User assignedBy = userRepository.findById(assignedById)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + assignedById));
 
-//        TODO это моя реализация ограничения переназначения тикета со статусом CLOSED и RESOLVED
+        // TODO это моя реализация ограничения переназначения тикета со статусом CLOSED
+        // и RESOLVED
 
-        if(ticket.getStatus().equals(TicketStatus.CLOSED) || ticket.getStatus().equals(TicketStatus.RESOLVED)) {
+        if (ticket.getStatus().equals(TicketStatus.CLOSED) || ticket.getStatus().equals(TicketStatus.RESOLVED)) {
             throw new IllegalStateException(
-                    "Cannot reassign ticket that already has status closed or resolved"
-            );
+                    "Cannot reassign ticket that already has status closed or resolved");
         }
 
         // Проверка нет ли уже ожидающего назначения
@@ -74,13 +74,11 @@ public class AssignmentService {
         int fromOrder = fromLine.getDisplayOrder() != null ? fromLine.getDisplayOrder() : 0;
         int toOrder = toLine.getDisplayOrder() != null ? toLine.getDisplayOrder() : 0;
 
-        // Проверка: нельзя переадресовать на линию с более низким уровнем (меньшим
-        // displayOrder)
-        // 1 линия (SYSADMIN) = displayOrder 1 (низкий уровень, сюда идут все тикеты по
-        // умолчанию)
-        // 3 линия (DEVELOPER) = displayOrder 3 (высокий уровень, эксперты)
-        // Переадресация возможна только ВВЕРХ (на более высокий displayOrder)
-        if (toOrder < fromOrder) {
+        // Администратор (DEVELOPER) может назначать тикет на любую линию без
+        // ограничений
+        // Для остальных специалистов переадресация возможна только ВВЕРХ (на более
+        // высокий displayOrder)
+        if (!assignedBy.isAdmin() && toOrder < fromOrder) {
             throw new IllegalArgumentException(
                     "Cannot reassign ticket to a lower support line. " +
                             "Current line level: " + fromOrder +
