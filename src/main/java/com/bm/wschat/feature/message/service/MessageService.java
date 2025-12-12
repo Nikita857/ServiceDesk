@@ -9,6 +9,7 @@ import com.bm.wschat.feature.message.repository.MessageRepository;
 import com.bm.wschat.feature.notification.model.Notification;
 import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.ticket.model.Ticket;
+import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
@@ -43,6 +44,12 @@ public class MessageService {
 
         User sender = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+
+//        Моя реализация блокировки отправки отправки сообщений в тикете
+
+        if(ticket.getStatus().equals(TicketStatus.CLOSED)) {
+            throw new AccessDeniedException("Ticket is closed. You cannot send message");
+        }
 
         // Internal messages only for specialists
         if (request.internal() && !sender.isSpecialist()) {
