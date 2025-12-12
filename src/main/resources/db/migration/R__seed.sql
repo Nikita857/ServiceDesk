@@ -108,28 +108,28 @@ ON CONFLICT (line_id, user_id) DO NOTHING;
 -----------------------------------------------------------
 -- SAMPLE TICKETS — только от пользователей с ролью USER (по 2 от каждого)
 -----------------------------------------------------------
-INSERT INTO tickets (
-    title, description, status, priority, created_by_id, created_at, updated_at,
-    category_user_id, escalated, version
-) VALUES
--- user1 (id 10)
-('Не могу войти в систему', 'После ввода логина и пароля появляется ошибка "Неверные данные".', 'NEW', 'HIGH', 10, NOW(), NOW(), 1, false, 0),
-('Не приходит письмо с подтверждением', 'Зарегистрировался, но письмо с подтверждением не приходит уже 30 минут.', 'NEW', 'MEDIUM', 10, NOW(), NOW(), 1, false, 0),
-
--- user2 (id 11)
-('Проблема с печатью документов', 'При попытке распечатать документ из личного кабинета выходит пустой лист.', 'NEW', 'MEDIUM', 11, NOW(), NOW(), 1, false, 0),
-('Не отображается история платежей', 'В разделе "Платежи" ничего не видно, хотя платежи были.', 'NEW', 'HIGH', 11, NOW(), NOW(), 1, false, 0),
-
--- user3 (id 12)
-('Ошибка при загрузке файла', 'При попытке прикрепить файл к заявке выдаёт "Недопустимый формат".', 'NEW', 'MEDIUM', 12, NOW(), NOW(), 1, false, 0),
-('Не могу сбросить пароль', 'Нажала "Забыли пароль?", но письмо с ссылкой не приходит.', 'NEW', 'HIGH', 12, NOW(), NOW(), 1, false, 0)
-ON CONFLICT (id) DO UPDATE SET
-                               title = EXCLUDED.title,
-                               description = EXCLUDED.description,
-                               status = EXCLUDED.status,
-                               priority = EXCLUDED.priority,
-                               updated_at = NOW(),
-                               category_user_id = EXCLUDED.category_user_id;
+-- INSERT INTO tickets (
+--     title, description, status, priority, created_by_id, created_at, updated_at,
+--     category_user_id, escalated, version
+-- ) VALUES
+-- -- user1 (id 10)
+-- ('Не могу войти в систему', 'После ввода логина и пароля появляется ошибка "Неверные данные".', 'NEW', 'HIGH', 10, NOW(), NOW(), 1, false, 0),
+-- ('Не приходит письмо с подтверждением', 'Зарегистрировался, но письмо с подтверждением не приходит уже 30 минут.', 'NEW', 'MEDIUM', 10, NOW(), NOW(), 1, false, 0),
+--
+-- -- user2 (id 11)
+-- ('Проблема с печатью документов', 'При попытке распечатать документ из личного кабинета выходит пустой лист.', 'NEW', 'MEDIUM', 11, NOW(), NOW(), 1, false, 0),
+-- ('Не отображается история платежей', 'В разделе "Платежи" ничего не видно, хотя платежи были.', 'NEW', 'HIGH', 11, NOW(), NOW(), 1, false, 0),
+--
+-- -- user3 (id 12)
+-- ('Ошибка при загрузке файла', 'При попытке прикрепить файл к заявке выдаёт "Недопустимый формат".', 'NEW', 'MEDIUM', 12, NOW(), NOW(), 1, false, 0),
+-- ('Не могу сбросить пароль', 'Нажала "Забыли пароль?", но письмо с ссылкой не приходит.', 'NEW', 'HIGH', 12, NOW(), NOW(), 1, false, 0)
+-- ON CONFLICT (id) DO UPDATE SET
+--                                title = EXCLUDED.title,
+--                                description = EXCLUDED.description,
+--                                status = EXCLUDED.status,
+--                                priority = EXCLUDED.priority,
+--                                updated_at = NOW(),
+--                                category_user_id = EXCLUDED.category_user_id;
 
 -----------------------------------------------------------
 -- FIX SEQUENCES
