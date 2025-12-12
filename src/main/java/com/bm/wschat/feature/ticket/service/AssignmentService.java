@@ -53,6 +53,14 @@ public class AssignmentService {
         User assignedBy = userRepository.findById(assignedById)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + assignedById));
 
+//        TODO это моя реализация ограничения переназначения тикета со статусом CLOSED и RESOLVED
+
+        if(ticket.getStatus().equals(TicketStatus.CLOSED) || ticket.getStatus().equals(TicketStatus.RESOLVED)) {
+            throw new IllegalStateException(
+                    "Cannot reassign ticket that already has status closed or resolved"
+            );
+        }
+
         // Проверка нет ли уже ожидающего назначения
         if (assignmentRepository.existsByTicketIdAndStatus(request.ticketId(), AssignmentStatus.PENDING)) {
             throw new IllegalStateException("Ticket already has pending assignment");
