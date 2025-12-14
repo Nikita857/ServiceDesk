@@ -13,9 +13,13 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
 
     List<Attachment> findByMessageIdOrderByCreatedAtDesc(Long messageId);
 
+    List<Attachment> findByDirectMessageIdOrderByCreatedAtDesc(Long directMessageId);
+
     List<Attachment> findByUploadedByIdOrderByCreatedAtDesc(Long userId);
 
     Long countByTicketId(Long ticketId);
 
     Long countByMessageId(Long messageId);
+
+    Long countByDirectMessageId(Long directMessageId);
 }
