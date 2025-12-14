@@ -1,5 +1,7 @@
 package com.bm.wschat.feature.dm.controller;
 
+import com.bm.wschat.feature.attachment.dto.response.AttachmentResponse;
+import com.bm.wschat.feature.attachment.service.AttachmentService;
 import com.bm.wschat.feature.dm.dto.request.SendDirectMessageRequest;
 import com.bm.wschat.feature.dm.dto.response.ConversationResponse;
 import com.bm.wschat.feature.dm.dto.response.DirectMessageResponse;
@@ -15,9 +17,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,6 +32,7 @@ import java.util.List;
 public class DirectMessageController {
 
     private final DirectMessageService dmService;
+    private final AttachmentService attachmentService;
 
     @PostMapping
     @Operation(summary = "Отправить личное сообщение", description = "Отправляет новое личное сообщение указанному получателю.")
@@ -80,5 +85,26 @@ public class DirectMessageController {
             @AuthenticationPrincipal User user) {
         dmService.deleteMessage(messageId, user.getId());
         return ResponseEntity.ok(ApiResponse.success("Message deleted"));
+    }
+
+    // === Вложения ===
+
+    @PostMapping(value = "/{messageId}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Загрузить вложение к личному сообщению", description = "Загружает файл и прикрепляет его к указанному личному сообщению.")
+    public ResponseEntity<ApiResponse<AttachmentResponse>> uploadAttachment(
+            @PathVariable Long messageId,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Attachment uploaded",
+                        attachmentService.uploadToDirectMessage(messageId, file, user.getId())));
+    }
+
+    @GetMapping("/{messageId}/attachments")
+    @Operation(summary = "Получить вложения личного сообщения", description = "Возвращает список вложений, прикреплённых к указанному личному сообщению.")
+    public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getAttachments(
+            @PathVariable Long messageId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                attachmentService.getByDirectMessageId(messageId)));
     }
 }
