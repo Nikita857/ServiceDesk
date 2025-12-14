@@ -1,5 +1,6 @@
 package com.bm.wschat.feature.attachment.model;
 
+import com.bm.wschat.feature.dm.model.DirectMessage;
 import com.bm.wschat.feature.message.model.Message;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.user.model.User;
@@ -19,14 +20,17 @@ import java.time.Instant;
         // 2. По сообщению (загрузка вложений к сообщению)
         @Index(name = "idx_attachment_message", columnList = "message_id"),
 
-        // 3. Soft delete + быстрый доступ к живым
+        // 3. По личному сообщению
+        @Index(name = "idx_attachment_dm", columnList = "direct_message_id"),
+
+        // 4. Soft delete + быстрый доступ к живым
         @Index(name = "idx_attachment_active", columnList = "ticket_id, deleted_at"),
 
-        // 4. По загрузившему (аналитика, "мои вложения")
+        // 5. По загрузившему (аналитика, "мои вложения")
         @Index(name = "idx_attachment_uploader", columnList = "uploaded_by_id"),
 
-        // 5. По типу (фильтр "только фото")
-        @Index(name = "idx_attachment_type", columnList = "type")})
+        // 6. По типу (фильтр "только фото")
+        @Index(name = "idx_attachment_type", columnList = "type") })
 @SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE attachments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
 @Getter
@@ -38,15 +42,8 @@ import java.time.Instant;
 public class Attachment {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "attachment_seq"
-    )
-    @SequenceGenerator(
-            name = "attachment_seq",
-            sequenceName = "attachments_id_seq",
-            allocationSize = 1
-    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "attachment_seq")
+    @SequenceGenerator(name = "attachment_seq", sequenceName = "attachments_id_seq", allocationSize = 1)
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -59,10 +56,22 @@ public class Attachment {
     @JoinColumn(name = "message_id", nullable = true)
     private Message message;
 
-    // ← Ограничение: только один из двух не null
+    // Личное сообщение (DirectMessage)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "direct_message_id")
+    private DirectMessage directMessage;
+
+    // ← Ограничение: только один из трёх не null
     @Transient
     public boolean isValid() {
-        return (ticket != null && message == null) || (ticket == null && message != null);
+        int count = 0;
+        if (ticket != null)
+            count++;
+        if (message != null)
+            count++;
+        if (directMessage != null)
+            count++;
+        return count == 1;
     }
 
     @NotBlank
