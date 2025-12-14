@@ -108,33 +108,38 @@ ON CONFLICT (line_id, user_id) DO NOTHING;
 -----------------------------------------------------------
 -- SAMPLE TICKETS — только от пользователей с ролью USER (по 2 от каждого)
 -----------------------------------------------------------
--- INSERT INTO tickets (
---     title, description, status, priority, created_by_id, created_at, updated_at,
---     category_user_id, escalated, version
--- ) VALUES
--- -- user1 (id 10)
--- ('Не могу войти в систему', 'После ввода логина и пароля появляется ошибка "Неверные данные".', 'NEW', 'HIGH', 10, NOW(), NOW(), 1, false, 0),
--- ('Не приходит письмо с подтверждением', 'Зарегистрировался, но письмо с подтверждением не приходит уже 30 минут.', 'NEW', 'MEDIUM', 10, NOW(), NOW(), 1, false, 0),
---
--- -- user2 (id 11)
--- ('Проблема с печатью документов', 'При попытке распечатать документ из личного кабинета выходит пустой лист.', 'NEW', 'MEDIUM', 11, NOW(), NOW(), 1, false, 0),
--- ('Не отображается история платежей', 'В разделе "Платежи" ничего не видно, хотя платежи были.', 'NEW', 'HIGH', 11, NOW(), NOW(), 1, false, 0),
---
--- -- user3 (id 12)
--- ('Ошибка при загрузке файла', 'При попытке прикрепить файл к заявке выдаёт "Недопустимый формат".', 'NEW', 'MEDIUM', 12, NOW(), NOW(), 1, false, 0),
--- ('Не могу сбросить пароль', 'Нажала "Забыли пароль?", но письмо с ссылкой не приходит.', 'NEW', 'HIGH', 12, NOW(), NOW(), 1, false, 0)
--- ON CONFLICT (id) DO UPDATE SET
---                                title = EXCLUDED.title,
---                                description = EXCLUDED.description,
---                                status = EXCLUDED.status,
---                                priority = EXCLUDED.priority,
---                                updated_at = NOW(),
---                                category_user_id = EXCLUDED.category_user_id;
+-- INSERT INTO tickets (...) VALUES (...) -- закомментировано
+
+-----------------------------------------------------------
+-- FRIENDSHIPS — тестовые данные для системы друзей
+-----------------------------------------------------------
+INSERT INTO friendships (requester_id, addressee_id, status, requested_at, responded_at) VALUES
+-- Дружба между разработчиками (все приняты)
+(1, 2, 'ACCEPTED', NOW() - INTERVAL '7 days', NOW() - INTERVAL '6 days'),
+(1, 3, 'ACCEPTED', NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days'),
+(2, 3, 'ACCEPTED', NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'),
+
+-- Дружба между специалистами 1С
+(4, 5, 'ACCEPTED', NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days'),
+(5, 6, 'ACCEPTED', NOW() - INTERVAL '8 days', NOW() - INTERVAL '7 days'),
+
+-- Дружба между сисадминами
+(7, 8, 'ACCEPTED', NOW() - INTERVAL '14 days', NOW() - INTERVAL '13 days'),
+
+-- Ожидающие запросы (PENDING)
+(10, 1, 'PENDING', NOW() - INTERVAL '1 day', NULL),  -- user1 → developer1
+(11, 4, 'PENDING', NOW() - INTERVAL '2 days', NULL), -- user2 → specialist1
+(12, 7, 'PENDING', NOW() - INTERVAL '3 days', NULL), -- user3 → sysadmin1
+
+-- Отклонённый запрос
+(10, 13, 'REJECTED', NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days') -- user1 → admin (отклонён)
+ON CONFLICT (requester_id, addressee_id) DO NOTHING;
 
 -----------------------------------------------------------
 -- FIX SEQUENCES
 -----------------------------------------------------------
-SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
-SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories));
-SELECT setval('support_lines_id_seq', (SELECT MAX(id) FROM support_lines));
-SELECT setval('tickets_id_seq', (SELECT MAX(id) FROM tickets));
+SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users));
+SELECT setval('categories_id_seq', (SELECT COALESCE(MAX(id), 1) FROM categories));
+SELECT setval('support_lines_id_seq', (SELECT COALESCE(MAX(id), 1) FROM support_lines));
+SELECT setval('tickets_id_seq', (SELECT COALESCE(MAX(id), 1) FROM tickets));
+SELECT setval('friendships_id_seq', (SELECT COALESCE(MAX(id), 1) FROM friendships));
