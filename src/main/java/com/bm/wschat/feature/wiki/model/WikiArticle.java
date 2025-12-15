@@ -5,6 +5,7 @@ import com.bm.wschat.shared.model.Category;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.envers.Audited;
@@ -46,15 +47,8 @@ import java.util.Set;
 public class WikiArticle {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "wiki_seq"
-    )
-    @SequenceGenerator(
-            name = "wiki_seq",
-            sequenceName = "wiki_articles_id_seq",
-            allocationSize = 1
-    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "wiki_seq")
+    @SequenceGenerator(name = "wiki_seq", sequenceName = "wiki_articles_id_seq", allocationSize = 1)
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -79,6 +73,7 @@ public class WikiArticle {
     @ElementCollection
     @CollectionTable(name = "wiki_article_tags", joinColumns = @JoinColumn(name = "article_id"))
     @Column(name = "tag")
+    @BatchSize(size = 50)
     private Set<String> tagSet = new HashSet<>();
 
     // ← Категория (если есть иерархия)

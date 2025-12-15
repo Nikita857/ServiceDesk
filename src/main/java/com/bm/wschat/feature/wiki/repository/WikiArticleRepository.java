@@ -3,6 +3,7 @@ package com.bm.wschat.feature.wiki.repository;
 import com.bm.wschat.feature.wiki.model.WikiArticle;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -22,20 +23,24 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
 
     boolean existsByTitle(String title);
 
-    // С категорией
-    @Query("SELECT a FROM WikiArticle a LEFT JOIN FETCH a.category LEFT JOIN FETCH a.createdBy WHERE a.slug = :slug ")
+    // С категорией и тегами
+    @Query("SELECT a FROM WikiArticle a LEFT JOIN FETCH a.category LEFT JOIN FETCH a.createdBy LEFT JOIN FETCH a.tagSet WHERE a.slug = :slug")
     Optional<WikiArticle> findBySlugWithDetails(@Param("slug") String slug);
 
-    // Все статьи
+    // Все статьи (с подгрузкой связей)
+    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
     Page<WikiArticle> findAllByOrderByUpdatedAtDesc(Pageable pageable);
 
     // По категории
+    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
     Page<WikiArticle> findByCategoryIdOrderByUpdatedAtDesc(Long categoryId, Pageable pageable);
 
     // Популярные
+    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
     Page<WikiArticle> findAllByOrderByViewCountDesc(Pageable pageable);
 
     // Поиск по title и content
+    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
     @Query("SELECT a FROM WikiArticle a WHERE " +
             "LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(a.content) LIKE LOWER(CONCAT('%', :query, '%')) " +
@@ -52,5 +57,6 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
     void incrementViewCount(@Param("id") Long id);
 
     // Статьи автора
+    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
     Page<WikiArticle> findByCreatedByIdOrderByUpdatedAtDesc(Long userId, Pageable pageable);
 }
