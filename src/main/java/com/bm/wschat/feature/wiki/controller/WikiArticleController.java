@@ -128,4 +128,13 @@ public class WikiArticleController {
                 return ResponseEntity.ok(
                                 ApiResponse.success("Статья лайкнута"));
         }
+
+        @DeleteMapping("/{id}/like")
+        @Operation(summary = "Убрать лайк со статьи Wiki", description = "Удаляет лайк пользователя со статьи базы знаний.")
+        public ResponseEntity<ApiResponse<Void>> unlikeArticle(@PathVariable Long id,
+                        @AuthenticationPrincipal User user) {
+                wikiArticleService.unlikeArticle(id, user);
+                return ResponseEntity.ok(
+                                ApiResponse.success("Лайк убран"));
+        }
 }

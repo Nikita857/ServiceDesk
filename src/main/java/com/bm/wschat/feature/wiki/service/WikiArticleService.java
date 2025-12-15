@@ -236,6 +236,21 @@ public class WikiArticleService {
                         .build());
     }
 
+    /**
+     * Убрать лайк со статьи
+     */
+    @Transactional
+    public void unlikeArticle(Long id, User user) {
+        WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
+                () -> new EntityNotFoundException("Статья не найдена: " + id));
+
+        if (!articleLikeRepository.existsByArticleAndUser(article, user)) {
+            throw new EntityNotFoundException("Вы не лайкали эту статью");
+        }
+
+        articleLikeRepository.deleteByArticleAndUser(article, user);
+    }
+
     // === Private helpers ===
 
     private boolean canModify(WikiArticle article, Long userId) {
