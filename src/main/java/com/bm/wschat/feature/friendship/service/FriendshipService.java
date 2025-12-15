@@ -102,7 +102,7 @@ public class FriendshipService {
 
         friendship.reject();
         Friendship saved = friendshipRepository.save(friendship);
-        log.info("Friend request {} rejected by user {}", friendshipId, userId);
+        log.info("Запрос в друзья {} отклонен пользователем {}", friendshipId, userId);
         return toResponse(saved);
     }
 
@@ -119,7 +119,7 @@ public class FriendshipService {
         }
 
         friendshipRepository.delete(friendship);
-        log.info("Friendship removed between {} and {}", userId, friendId);
+        log.info("Дружба удалена между {} и {}", userId, friendId);
     }
 
     /**
@@ -145,7 +145,7 @@ public class FriendshipService {
 
         friendship.block();
         Friendship saved = friendshipRepository.save(friendship);
-        log.info("User {} blocked user {}", blockerId, targetId);
+        log.info("Пользователь {} заблокировал пользователя {}", blockerId, targetId);
         return toResponse(saved);
     }
 

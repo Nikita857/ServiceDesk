@@ -16,6 +16,6 @@ public class UserService {
     @Transactional(readOnly = true)
     public User findByUsername(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + username));
     }
 }

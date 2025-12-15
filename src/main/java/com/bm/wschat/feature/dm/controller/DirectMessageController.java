@@ -40,7 +40,7 @@ public class DirectMessageController {
             @Valid @RequestBody SendDirectMessageRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Message sent",
+                .body(ApiResponse.success("Сообщение отправлено",
                         dmService.sendMessage(request, user.getId())));
     }
 
@@ -84,7 +84,7 @@ public class DirectMessageController {
             @PathVariable Long messageId,
             @AuthenticationPrincipal User user) {
         dmService.deleteMessage(messageId, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Message deleted"));
+        return ResponseEntity.ok(ApiResponse.success("Сообщение удалено"));
     }
 
     // === Вложения ===
@@ -96,7 +96,7 @@ public class DirectMessageController {
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Attachment uploaded",
+                .body(ApiResponse.success("Вложение загружено",
                         attachmentService.uploadToDirectMessage(messageId, file, user.getId())));
     }
 

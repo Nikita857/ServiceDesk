@@ -49,11 +49,11 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                             SecurityContextHolder.getContext().setAuthentication(authToken);
                             accessor.setUser(authToken);
 
-                            log.debug("WebSocket authenticated user: {}", username);
+                            log.debug("Успешная вебсокет аутентификация: {}", username);
                         }
                     }
                 } catch (Exception e) {
-                    log.error("WebSocket authentication failed: {}", e.getMessage());
+                    log.error("Ошибка вебсокет аутентификации: {}", e.getMessage());
                 }
             }
         }

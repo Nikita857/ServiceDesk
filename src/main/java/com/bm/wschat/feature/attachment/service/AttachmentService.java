@@ -54,12 +54,12 @@ public class AttachmentService {
      */
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+            throw new IllegalArgumentException("Файл пустой");
         }
 
         // Проверка размера
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds maximum allowed (10MB)");
+            throw new IllegalArgumentException("Максимальный размер файла 10 МБ");
         }
 
         // Проверка расширения
@@ -68,7 +68,7 @@ public class AttachmentService {
             String lowerName = filename.toLowerCase();
             for (String ext : BLOCKED_EXTENSIONS) {
                 if (lowerName.endsWith(ext)) {
-                    throw new IllegalArgumentException("File type not allowed: " + ext);
+                    throw new IllegalArgumentException("Неразрешенный тип файла: " + ext);
                 }
             }
         }
@@ -79,10 +79,10 @@ public class AttachmentService {
         validateFile(file);
 
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + ticketId));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
 
         User uploader = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         String storedFilename = fileStorageService.store(file);
 
@@ -98,7 +98,7 @@ public class AttachmentService {
                 .build();
 
         Attachment saved = attachmentRepository.save(attachment);
-        log.info("Attachment uploaded to ticket {}: {}", ticketId, saved.getId());
+        log.info("Вложение прикреплено к тикету {}: {}", ticketId, saved.getId());
         return attachmentMapper.toResponse(saved);
     }
 
@@ -107,10 +107,10 @@ public class AttachmentService {
         validateFile(file);
 
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         User uploader = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         String storedFilename = fileStorageService.store(file);
 
@@ -126,7 +126,7 @@ public class AttachmentService {
                 .build();
 
         Attachment saved = attachmentRepository.save(attachment);
-        log.info("Attachment uploaded to message {}: {}", messageId, saved.getId());
+        log.info("Вложение прикреплено к сообщению {}: {}", messageId, saved.getId());
         return attachmentMapper.toResponse(saved);
     }
 
@@ -159,7 +159,7 @@ public class AttachmentService {
                 .build();
 
         Attachment saved = attachmentRepository.save(attachment);
-        log.info("Attachment uploaded to DM {}: {}", dmId, saved.getId());
+        log.info("Вложение к прикреплено к личному сообщению {}: {}", dmId, saved.getId());
         return attachmentMapper.toResponse(saved);
     }
 
@@ -215,7 +215,7 @@ public class AttachmentService {
         fileStorageService.delete(filename);
 
         attachmentRepository.delete(attachment); // Soft delete
-        log.info("Attachment deleted: {} by user {}", attachmentId, userId);
+        log.info("Вложение удалено: {} Пользователь {}", attachmentId, userId);
     }
 
     private AttachmentType detectType(String mimeType) {

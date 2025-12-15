@@ -39,7 +39,7 @@ public class TimeEntryController {
             @Valid @RequestBody CreateTimeEntryRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Time entry created",
+                .body(ApiResponse.success("Запись времени создана",
                         timeEntryService.createTimeEntry(ticketId, request, user.getId())));
     }
 
@@ -80,7 +80,7 @@ public class TimeEntryController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTimeEntryRequest request,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Time entry updated",
+        return ResponseEntity.ok(ApiResponse.success("Запись времени обновлена",
                 timeEntryService.updateTimeEntry(id, request, user.getId())));
     }
 
@@ -91,6 +91,6 @@ public class TimeEntryController {
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
         timeEntryService.deleteTimeEntry(id, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Time entry deleted"));
+        return ResponseEntity.ok(ApiResponse.success("Запись времени удалена"));
     }
 }

@@ -64,7 +64,7 @@ public class TicketService {
     @Transactional
     public TicketResponse createTicket(CreateTicketRequest request, Long userId) {
         User creator = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         Ticket ticket = ticketMapper.toEntity(request);
         ticket.setCreatedBy(creator);
@@ -72,7 +72,7 @@ public class TicketService {
         if (request.supportLineId() != null) {
             SupportLine line = supportLineRepository.findById(request.supportLineId())
                     .orElseThrow(() -> new EntityNotFoundException(
-                            "Support line not found with id: " + request.supportLineId()));
+                            "Линия поддержки не найдена: " + request.supportLineId()));
             ticket.setSupportLine(line);
 
             if (line.getSlaMinutes() != null) {
@@ -83,7 +83,7 @@ public class TicketService {
             // displayOrder)
             SupportLine firstLine = supportLineRepository.findFirstByDeletedAtIsNullOrderByDisplayOrderAsc()
                     .orElseThrow(() -> new EntityNotFoundException(
-                            "No support lines configured in the system"));
+                            "Дефолтная линия поддержки не установлена"));
 
             ticket.setSupportLine(firstLine);
 
@@ -95,7 +95,7 @@ public class TicketService {
         if (request.categoryUserId() != null) {
             Category category = categoryRepository.findById(request.categoryUserId())
                     .orElseThrow(() -> new EntityNotFoundException(
-                            "Category not found with id: " + request.categoryUserId()));
+                            "Категория не найдена: " + request.categoryUserId()));
             ticket.setCategoryUser(category);
         }
 
@@ -103,16 +103,16 @@ public class TicketService {
         if (request.assignToUserId() != null) {
             User specialist = userRepository.findById(request.assignToUserId())
                     .orElseThrow(() -> new EntityNotFoundException(
-                            "Specialist not found with id: " + request.assignToUserId()));
+                            "Специалист не найден: " + request.assignToUserId()));
 
             if (!specialist.isSpecialist()) {
-                throw new IllegalArgumentException("User is not a specialist");
+                throw new IllegalArgumentException("Пользователь не специалист");
             }
 
             // Проверка что специалист принадлежит выбранной линии (если линия указана)
             if (ticket.getSupportLine() != null &&
                     !ticket.getSupportLine().getSpecialists().contains(specialist)) {
-                throw new IllegalArgumentException("Specialist is not in the selected support line");
+                throw new IllegalArgumentException("Специалист не в выбранной линии поддержки");
             }
 
             ticket.setAssignedTo(specialist);
@@ -125,7 +125,7 @@ public class TicketService {
 
     public TicketResponse getTicketById(Long id) {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
         return toResponseWithAssignment(ticket);
     }
 
@@ -134,7 +134,7 @@ public class TicketService {
      */
     public TicketResponse getTicketById(Long id, User user) {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         if (!canAccessTicket(ticket, user)) {
             throw new org.springframework.security.access.AccessDeniedException("You don't have access to this ticket");
@@ -219,7 +219,7 @@ public class TicketService {
     @Transactional
     public TicketResponse updateTicket(Long id, UpdateTicketRequest request) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         if (request.title() != null) {
             ticket.setTitle(request.title());
@@ -242,7 +242,7 @@ public class TicketService {
     @Transactional
     public void deleteTicket(Long id) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         ticket.setDeletedAt(Instant.now());
         ticketRepository.save(ticket);
@@ -251,13 +251,13 @@ public class TicketService {
     @Transactional
     public TicketResponse changeStatus(Long id, ChangeStatusRequest request) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         TicketStatus currentStatus = ticket.getStatus();
         TicketStatus newStatus = request.status();
 
         if (!isValidStatusTransition(currentStatus, newStatus)) {
-            throw new IllegalArgumentException("Invalid status transition from " + currentStatus + " to " + newStatus);
+            throw new IllegalArgumentException("Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
         }
 
         ticket.setStatus(newStatus);
@@ -353,10 +353,10 @@ public class TicketService {
     @Transactional
     public TicketResponse assignToLine(Long id, Long lineId) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         SupportLine line = supportLineRepository.findById(lineId)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + lineId));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
         ticket.setSupportLine(line);
         ticket.setAssignedTo(null);
@@ -374,13 +374,13 @@ public class TicketService {
     @Transactional
     public TicketResponse assignToSpecialist(Long id, Long specialistId) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         User specialist = userRepository.findById(specialistId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + specialistId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + specialistId));
 
         if (!specialist.isSpecialist()) {
-            throw new IllegalArgumentException("User is not a specialist");
+            throw new IllegalArgumentException("Пользователь не специалист");
         }
 
         ticket.setAssignedTo(specialist);
@@ -397,10 +397,10 @@ public class TicketService {
     @Transactional
     public TicketResponse setUserCategory(Long id, Long categoryId) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
+                .orElseThrow(() -> new EntityNotFoundException("Категория не найдена: " + categoryId));
 
         ticket.setCategoryUser(category);
         ticket.touchUpdated();
@@ -411,10 +411,10 @@ public class TicketService {
     @Transactional
     public TicketResponse setSupportCategory(Long id, Long categoryId) {
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + categoryId));
+                .orElseThrow(() -> new EntityNotFoundException("Категори я не найдена: " + categoryId));
 
         ticket.setCategorySupport(category);
         ticket.touchUpdated();

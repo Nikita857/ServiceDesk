@@ -8,11 +8,11 @@ import jakarta.validation.constraints.Min;
 public record CreateCategoryRequest(
         @NotBlank(message = "Name is required") @Size(max = 150, message = "Name must not exceed 150 characters") String name,
 
-        @Size(max = 500, message = "Description must not exceed 500 characters") String description,
+        @Size(max = 500, message = "Описание не должно превышать 500 символов") String description,
 
         CategoryType type,
 
-        @Min(value = 0, message = "Display order must be non-negative") Integer displayOrder,
+        @Min(value = 0, message = "Порядок не должен быть отрицательным") Integer displayOrder,
 
         Boolean userSelectable) {
     public CreateCategoryRequest {

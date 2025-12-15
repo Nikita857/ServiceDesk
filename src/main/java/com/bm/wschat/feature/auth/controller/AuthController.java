@@ -28,14 +28,14 @@ public class AuthController {
     @Operation(summary = "Аутентификация пользователя", description = "Принимает логин и пароль, возвращает access и refresh токены.")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody AuthRequest request) {
         return ResponseEntity.ok(
-                ApiResponse.success("Login successful", authService.login(request)));
+                ApiResponse.success("Успешная авторизация", authService.login(request)));
     }
 
     @PostMapping("/refresh")
     @Operation(summary = "Обновление токена", description = "Принимает refresh токен и возвращает новую пару access и refresh токенов.")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(
-                ApiResponse.success("Token refreshed successfully", authService.refreshToken(request)));
+                ApiResponse.success("Токен обновлен", authService.refreshToken(request)));
     }
 
     @PostMapping("/logout")
@@ -43,6 +43,6 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal User user) {
         refreshTokenService.deleteByUserId(user.getId());
         return ResponseEntity.ok(
-                ApiResponse.success("Successfully logged out"));
+                ApiResponse.success("Успешный выход"));
     }
 }

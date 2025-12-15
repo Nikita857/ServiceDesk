@@ -102,7 +102,7 @@ public class MessageService {
     public Page<MessageResponse> getTicketMessages(Long ticketId, Pageable pageable, User user) {
         // Check ticket exists
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found with id: " + ticketId);
+            throw new EntityNotFoundException("Тикет с не найден: " + ticketId);
         }
 
         Page<Message> messages;
@@ -120,7 +120,7 @@ public class MessageService {
     @Transactional
     public int markAsRead(Long ticketId, User user) {
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found with id: " + ticketId);
+            throw new EntityNotFoundException("Тикет не найден: " + ticketId);
         }
 
         Instant now = Instant.now();
@@ -134,11 +134,11 @@ public class MessageService {
     @Transactional
     public MessageResponse editMessage(Long messageId, EditMessageRequest request, Long userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         // Only sender can edit their message
         if (message.getSender() == null || !message.getSender().getId().equals(userId)) {
-            throw new AccessDeniedException("You can only edit your own messages");
+            throw new AccessDeniedException("Вы можете редактировать только свои сообщения");
         }
 
         message.setContent(request.content());
@@ -151,17 +151,17 @@ public class MessageService {
     @Transactional
     public void deleteMessage(Long messageId, Long userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         // Sender or admin can delete
         boolean isSender = message.getSender() != null && message.getSender().getId().equals(userId);
         boolean isAdmin = user.isAdmin();
 
         if (!isSender && !isAdmin) {
-            throw new AccessDeniedException("You can only delete your own messages");
+            throw new AccessDeniedException("Вы можете удалять только свои сообщения");
         }
 
         messageRepository.delete(message); // Soft delete via @SQLDelete

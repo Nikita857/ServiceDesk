@@ -65,13 +65,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (ExpiredJwtException e) {
-            throw new ExpiredTokenException("JWT token has expired");
+            throw new ExpiredTokenException("JWT токен просрочен");
         } catch (SignatureException | MalformedJwtException e) {
-            throw new InvalidTokenException("Invalid JWT token");
+            throw new InvalidTokenException("Неверный JWT токен");
         } catch (UsernameNotFoundException e) {
-            throw new UsernameNotFoundException("Username not found");
+            throw new UsernameNotFoundException("Имя пользователя не найдено");
         } catch (Exception e) {
-            throw new JwtAuthenticationException("Authentication failed");
+            throw new JwtAuthenticationException("Не удалось авторизоваться");
         }
     }
 

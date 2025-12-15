@@ -40,7 +40,7 @@ public class UserManagementController {
                 user.getId(), user.getFio(), user.getUsername(),
                 user.getTelegramId(), user.isSpecialist(), user.getRoles(),
                 user.isActive());
-        return ResponseEntity.ok(ApiResponse.success("User created successfully", response));
+        return ResponseEntity.ok(ApiResponse.success("Пользователь создан", response));
     }
 
     @PutMapping("/{id}/password")
@@ -50,20 +50,20 @@ public class UserManagementController {
             @RequestParam @NotNull String newPassword
     ) {
         userManagementService.changePassword(id, newPassword);
-        return ResponseEntity.ok(ApiResponse.success("Password changed successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Пароль изменен"));
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Удалить пользователя", description = "Удаляет пользователя по его уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         userManagementService.deleteUser(id);
-        return ResponseEntity.ok(ApiResponse.success("User deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Пользователь успешно создан"));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Получить пользователя по ID", description = "Возвращает информацию о пользователе по его уникальному идентификатору.")
     public ResponseEntity<ApiResponse<UserAuthResponse>> getUser(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("User retrieved successfully",
+        return ResponseEntity.ok(ApiResponse.success("Информация о пользователе",
                 authMapper.toAuthResponse(userManagementService.findUserById(id))));
     }
 }
