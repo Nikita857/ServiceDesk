@@ -27,7 +27,7 @@ import java.time.Instant;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-@Tag(name = "MessageWebSocketController", description = "Websocket controller for live message exchange inside of ticket")
+@Tag(name = "MessageWebSocketController", description = "Вебсокет контроллер для live чата внутри тикета")
 public class MessageWebSocketController {
 
         private final SimpMessagingTemplate messagingTemplate;
@@ -46,7 +46,7 @@ public class MessageWebSocketController {
                         Principal principal) {
 
                 if (principal == null) {
-                        log.warn("Unauthorized WebSocket message attempt to ticket {}", ticketId);
+                        log.warn("Неавторизованная попытка открыть чат тикета {}", ticketId);
                         return;
                 }
 
@@ -58,7 +58,7 @@ public class MessageWebSocketController {
 
                 // Only specialists can send internal messages
                 if (request.internal() && !user.isSpecialist()) {
-                        throw new AccessDeniedException("Only specialists can send internal messages");
+                        throw new AccessDeniedException("Внутренние сообщения могут отправлять только специалисты");
                 }
 
                 // Save message to database

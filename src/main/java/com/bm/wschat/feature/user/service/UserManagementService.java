@@ -34,7 +34,7 @@ public class UserManagementService {
 
         // Check if user already exists
         if (userRepository.findByUsernameIgnoreCase(username).isPresent()) {
-            throw new DataIntegrityViolationException("User with username '" + username + "' already exists");
+            throw new DataIntegrityViolationException("Пользователь с логином '" + username + "' уже существует");
         }
 
         User user = User.builder()
@@ -57,7 +57,7 @@ public class UserManagementService {
     @Transactional
     public User updateUser(Long userId, String fio, String email, Set<String> roles, Boolean active) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         if (fio != null) user.setFio(fio);
         if (email != null) user.setEmail(email);
@@ -67,7 +67,7 @@ public class UserManagementService {
         user.setUpdatedAt(Instant.now());
 
         User updatedUser = userRepository.save(user);
-        log.info("Updated user: {}", user.getUsername());
+        log.info("Обновлен пользователь: {}", user.getUsername());
         return updatedUser;
     }
 
@@ -79,28 +79,28 @@ public class UserManagementService {
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(Instant.now());
 
         userRepository.save(user);
-        log.info("Password changed for user: {}", user.getUsername());
+        log.info("Пароль измене для пользователя: {}", user.getUsername());
     }
 
     @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User not found with id: " + userId);
+            throw new EntityNotFoundException("Пользователь не найден: " + userId);
         }
         
         userRepository.deleteById(userId);
-        log.info("Deleted user with id: {}", userId);
+        log.info("Удален пользователь: {}", userId);
     }
 
     @Transactional(readOnly = true)
     public User findUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + id));
     }
 }

@@ -35,7 +35,7 @@ public class DirectMessageWebSocketController {
             Principal principal) {
 
         if (principal == null) {
-            log.warn("Unauthorized DM attempt");
+            log.warn("Попытка подключиться неавторизованного пользователя");
             return;
         }
 
@@ -57,10 +57,10 @@ public class DirectMessageWebSocketController {
                     "/queue/private",
                     response);
 
-            log.debug("DM sent from {} to {}", sender.getId(), request.recipientId());
+            log.debug("Сообщение отправлено {} -> {}", sender.getId(), request.recipientId());
 
         } catch (Exception e) {
-            log.error("Failed to send DM: {}", e.getMessage());
+            log.error("Не удалось отправиь личное сообщение: {}", e.getMessage());
         }
     }
 
@@ -94,7 +94,7 @@ public class DirectMessageWebSocketController {
                 "/queue/dm-typing",
                 outgoing);
 
-        log.debug("DM typing indicator from {} to {}: {}",
+        log.debug("Индикатор печати отправлен {} -> {}: {}",
                 sender.getId(), indicator.recipientId(), indicator.typing());
     }
 }

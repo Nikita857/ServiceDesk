@@ -41,10 +41,10 @@ public class TimeEntryService {
     @Transactional
     public TimeEntryResponse createTimeEntry(Long ticketId, CreateTimeEntryRequest request, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + ticketId));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
 
         User specialist = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         TimeEntry timeEntry = TimeEntry.builder()
                 .ticket(ticket)
@@ -61,7 +61,7 @@ public class TimeEntryService {
         // Обновить total на тикете
         updateTicketTotalTime(ticket);
 
-        log.info("Time entry created: ticket={}, user={}, duration={}s",
+        log.info("Запись времени создана: ticket={}, user={}, duration={}s",
                 ticketId, specialist.getUsername(), request.durationSeconds());
 
         return timeEntryMapper.toResponse(saved);
@@ -72,7 +72,7 @@ public class TimeEntryService {
      */
     public TimeEntryResponse getById(Long id) {
         TimeEntry entry = timeEntryRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Time entry not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Запись времени не найдена: " + id));
         return timeEntryMapper.toResponse(entry);
     }
 
@@ -81,7 +81,7 @@ public class TimeEntryService {
      */
     public List<TimeEntryResponse> getByTicketId(Long ticketId) {
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found: " + ticketId);
+            throw new EntityNotFoundException("Тикет не найден: " + ticketId);
         }
         List<TimeEntry> entries = timeEntryRepository.findByTicketIdOrderByEntryDateDesc(ticketId);
         return timeEntryMapper.toResponses(entries);
@@ -92,7 +92,7 @@ public class TimeEntryService {
      */
     public Page<TimeEntryResponse> getByTicketId(Long ticketId, Pageable pageable) {
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found: " + ticketId);
+            throw new EntityNotFoundException("Тикет не найден: " + ticketId);
         }
         Page<TimeEntry> entries = timeEntryRepository.findByTicketIdOrderByEntryDateDesc(ticketId, pageable);
         return entries.map(timeEntryMapper::toResponse);
@@ -111,7 +111,7 @@ public class TimeEntryService {
      */
     public TimeTotalResponse getTimeTotal(Long ticketId) {
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found: " + ticketId);
+            throw new EntityNotFoundException("Тикет не найден: " + ticketId);
         }
         Long totalSeconds = timeEntryRepository.sumDurationByTicketId(ticketId);
         Long entryCount = timeEntryRepository.countByTicketId(ticketId);
@@ -125,11 +125,11 @@ public class TimeEntryService {
     @Transactional
     public TimeEntryResponse updateTimeEntry(Long id, UpdateTimeEntryRequest request, Long userId) {
         TimeEntry entry = timeEntryRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Time entry not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Запись времени не найдена: " + id));
 
         // Проверка прав
         if (!canModify(entry, userId)) {
-            throw new AccessDeniedException("You can only edit your own time entries");
+            throw new AccessDeniedException("Вы можете редактировать только свои записи времени");
         }
 
         if (request.durationSeconds() != null) {
@@ -150,7 +150,7 @@ public class TimeEntryService {
         // Обновить total на тикете
         updateTicketTotalTime(entry.getTicket());
 
-        log.info("Time entry updated: id={}", id);
+        log.info("Запись времени обновлена: id={}", id);
 
         return timeEntryMapper.toResponse(updated);
     }
@@ -161,11 +161,11 @@ public class TimeEntryService {
     @Transactional
     public void deleteTimeEntry(Long id, Long userId) {
         TimeEntry entry = timeEntryRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Time entry not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Запись времени не найдена: " + id));
 
         // Проверка прав
         if (!canModify(entry, userId)) {
-            throw new AccessDeniedException("You can only delete your own time entries");
+            throw new AccessDeniedException("Вы можете удалять только свои записи врмени");
         }
 
         Ticket ticket = entry.getTicket();
@@ -174,7 +174,7 @@ public class TimeEntryService {
         // Обновить total на тикете
         updateTicketTotalTime(ticket);
 
-        log.info("Time entry deleted: id={}", id);
+        log.info("Запись времени удалена: id={}", id);
     }
 
     // === Private helpers ===

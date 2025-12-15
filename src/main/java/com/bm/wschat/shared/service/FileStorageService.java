@@ -31,9 +31,9 @@ public class FileStorageService {
         uploadPath = Paths.get(config.getDir()).toAbsolutePath().normalize();
         try {
             Files.createDirectories(uploadPath);
-            log.info("Upload directory initialized: {}", uploadPath);
+            log.info("Директория загрузки создана: {}", uploadPath);
         } catch (IOException e) {
-            throw new RuntimeException("Could not create upload directory: " + uploadPath, e);
+            throw new RuntimeException("Не удается создать директорию загрузки: " + uploadPath, e);
         }
     }
 
@@ -50,10 +50,10 @@ public class FileStorageService {
         try {
             Path targetPath = uploadPath.resolve(storedFilename);
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-            log.debug("File stored: {} -> {}", originalFilename, storedFilename);
+            log.debug("Файл сохранен: {} -> {}", originalFilename, storedFilename);
             return storedFilename;
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file: " + originalFilename, e);
+            throw new RuntimeException("Не удалось сохранить файл: " + originalFilename, e);
         }
     }
 
@@ -68,10 +68,10 @@ public class FileStorageService {
             if (resource.exists() && resource.isReadable()) {
                 return resource;
             } else {
-                throw new RuntimeException("File not found: " + filename);
+                throw new RuntimeException("Файл не найден: " + filename);
             }
         } catch (MalformedURLException e) {
-            throw new RuntimeException("File not found: " + filename, e);
+            throw new RuntimeException("Файл не найден: " + filename, e);
         }
     }
 
@@ -83,7 +83,7 @@ public class FileStorageService {
             Path filePath = uploadPath.resolve(filename).normalize();
             return Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            log.error("Failed to delete file: {}", filename, e);
+            log.error("Не удалось удалиь файл: {}", filename, e);
             return false;
         }
     }
@@ -101,13 +101,13 @@ public class FileStorageService {
         }
 
         if (file.getSize() > config.getMaxFileSize()) {
-            throw new IllegalArgumentException("File size exceeds maximum allowed: " +
+            throw new IllegalArgumentException("Размер файла превышает ограничение 10МБ: " +
                     (config.getMaxFileSize() / 1024 / 1024) + "MB");
         }
 
         String contentType = file.getContentType();
         if (contentType == null || !isAllowedType(contentType)) {
-            throw new IllegalArgumentException("File type not allowed: " + contentType);
+            throw new IllegalArgumentException("Тип файла запрещен: " + contentType);
         }
     }
 

@@ -92,6 +92,6 @@ public class AttachmentController {
             @PathVariable Long attachmentId,
             @AuthenticationPrincipal User user) {
         attachmentService.delete(attachmentId, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Attachment deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Вложение успешно удалено"));
     }
 }

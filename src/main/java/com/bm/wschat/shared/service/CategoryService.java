@@ -27,7 +27,7 @@ public class CategoryService {
     @Transactional
     public CategoryDetailResponse createCategory(CreateCategoryRequest request) {
         if (categoryRepository.existsByName(request.name())) {
-            throw new EntityExistsException("Category with name '" + request.name() + "' already exists");
+            throw new EntityExistsException("Категория с названием '" + request.name() + "' уже существует");
         }
 
         Category category = categoryMapper.toEntity(request);
@@ -37,7 +37,7 @@ public class CategoryService {
 
     public CategoryDetailResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Категория не найдена: " + id));
         return categoryMapper.toDetailResponse(category);
     }
 
@@ -59,11 +59,11 @@ public class CategoryService {
     @Transactional
     public CategoryDetailResponse updateCategory(Long id, UpdateCategoryRequest request) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Категория не найдена: " + id));
 
         if (request.name() != null && !request.name().equals(category.getName())) {
             if (categoryRepository.existsByName(request.name())) {
-                throw new EntityExistsException("Category with name '" + request.name() + "' already exists");
+                throw new EntityExistsException("Категория с названием '" + request.name() + "' уже существует");
             }
             category.setName(request.name());
         }
@@ -87,7 +87,7 @@ public class CategoryService {
     @Transactional
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Категория не найдена: " + id));
         categoryRepository.delete(category); // Soft delete via @SQLDelete
     }
 }
