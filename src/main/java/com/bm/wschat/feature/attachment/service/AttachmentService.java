@@ -5,6 +5,8 @@ import com.bm.wschat.feature.attachment.mapper.AttachmentMapper;
 import com.bm.wschat.feature.attachment.model.Attachment;
 import com.bm.wschat.feature.attachment.model.AttachmentType;
 import com.bm.wschat.feature.attachment.repository.AttachmentRepository;
+import com.bm.wschat.feature.dm.model.DirectMessage;
+import com.bm.wschat.feature.dm.repository.DirectMessageRepository;
 import com.bm.wschat.feature.message.model.Message;
 import com.bm.wschat.feature.message.repository.MessageRepository;
 import com.bm.wschat.feature.ticket.model.Ticket;
@@ -34,6 +36,7 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final TicketRepository ticketRepository;
     private final MessageRepository messageRepository;
+    private final DirectMessageRepository directMessageRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
@@ -51,12 +54,12 @@ public class AttachmentService {
      */
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File is empty");
+            throw new IllegalArgumentException("Файл пустой");
         }
 
         // Проверка размера
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new IllegalArgumentException("File size exceeds maximum allowed (10MB)");
+            throw new IllegalArgumentException("Максимальный размер файла 10 МБ");
         }
 
         // Проверка расширения
@@ -65,7 +68,7 @@ public class AttachmentService {
             String lowerName = filename.toLowerCase();
             for (String ext : BLOCKED_EXTENSIONS) {
                 if (lowerName.endsWith(ext)) {
-                    throw new IllegalArgumentException("File type not allowed: " + ext);
+                    throw new IllegalArgumentException("Неразрешенный тип файла: " + ext);
                 }
             }
         }
@@ -76,10 +79,10 @@ public class AttachmentService {
         validateFile(file);
 
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + ticketId));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
 
         User uploader = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         String storedFilename = fileStorageService.store(file);
 
@@ -95,7 +98,7 @@ public class AttachmentService {
                 .build();
 
         Attachment saved = attachmentRepository.save(attachment);
-        log.info("Attachment uploaded to ticket {}: {}", ticketId, saved.getId());
+        log.info("Вложение прикреплено к тикету {}: {}", ticketId, saved.getId());
         return attachmentMapper.toResponse(saved);
     }
 
@@ -104,10 +107,10 @@ public class AttachmentService {
         validateFile(file);
 
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         User uploader = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         String storedFilename = fileStorageService.store(file);
 
@@ -123,8 +126,46 @@ public class AttachmentService {
                 .build();
 
         Attachment saved = attachmentRepository.save(attachment);
-        log.info("Attachment uploaded to message {}: {}", messageId, saved.getId());
+        log.info("Вложение прикреплено к сообщению {}: {}", messageId, saved.getId());
         return attachmentMapper.toResponse(saved);
+    }
+
+    @Transactional
+    public AttachmentResponse uploadToDirectMessage(Long dmId, MultipartFile file, Long userId) {
+        validateFile(file);
+
+        DirectMessage dm = findDirectMessageById(dmId);
+
+        User uploader = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        // Проверяем, что пользователь — участник переписки
+        if (!dm.getSender().getId().equals(userId) && !dm.getRecipient().getId().equals(userId)) {
+            throw new AccessDeniedException(
+                    "Вы можете прикреплять вложения только в своей переписке");
+        }
+
+        String storedFilename = fileStorageService.store(file);
+
+        Attachment attachment = Attachment.builder()
+                .directMessage(dm)
+                .filename(file.getOriginalFilename())
+                .url(fileStorageService.getUrl(storedFilename))
+                .fileSize(file.getSize())
+                .mimeType(file.getContentType())
+                .type(detectType(file.getContentType()))
+                .uploadedBy(uploader)
+                .createdAt(Instant.now())
+                .build();
+
+        Attachment saved = attachmentRepository.save(attachment);
+        log.info("Вложение к прикреплено к личному сообщению {}: {}", dmId, saved.getId());
+        return attachmentMapper.toResponse(saved);
+    }
+
+    private DirectMessage findDirectMessageById(Long dmId) {
+        return directMessageRepository.findById(dmId)
+                .orElseThrow(() -> new EntityNotFoundException("Личное сообщение не найдено: " + dmId));
     }
 
     public List<AttachmentResponse> getByTicketId(Long ticketId) {
@@ -137,9 +178,14 @@ public class AttachmentService {
         return attachmentMapper.toResponses(attachments);
     }
 
+    public List<AttachmentResponse> getByDirectMessageId(Long dmId) {
+        List<Attachment> attachments = attachmentRepository.findByDirectMessageIdOrderByCreatedAtDesc(dmId);
+        return attachmentMapper.toResponses(attachments);
+    }
+
     public AttachmentResponse getById(Long attachmentId) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new EntityNotFoundException("Attachment not found: " + attachmentId));
+                .orElseThrow(() -> new EntityNotFoundException("Вложение не найдено: " + attachmentId));
         return attachmentMapper.toResponse(attachment);
     }
 
@@ -150,17 +196,17 @@ public class AttachmentService {
     @Transactional
     public void delete(Long attachmentId, Long userId) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new EntityNotFoundException("Attachment not found: " + attachmentId));
+                .orElseThrow(() -> new EntityNotFoundException("Вложение не найдено: " + attachmentId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         boolean isUploader = attachment.getUploadedBy() != null &&
                 attachment.getUploadedBy().getId().equals(userId);
         boolean isAdmin = user.isAdmin();
 
         if (!isUploader && !isAdmin) {
-            throw new AccessDeniedException("You can only delete your own attachments");
+            throw new AccessDeniedException("Вы можете удалять только свои вложения");
         }
 
         // Extract filename from URL
@@ -169,7 +215,7 @@ public class AttachmentService {
         fileStorageService.delete(filename);
 
         attachmentRepository.delete(attachment); // Soft delete
-        log.info("Attachment deleted: {} by user {}", attachmentId, userId);
+        log.info("Вложение удалено: {} Пользователь {}", attachmentId, userId);
     }
 
     private AttachmentType detectType(String mimeType) {

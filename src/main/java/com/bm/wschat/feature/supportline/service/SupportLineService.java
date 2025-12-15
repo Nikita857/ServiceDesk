@@ -30,7 +30,7 @@ public class SupportLineService {
     @Transactional
     public SupportLineResponse createLine(CreateSupportLineRequest request) {
         if (supportLineRepository.findByName(request.name()).isPresent()) {
-            throw new EntityExistsException("Support line with name '" + request.name() + "' already exists");
+            throw new EntityExistsException("Линия поддержки с названием '" + request.name() + "' уже существует");
         }
 
         SupportLine line = mapper.toEntity(request);
@@ -41,7 +41,7 @@ public class SupportLineService {
 
     public SupportLineResponse getLineById(Long id) {
         SupportLine line = supportLineRepository.findByIdWithSpecialists(id)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + id));
         return mapper.toResponse(line);
     }
 
@@ -52,7 +52,7 @@ public class SupportLineService {
 
     public List<SupportLineListResponse> getLinesBySpecialist(Long userId) {
         User specialist = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         List<SupportLine> lines = supportLineRepository.findBySpecialist(specialist);
         return mapper.toListResponses(lines);
@@ -61,7 +61,7 @@ public class SupportLineService {
     @Transactional
     public SupportLineResponse updateLine(Long id, UpdateSupportLineRequest request) {
         SupportLine line = supportLineRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поодержки не найдена: " + id));
 
         if (request.description() != null) {
             line.setDescription(request.description());
@@ -83,7 +83,7 @@ public class SupportLineService {
     @Transactional
     public void deleteLine(Long id) {
         SupportLine line = supportLineRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + id));
 
         supportLineRepository.delete(line); // Soft delete via @SQLDelete
     }
@@ -91,13 +91,13 @@ public class SupportLineService {
     @Transactional
     public SupportLineResponse addSpecialist(Long lineId, Long userId) {
         SupportLine line = supportLineRepository.findByIdWithSpecialists(lineId)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + lineId));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
         User specialist = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         if (!specialist.isSpecialist()) {
-            throw new IllegalArgumentException("User is not a specialist");
+            throw new IllegalArgumentException("Пользователь не является специалистом");
         }
 
         line.getSpecialists().add(specialist);
@@ -109,10 +109,10 @@ public class SupportLineService {
     @Transactional
     public SupportLineResponse removeSpecialist(Long lineId, Long userId) {
         SupportLine line = supportLineRepository.findByIdWithSpecialists(lineId)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + lineId));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
         User specialist = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         line.getSpecialists().remove(specialist);
         SupportLine updated = supportLineRepository.save(line);
@@ -122,7 +122,7 @@ public class SupportLineService {
 
     public List<SpecialistResponse> getLineSpecialists(Long lineId) {
         SupportLine line = supportLineRepository.findByIdWithSpecialists(lineId)
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found with id: " + lineId));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
         return mapper.toSpecialistResponses(line.getSpecialists());
     }

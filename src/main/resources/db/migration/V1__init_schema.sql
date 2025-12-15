@@ -1,48 +1,48 @@
+CREATE SEQUENCE IF NOT EXISTS assignments_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS assignments_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
+CREATE SEQUENCE IF NOT EXISTS attachments_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS support_lines_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
+CREATE SEQUENCE IF NOT EXISTS categories_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS time_entries_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
+CREATE SEQUENCE IF NOT EXISTS direct_messages_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS users_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
+CREATE SEQUENCE IF NOT EXISTS friendships_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS wiki_articles_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
+CREATE SEQUENCE IF NOT EXISTS messages_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS tickets_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
-
-CREATE SEQUENCE IF NOT EXISTS attachments_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE ;
-
-CREATE SEQUENCE IF NOT EXISTS categories_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
-
-CREATE SEQUENCE IF NOT EXISTS direct_messages_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
-
-CREATE SEQUENCE IF NOT EXISTS messages_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
-
-CREATE SEQUENCE IF NOT EXISTS refresh_tokens_id_seq START WITH 1 INCREMENT BY 1 OWNED BY NONE;
+CREATE SEQUENCE IF NOT EXISTS refresh_tokens_id_seq START WITH 1 INCREMENT BY 1;
 
 CREATE SEQUENCE IF NOT EXISTS revinfo_seq START WITH 1 INCREMENT BY 50;
 
+CREATE SEQUENCE IF NOT EXISTS support_lines_id_seq START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE IF NOT EXISTS tickets_id_seq START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE IF NOT EXISTS time_entries_id_seq START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE IF NOT EXISTS users_id_seq START WITH 1 INCREMENT BY 1;
+
+CREATE SEQUENCE IF NOT EXISTS wiki_articles_id_seq START WITH 1 INCREMENT BY 1;
 
 CREATE TABLE assignments
 (
     accepted_at     TIMESTAMP WITHOUT TIME ZONE,
-    created_at      TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
+    created_at      TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     deleted_at      TIMESTAMP WITHOUT TIME ZONE,
     from_line_id    BIGINT,
     from_user_id    BIGINT,
-    id              BIGINT NOT NULL DEFAULT nextval('assignments_id_seq') PRIMARY KEY,
+    id              BIGINT      NOT NULL    DEFAULT nextval('assignments_id_seq'),
     rejected_at     TIMESTAMP WITHOUT TIME ZONE,
-    ticket_id       BIGINT                                  NOT NULL,
+    ticket_id       BIGINT      NOT NULL,
     to_line_id      BIGINT,
     to_user_id      BIGINT,
     version         BIGINT,
-    status          VARCHAR(20)                             NOT NULL,
-    mode            VARCHAR(30)                             NOT NULL,
+    status          VARCHAR(20) NOT NULL,
+    mode            VARCHAR(30) NOT NULL,
     rejected_reason VARCHAR(500),
-    note            VARCHAR(1000)
+    note            VARCHAR(1000),
+    CONSTRAINT assignments_pkey PRIMARY KEY (id)
 );
-
 
 CREATE TABLE assignments_aud
 (
@@ -65,32 +65,35 @@ CREATE TABLE assignments_aud
 
 CREATE TABLE attachments
 (
-    created_at      TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
-    deleted_at      TIMESTAMP WITHOUT TIME ZONE,
-    file_size_bytes BIGINT,
-    id              BIGINT NOT NULL DEFAULT nextval('attachments_id_seq') PRIMARY KEY,
-    message_id      BIGINT,
-    ticket_id       BIGINT,
-    uploaded_by_id  BIGINT,
-    version         BIGINT,
-    type            VARCHAR(20)                             NOT NULL,
-    mime_type       VARCHAR(100),
-    url             VARCHAR(2000)                           NOT NULL,
-    filename        VARCHAR(255)                            NOT NULL
+    created_at        TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    deleted_at        TIMESTAMP WITHOUT TIME ZONE,
+    direct_message_id BIGINT,
+    file_size_bytes   BIGINT,
+    id                BIGINT        NOT NULL    DEFAULT nextval('attachments_id_seq'),
+    message_id        BIGINT,
+    ticket_id         BIGINT,
+    uploaded_by_id    BIGINT,
+    version           BIGINT,
+    type              VARCHAR(20)   NOT NULL,
+    mime_type         VARCHAR(100),
+    url               VARCHAR(2000) NOT NULL,
+    filename          VARCHAR(255)  NOT NULL,
+    CONSTRAINT attachments_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE categories
 (
     display_order   INTEGER,
-    user_selectable BOOLEAN                                 NOT NULL,
-    created_at      TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
+    user_selectable BOOLEAN      NOT NULL,
+    created_at      TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     deleted_at      TIMESTAMP WITHOUT TIME ZONE,
-    id              BIGINT NOT NULL DEFAULT nextval('categories_id_seq') PRIMARY KEY,
+    id              BIGINT       NOT NULL   DEFAULT nextval('categories_id_seq'),
     updated_at      TIMESTAMP WITHOUT TIME ZONE,
     version         BIGINT,
-    type            VARCHAR(20)                             NOT NULL,
-    name            VARCHAR(150)                            NOT NULL,
-    description     VARCHAR(500)
+    type            VARCHAR(20)  NOT NULL,
+    name            VARCHAR(150) NOT NULL,
+    description     VARCHAR(500),
+    CONSTRAINT categories_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE categories_aud
@@ -111,33 +114,57 @@ CREATE TABLE categories_aud
 
 CREATE TABLE direct_messages
 (
-    created_at   TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
+    created_at   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     deleted_at   TIMESTAMP WITHOUT TIME ZONE,
     edited_at    TIMESTAMP WITHOUT TIME ZONE,
-    id           BIGINT NOT NULL DEFAULT nextval('direct_messages_id_seq') PRIMARY KEY,
+    id           BIGINT NOT NULL DEFAULT nextval('direct_messages_id_seq'),
     read_at      TIMESTAMP WITHOUT TIME ZONE,
-    recipient_id BIGINT                                  NOT NULL,
-    sender_id    BIGINT                                  NOT NULL,
+    recipient_id BIGINT NOT NULL,
+    sender_id    BIGINT NOT NULL,
     updated_at   TIMESTAMP WITHOUT TIME ZONE,
     version      BIGINT,
-    content      TEXT                                    NOT NULL
+    content      TEXT   NOT NULL,
+    CONSTRAINT direct_messages_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE friendships
+(
+    addressee_id BIGINT      NOT NULL,
+    id           BIGINT      NOT NULL   DEFAULT nextval('friendships_id_seq'),
+    requested_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    requester_id BIGINT      NOT NULL,
+    responded_at TIMESTAMP WITHOUT TIME ZONE,
+    status       VARCHAR(20) NOT NULL,
+    CONSTRAINT friendships_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE friendships_aud
+(
+    rev          INTEGER NOT NULL,
+    revtype      SMALLINT,
+    id           BIGINT  NOT NULL,
+    requested_at TIMESTAMP WITHOUT TIME ZONE,
+    responded_at TIMESTAMP WITHOUT TIME ZONE,
+    status       VARCHAR(20),
+    CONSTRAINT friendships_aud_pkey PRIMARY KEY (rev, id)
 );
 
 CREATE TABLE messages
 (
-    is_internal           BOOLEAN                                 NOT NULL,
-    created_at            TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
+    is_internal           BOOLEAN     NOT NULL,
+    created_at            TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     deleted_at            TIMESTAMP WITHOUT TIME ZONE,
     edited_at             TIMESTAMP WITHOUT TIME ZONE,
-    id                    BIGINT NOT NULL DEFAULT nextval('messages_id_seq') PRIMARY KEY,
+    id                    BIGINT      NOT NULL  DEFAULT nextval('messages_id_seq'),
     read_by_specialist_at TIMESTAMP WITHOUT TIME ZONE,
     read_by_user_at       TIMESTAMP WITHOUT TIME ZONE,
     sender_id             BIGINT,
-    ticket_id             BIGINT                                  NOT NULL,
+    ticket_id             BIGINT      NOT NULL,
     updated_at            TIMESTAMP WITHOUT TIME ZONE,
     version               BIGINT,
-    sender_type           VARCHAR(20)                             NOT NULL,
-    content               TEXT                                    NOT NULL
+    sender_type           VARCHAR(20) NOT NULL,
+    content               TEXT        NOT NULL,
+    CONSTRAINT messages_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE messages_aud
@@ -160,10 +187,11 @@ CREATE TABLE messages_aud
 
 CREATE TABLE refresh_tokens
 (
-    expiry_date TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
-    id          BIGINT NOT NULL DEFAULT nextval('refresh_tokens_id_seq') PRIMARY KEY ,
+    expiry_date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    id          BIGINT       NOT NULL   DEFAULT nextval('refresh_tokens_id_seq'),
     user_id     BIGINT,
-    token       VARCHAR(255)                            NOT NULL
+    token       VARCHAR(255) NOT NULL,
+    CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE revinfo
@@ -185,14 +213,15 @@ CREATE TABLE support_lines
     display_order       INTEGER,
     last_assigned_index INTEGER,
     sla_minutes         INTEGER,
-    created_at          TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
+    created_at          TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     deleted_at          TIMESTAMP WITHOUT TIME ZONE,
-    id                  BIGINT NOT NULL DEFAULT nextval('support_lines_id_seq') PRIMARY KEY,
+    id                  BIGINT       NOT NULL   DEFAULT nextval('support_lines_id_seq'),
     updated_at          TIMESTAMP WITHOUT TIME ZONE,
     version             BIGINT,
-    name                VARCHAR(100)                            NOT NULL,
+    name                VARCHAR(100) NOT NULL,
     description         VARCHAR(500),
-    assignment_mode     VARCHAR(255)                            NOT NULL
+    assignment_mode     VARCHAR(255) NOT NULL,
+    CONSTRAINT support_lines_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE support_lines_aud
@@ -214,16 +243,16 @@ CREATE TABLE support_lines_aud
 
 CREATE TABLE tickets
 (
-    escalated                    BOOLEAN                                 NOT NULL,
+    escalated                    BOOLEAN      NOT NULL,
     rating                       INTEGER,
     assigned_to_id               BIGINT,
     category_support_id          BIGINT,
     category_user_id             BIGINT,
     closed_at                    TIMESTAMP WITHOUT TIME ZONE,
-    created_at                   TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
-    created_by_id                BIGINT                                  NOT NULL,
+    created_at                   TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    created_by_id                BIGINT       NOT NULL,
     deleted_at                   TIMESTAMP WITHOUT TIME ZONE,
-    id                           BIGINT NOT NULL DEFAULT nextval('tickets_id_seq') PRIMARY KEY,
+    id                           BIGINT       NOT NULL  DEFAULT nextval('tickets_id_seq'),
     resolved_at                  TIMESTAMP WITHOUT TIME ZONE,
     sla_deadline                 TIMESTAMP WITHOUT TIME ZONE,
     support_line_id              BIGINT,
@@ -232,12 +261,13 @@ CREATE TABLE tickets
     time_spent_seconds           BIGINT,
     updated_at                   TIMESTAMP WITHOUT TIME ZONE,
     version                      BIGINT,
-    title                        VARCHAR(250)                            NOT NULL,
+    title                        VARCHAR(250) NOT NULL,
     link_1c                      VARCHAR(1000),
-    description                  TEXT                                    NOT NULL,
+    description                  TEXT         NOT NULL,
     feedback                     VARCHAR(255),
-    priority                     VARCHAR(255)                            NOT NULL,
-    status                       VARCHAR(255)                            NOT NULL
+    priority                     VARCHAR(255) NOT NULL,
+    status                       VARCHAR(255) NOT NULL,
+    CONSTRAINT tickets_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE tickets_aud
@@ -271,17 +301,18 @@ CREATE TABLE tickets_aud
 CREATE TABLE time_entries
 (
     work_date        date,
-    created_at       TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
+    created_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     deleted_at       TIMESTAMP WITHOUT TIME ZONE,
-    duration_seconds BIGINT                                  NOT NULL,
-    entry_date       TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
-    id               BIGINT NOT NULL DEFAULT nextval('time_entries_id_seq') PRIMARY KEY,
-    specialist_id    BIGINT                                  NOT NULL,
-    ticket_id        BIGINT                                  NOT NULL,
+    duration_seconds BIGINT NOT NULL,
+    entry_date       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    id               BIGINT NOT NULL    DEFAULT nextval('tickets_id_seq'),
+    specialist_id    BIGINT NOT NULL,
+    ticket_id        BIGINT NOT NULL,
     updated_at       TIMESTAMP WITHOUT TIME ZONE,
     version          BIGINT,
     activity_type    VARCHAR(30),
-    note             VARCHAR(1000)
+    note             VARCHAR(1000),
+    CONSTRAINT time_entries_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE time_entries_aud
@@ -309,19 +340,20 @@ CREATE TABLE user_roles
 
 CREATE TABLE users
 (
-    active                    BOOLEAN                                 NOT NULL,
-    specialist                BOOLEAN                                 NOT NULL,
-    created_at                TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
-    id                        BIGINT NOT NULL DEFAULT nextval('users_id_seq') PRIMARY KEY,
+    active                    BOOLEAN      NOT NULL,
+    specialist                BOOLEAN      NOT NULL,
+    created_at                TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    id                        BIGINT       NOT NULL     DEFAULT nextval('users_id_seq'),
     refresh_token_expiry_date TIMESTAMP WITHOUT TIME ZONE,
     telegram_id               BIGINT,
     updated_at                TIMESTAMP WITHOUT TIME ZONE,
     version                   BIGINT,
-    username                  VARCHAR(100)                            NOT NULL,
+    username                  VARCHAR(100) NOT NULL,
     fio                       VARCHAR(150),
     email                     VARCHAR(200),
     domain_account            VARCHAR(255),
-    password                  VARCHAR(255)                            NOT NULL
+    password                  VARCHAR(255) NOT NULL,
+    CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE wiki_article_tags
@@ -342,19 +374,20 @@ CREATE TABLE wiki_article_tags_aud
 CREATE TABLE wiki_articles
 (
     category_id   BIGINT,
-    created_at    TIMESTAMP WITHOUT TIME ZONE             NOT NULL,
-    created_by_id BIGINT                                  NOT NULL,
+    created_at    TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    created_by_id BIGINT       NOT NULL,
     deleted_at    TIMESTAMP WITHOUT TIME ZONE,
-    id            BIGINT NOT NULL DEFAULT nextval('wiki_articles_id_seq') PRIMARY KEY,
-    like_count    BIGINT                                  NOT NULL,
+    id            BIGINT       NOT NULL     DEFAULT nextval('wiki_articles_id_seq'),
+    like_count    BIGINT       NOT NULL,
     updated_at    TIMESTAMP WITHOUT TIME ZONE,
     updated_by_id BIGINT,
     version       BIGINT,
-    view_count    BIGINT                                  NOT NULL,
-    title         VARCHAR(250)                            NOT NULL,
-    slug          VARCHAR(300)                            NOT NULL,
+    view_count    BIGINT       NOT NULL,
+    title         VARCHAR(250) NOT NULL,
+    slug          VARCHAR(300) NOT NULL,
     excerpt       VARCHAR(500),
-    content       TEXT                                    NOT NULL
+    content       TEXT         NOT NULL,
+    CONSTRAINT wiki_articles_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE wiki_articles_aud
@@ -375,30 +408,11 @@ CREATE TABLE wiki_articles_aud
     CONSTRAINT wiki_articles_aud_pkey PRIMARY KEY (rev, id)
 );
 
-ALTER SEQUENCE wiki_articles_id_seq OWNED BY wiki_articles.id;
-
-ALTER SEQUENCE users_id_seq OWNED BY users.id;
-
-ALTER SEQUENCE time_entries_id_seq OWNED BY time_entries.id;
-
-ALTER SEQUENCE tickets_id_seq OWNED BY tickets.id;
-
-ALTER SEQUENCE support_lines_id_seq OWNED BY support_lines.id;
-
-ALTER SEQUENCE refresh_tokens_id_seq OWNED BY refresh_tokens.id;
-
-ALTER SEQUENCE messages_id_seq OWNED BY messages.id;
-
-ALTER SEQUENCE direct_messages_id_seq OWNED BY direct_messages.id;
-
-ALTER SEQUENCE categories_id_seq OWNED BY categories.id;
-
-ALTER SEQUENCE attachments_id_seq OWNED BY attachments.id;
-
-ALTER SEQUENCE assignments_id_seq OWNED BY assignments.id;
-
 ALTER TABLE categories
     ADD CONSTRAINT categories_name_key UNIQUE (name);
+
+ALTER TABLE friendships
+    ADD CONSTRAINT idx_friendship_pair UNIQUE (requester_id, addressee_id);
 
 ALTER TABLE refresh_tokens
     ADD CONSTRAINT refresh_tokens_token_key UNIQUE (token);
@@ -446,6 +460,8 @@ CREATE INDEX idx_dm_conversation ON direct_messages (sender_id, recipient_id);
 CREATE INDEX idx_dm_recipient_unread ON direct_messages (recipient_id, read_at);
 
 CREATE INDEX idx_dm_sender_recipient ON direct_messages (sender_id, recipient_id, created_at);
+
+CREATE INDEX idx_friendship_status ON friendships (status);
 
 CREATE INDEX idx_message_active ON messages (ticket_id, deleted_at, created_at);
 
@@ -515,11 +531,21 @@ ALTER TABLE wiki_articles
 ALTER TABLE assignments
     ADD CONSTRAINT fk7y8lle44cboe931vhxxrmgq2 FOREIGN KEY (to_line_id) REFERENCES support_lines (id) ON DELETE NO ACTION;
 
+ALTER TABLE attachments
+    ADD CONSTRAINT fk9imieba3a5c0ea27if65lg68b FOREIGN KEY (direct_message_id) REFERENCES direct_messages (id) ON DELETE NO ACTION;
+
+CREATE INDEX idx_attachment_dm ON attachments (direct_message_id);
+
 ALTER TABLE support_lines_aud
     ADD CONSTRAINT fk9rugabml7wu8q671xq6fjn4g2 FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
 
 ALTER TABLE wiki_articles_aud
     ADD CONSTRAINT fkak5fij9xxyf5g1m4kyjeu6bjx FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
+
+ALTER TABLE friendships
+    ADD CONSTRAINT fkas6bp8so5n3pfcqtfxt72e1ii FOREIGN KEY (requester_id) REFERENCES users (id) ON DELETE NO ACTION;
+
+CREATE INDEX idx_friendship_requester ON friendships (requester_id);
 
 ALTER TABLE assignments
     ADD CONSTRAINT fkaxhh956nao1s3cdtq9x41l9cm FOREIGN KEY (from_user_id) REFERENCES users (id) ON DELETE NO ACTION;
@@ -544,6 +570,11 @@ CREATE INDEX idx_wiki_author ON wiki_articles (created_by_id);
 
 ALTER TABLE time_entries_aud
     ADD CONSTRAINT fkefpsnlr5g0jhglyblk22cn3de FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
+
+ALTER TABLE friendships
+    ADD CONSTRAINT fkeq5r8dvxs43wkt7or9pdno9av FOREIGN KEY (addressee_id) REFERENCES users (id) ON DELETE NO ACTION;
+
+CREATE INDEX idx_friendship_addressee ON friendships (addressee_id);
 
 ALTER TABLE tickets
     ADD CONSTRAINT fkfcerrkbskjjjsypxkctcy8mi6 FOREIGN KEY (support_line_id) REFERENCES support_lines (id) ON DELETE NO ACTION;
@@ -588,6 +619,9 @@ ALTER TABLE assignments
 ALTER TABLE support_line_specialists
     ADD CONSTRAINT fkrwhh7u3opbgf1moejdxkcnp57 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE NO ACTION;
 
+ALTER TABLE friendships_aud
+    ADD CONSTRAINT fkrwpuby8q6s3tdx6f77wumidoe FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
+
 ALTER TABLE wiki_article_tags_aud
     ADD CONSTRAINT fks31kexveb4wu0rc67389t2of1 FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
 
@@ -601,3 +635,13 @@ ALTER TABLE direct_messages
 
 ALTER TABLE messages_aud
     ADD CONSTRAINT fkyo2qpmxpfw9xsr51xq0r5ep7 FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
+
+CREATE INDEX idx_category_name ON categories (name);
+
+CREATE INDEX idx_support_line_name ON support_lines (name);
+
+CREATE INDEX idx_user_telegram_id ON users (telegram_id);
+
+CREATE INDEX idx_user_username ON users (username);
+
+CREATE INDEX idx_wiki_title ON wiki_articles (title);

@@ -36,7 +36,7 @@ public class AssignmentController {
             @Valid @RequestBody AssignmentCreateRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Assignment created successfully",
+                .body(ApiResponse.success("Назначение создано",
                         assignmentService.createAssignment(request, user.getId())));
     }
 
@@ -46,7 +46,7 @@ public class AssignmentController {
     public ResponseEntity<ApiResponse<AssignmentResponse>> acceptAssignment(
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Assignment accepted",
+        return ResponseEntity.ok(ApiResponse.success("Назначение принято",
                 assignmentService.acceptAssignment(id, user.getId())));
     }
 
@@ -57,7 +57,7 @@ public class AssignmentController {
             @PathVariable Long id,
             @Valid @RequestBody AssignmentRejectRequest request,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Assignment rejected",
+        return ResponseEntity.ok(ApiResponse.success("Назначение отклонено",
                 assignmentService.rejectAssignment(id, request, user.getId())));
     }
 

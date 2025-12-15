@@ -30,7 +30,7 @@ public class NotificationService {
         String destination = "/topic/user/" + userId + "/notifications";
         messagingTemplate.convertAndSend(destination, notification);
 
-        log.debug("Notification sent to user {}: type={}, ticketId={}",
+        log.debug("Уведомление отправлено {}: тип={}, ticketId={}",
                 userId, notification.type(), notification.ticketId());
     }
 

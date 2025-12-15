@@ -45,11 +45,11 @@ public class WikiArticleService {
     @Transactional
     public WikiArticleResponse createArticle(CreateWikiArticleRequest request, Long userId) {
         User author = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователья не найден: " + userId));
 
         // Проверка уникальности title
         if (wikiArticleRepository.existsByTitle(request.title())) {
-            throw new IllegalArgumentException("Article with this title already exists");
+            throw new IllegalArgumentException("Статья с этим заголовком уже есть");
         }
 
         String slug = generateSlug(request.title());
@@ -57,7 +57,7 @@ public class WikiArticleService {
         Category category = null;
         if (request.categoryId() != null) {
             category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("Category not found: " + request.categoryId()));
+                    .orElseThrow(() -> new EntityNotFoundException("Категория не найдена: " + request.categoryId()));
         }
 
         WikiArticle article = WikiArticle.builder()
@@ -72,7 +72,7 @@ public class WikiArticleService {
                 .build();
 
         WikiArticle saved = wikiArticleRepository.save(article);
-        log.info("Wiki article created: id={}, slug={}", saved.getId(), slug);
+        log.info("Статья вики создана: id={}, slug={}", saved.getId(), slug);
 
         return wikiArticleMapper.toResponse(saved);
     }
@@ -83,7 +83,7 @@ public class WikiArticleService {
     @Transactional
     public WikiArticleResponse getBySlug(String slug) {
         WikiArticle article = wikiArticleRepository.findBySlugWithDetails(slug)
-                .orElseThrow(() -> new EntityNotFoundException("Article not found: " + slug));
+                .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + slug));
 
         // Инкремент просмотров
         wikiArticleRepository.incrementViewCount(article.getId());
@@ -96,7 +96,7 @@ public class WikiArticleService {
      */
     public WikiArticleResponse getById(Long id) {
         WikiArticle article = wikiArticleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Article not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Статья не найдена " + id));
         return wikiArticleMapper.toResponse(article);
     }
 
@@ -132,7 +132,7 @@ public class WikiArticleService {
      */
     public Page<WikiArticleListResponse> getByCategory(Long categoryId, Pageable pageable) {
         if (!categoryRepository.existsById(categoryId)) {
-            throw new EntityNotFoundException("Category not found: " + categoryId);
+            throw new EntityNotFoundException("Категория не найдена: " + categoryId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.findByCategoryIdOrderByUpdatedAtDesc(categoryId, pageable);
         return articles.map(wikiArticleMapper::toListResponse);
@@ -144,19 +144,19 @@ public class WikiArticleService {
     @Transactional
     public WikiArticleResponse updateArticle(Long id, UpdateWikiArticleRequest request, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Article not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + id));
 
         User editor = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         // Проверка прав
         if (!canModify(article, userId)) {
-            throw new AccessDeniedException("You don't have permission to edit this article");
+            throw new AccessDeniedException("У вас нет прав для редактирования этой статьи");
         }
 
         if (request.title() != null && !request.title().equals(article.getTitle())) {
             if (wikiArticleRepository.existsByTitle(request.title())) {
-                throw new IllegalArgumentException("Article with this title already exists");
+                throw new IllegalArgumentException("Статья с этим заголовком уже существует");
             }
             article.setTitle(request.title());
             article.setSlug(generateSlug(request.title()));
@@ -169,7 +169,7 @@ public class WikiArticleService {
         }
         if (request.categoryId() != null) {
             Category category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("Category not found: " + request.categoryId()));
+                    .orElseThrow(() -> new EntityNotFoundException("Категория не найдена: " + request.categoryId()));
             article.setCategory(category);
         }
         if (request.tags() != null) {
@@ -179,7 +179,7 @@ public class WikiArticleService {
         article.setUpdatedBy(editor);
         WikiArticle updated = wikiArticleRepository.save(article);
 
-        log.info("Wiki article updated: id={}", id);
+        log.info("Вики статья обновлена: id={}", id);
 
         return wikiArticleMapper.toResponse(updated);
     }
@@ -190,14 +190,14 @@ public class WikiArticleService {
     @Transactional
     public void deleteArticle(Long id, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Article not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + id));
 
         if (!canModify(article, userId)) {
-            throw new AccessDeniedException("You don't have permission to delete this article");
+            throw new AccessDeniedException("У вас нет прав удалять эту статью");
         }
 
         wikiArticleRepository.delete(article); // Soft delete
-        log.info("Wiki article deleted: id={}", id);
+        log.info("Вики статья удалена: id={}", id);
     }
 
     /**
@@ -206,7 +206,7 @@ public class WikiArticleService {
     @Transactional
     public void likeArticle(Long id) {
         if (!wikiArticleRepository.existsById(id)) {
-            throw new EntityNotFoundException("Article not found: " + id);
+            throw new EntityNotFoundException("Статья не найдена: " + id);
         }
         wikiArticleRepository.incrementLikeCount(id);
     }

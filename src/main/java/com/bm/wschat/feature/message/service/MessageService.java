@@ -9,6 +9,7 @@ import com.bm.wschat.feature.message.repository.MessageRepository;
 import com.bm.wschat.feature.notification.model.Notification;
 import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.ticket.model.Ticket;
+import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
@@ -39,14 +40,20 @@ public class MessageService {
     @Transactional
     public MessageResponse sendMessage(Long ticketId, SendMessageRequest request, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + ticketId));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
 
         User sender = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        // Моя реализация блокировки отправки отправки сообщений в тикете
+
+        if (ticket.getStatus().equals(TicketStatus.CLOSED)) {
+            throw new AccessDeniedException("Тикет закрыт. Отправка сообщений запрещена");
+        }
 
         // Internal messages only for specialists
         if (request.internal() && !sender.isSpecialist()) {
-            throw new AccessDeniedException("Only specialists can send internal messages");
+            throw new AccessDeniedException("Только специалисты могут отправлять внутренние сообщения");
         }
 
         Message message = messageMapper.toEntity(request);
@@ -95,7 +102,7 @@ public class MessageService {
     public Page<MessageResponse> getTicketMessages(Long ticketId, Pageable pageable, User user) {
         // Check ticket exists
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found with id: " + ticketId);
+            throw new EntityNotFoundException("Тикет с не найден: " + ticketId);
         }
 
         Page<Message> messages;
@@ -113,7 +120,7 @@ public class MessageService {
     @Transactional
     public int markAsRead(Long ticketId, User user) {
         if (!ticketRepository.existsById(ticketId)) {
-            throw new EntityNotFoundException("Ticket not found with id: " + ticketId);
+            throw new EntityNotFoundException("Тикет не найден: " + ticketId);
         }
 
         Instant now = Instant.now();
@@ -127,11 +134,11 @@ public class MessageService {
     @Transactional
     public MessageResponse editMessage(Long messageId, EditMessageRequest request, Long userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         // Only sender can edit their message
         if (message.getSender() == null || !message.getSender().getId().equals(userId)) {
-            throw new AccessDeniedException("You can only edit your own messages");
+            throw new AccessDeniedException("Вы можете редактировать только свои сообщения");
         }
 
         message.setContent(request.content());
@@ -144,17 +151,17 @@ public class MessageService {
     @Transactional
     public void deleteMessage(Long messageId, Long userId) {
         Message message = messageRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found with id: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         // Sender or admin can delete
         boolean isSender = message.getSender() != null && message.getSender().getId().equals(userId);
         boolean isAdmin = user.isAdmin();
 
         if (!isSender && !isAdmin) {
-            throw new AccessDeniedException("You can only delete your own messages");
+            throw new AccessDeniedException("Вы можете удалять только свои сообщения");
         }
 
         messageRepository.delete(message); // Soft delete via @SQLDelete

@@ -34,7 +34,7 @@ public class SupportLineController {
     public ResponseEntity<ApiResponse<SupportLineResponse>> createLine(
             @Valid @RequestBody CreateSupportLineRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Support line created successfully",
+                .body(ApiResponse.success("Линия поддержки создана",
                         supportLineService.createLine(request)));
     }
 
@@ -56,7 +56,7 @@ public class SupportLineController {
     public ResponseEntity<ApiResponse<SupportLineResponse>> updateLine(
             @PathVariable Long id,
             @Valid @RequestBody UpdateSupportLineRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Support line updated successfully",
+        return ResponseEntity.ok(ApiResponse.success("Линия поддержки обновлена",
                 supportLineService.updateLine(id, request)));
     }
 
@@ -65,7 +65,7 @@ public class SupportLineController {
     @Operation(summary = "Удалить линию поддержки", description = "Удаляет линию поддержки по ее уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteLine(@PathVariable Long id) {
         supportLineService.deleteLine(id);
-        return ResponseEntity.ok(ApiResponse.success("Support line deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Линия поддержки удалена"));
     }
 
     @PostMapping("/{lineId}/specialists/{userId}")
@@ -74,7 +74,7 @@ public class SupportLineController {
     public ResponseEntity<ApiResponse<SupportLineResponse>> addSpecialist(
             @PathVariable Long lineId,
             @PathVariable Long userId) {
-        return ResponseEntity.ok(ApiResponse.success("Specialist added successfully",
+        return ResponseEntity.ok(ApiResponse.success("Специалист успешно добавлен",
                 supportLineService.addSpecialist(lineId, userId)));
     }
 
@@ -84,7 +84,7 @@ public class SupportLineController {
     public ResponseEntity<ApiResponse<SupportLineResponse>> removeSpecialist(
             @PathVariable Long lineId,
             @PathVariable Long userId) {
-        return ResponseEntity.ok(ApiResponse.success("Specialist removed successfully",
+        return ResponseEntity.ok(ApiResponse.success("Специалист удален из линии",
                 supportLineService.removeSpecialist(lineId, userId)));
     }
 

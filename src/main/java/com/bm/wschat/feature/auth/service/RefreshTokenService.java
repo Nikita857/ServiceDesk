@@ -34,7 +34,7 @@ public class RefreshTokenService {
     @Transactional
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь с не найден: " + userId));
 
         // Delete any existing refresh tokens for the user to prevent token accumulation
         refreshTokenRepository.deleteByUser(user);
@@ -50,7 +50,7 @@ public class RefreshTokenService {
     public RefreshToken verifyExpiration(@NotNull RefreshToken token) {
         if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
             refreshTokenRepository.delete(token);
-            throw new ExpiredTokenException("Refresh token was expired. Please make a new sign-in request");
+            throw new ExpiredTokenException("Рефреш токен просрочен, пожалуйста войдите снова");
         }
         return token;
     }
@@ -63,7 +63,7 @@ public class RefreshTokenService {
     @Transactional
     public int deleteByUserId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
         return refreshTokenRepository.deleteByUser(user);
     }
 }

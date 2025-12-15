@@ -2,6 +2,7 @@ package com.bm.wschat.feature.dm.controller;
 
 import com.bm.wschat.feature.dm.dto.request.SendDirectMessageRequest;
 import com.bm.wschat.feature.dm.dto.response.DirectMessageResponse;
+import com.bm.wschat.feature.dm.dto.websocket.DmTypingIndicator;
 import com.bm.wschat.feature.dm.service.DirectMessageService;
 import com.bm.wschat.feature.user.model.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,7 +35,7 @@ public class DirectMessageWebSocketController {
             Principal principal) {
 
         if (principal == null) {
-            log.warn("Unauthorized DM attempt");
+            log.warn("Попытка подключиться неавторизованного пользователя");
             return;
         }
 
@@ -56,10 +57,44 @@ public class DirectMessageWebSocketController {
                     "/queue/private",
                     response);
 
-            log.debug("DM sent from {} to {}", sender.getId(), request.recipientId());
+            log.debug("Сообщение отправлено {} -> {}", sender.getId(), request.recipientId());
 
         } catch (Exception e) {
-            log.error("Failed to send DM: {}", e.getMessage());
+            log.error("Не удалось отправиь личное сообщение: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Отправить индикатор печати в личном чате
+     * Client sends to: /app/dm/typing
+     * Delivers to: /user/{recipientId}/queue/dm-typing
+     */
+    @MessageMapping("/dm/typing")
+    public void sendTypingIndicator(
+            @Payload DmTypingIndicator indicator,
+            Principal principal) {
+
+        if (principal == null) {
+            log.warn("Unauthorized typing indicator attempt");
+            return;
+        }
+
+        User sender = (User) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal)
+                .getPrincipal();
+
+        // Отправить получателю индикатор печати
+        DmTypingIndicator outgoing = new DmTypingIndicator(
+                sender.getId(),
+                sender.getFio(),
+                indicator.recipientId(),
+                indicator.typing());
+
+        messagingTemplate.convertAndSendToUser(
+                indicator.recipientId().toString(),
+                "/queue/dm-typing",
+                outgoing);
+
+        log.debug("Индикатор печати отправлен {} -> {}: {}",
+                sender.getId(), indicator.recipientId(), indicator.typing());
     }
 }

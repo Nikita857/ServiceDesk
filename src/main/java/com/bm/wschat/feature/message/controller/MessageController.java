@@ -34,7 +34,7 @@ public class MessageController {
             @Valid @RequestBody SendMessageRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Message sent successfully",
+                .body(ApiResponse.success("Сообщение успешно отправлено",
                         messageService.sendMessage(ticketId, request, user.getId())));
     }
 
@@ -71,7 +71,7 @@ public class MessageController {
             @PathVariable Long messageId,
             @Valid @RequestBody EditMessageRequest request,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Message updated successfully",
+        return ResponseEntity.ok(ApiResponse.success("Сообщение успешно обновлено",
                 messageService.editMessage(messageId, request, user.getId())));
     }
 
@@ -81,6 +81,6 @@ public class MessageController {
             @PathVariable Long messageId,
             @AuthenticationPrincipal User user) {
         messageService.deleteMessage(messageId, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Message deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Сообщение успешно удалено"));
     }
 }

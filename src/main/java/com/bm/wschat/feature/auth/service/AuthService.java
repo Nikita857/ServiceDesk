@@ -66,6 +66,6 @@ public class AuthService {
                             jwtService.getJwtExpiration(),
                             authMapper.toAuthResponse(user));
                 })
-                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
+                .orElseThrow(() -> new InvalidRefreshTokenException("Не валдиный рефреш токен"));
     }
 }

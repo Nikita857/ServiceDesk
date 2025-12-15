@@ -32,7 +32,7 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<CategoryDetailResponse>> createCategory(
             @Valid @RequestBody CreateCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Category created successfully",
+                .body(ApiResponse.success("Категория создана успешно",
                         categoryService.createCategory(request)));
     }
 
@@ -67,7 +67,7 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<CategoryDetailResponse>> updateCategory(
             @PathVariable Long id,
             @Valid @RequestBody UpdateCategoryRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Category updated successfully",
+        return ResponseEntity.ok(ApiResponse.success("Категория обновлена успешно",
                 categoryService.updateCategory(id, request)));
     }
 
@@ -76,6 +76,6 @@ public class CategoryController {
     @Operation(summary = "Удалить категорию", description = "Удаляет категорию по ее уникальному идентификатору.")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
-        return ResponseEntity.ok(ApiResponse.success("Category deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Категоряи удалена успешно"));
     }
 }

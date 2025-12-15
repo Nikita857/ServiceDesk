@@ -32,25 +32,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<Void>> noHandlerFoundException(final NoHandlerFoundException ex) {
-        log.info("Route undefined: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Route undefined"));
+        log.info("Маршрут не найден: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Маршрут не найден"));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleEntityNotFoundException(EntityNotFoundException ex) {
-        log.warn("Entity not found: {}", ex.getMessage());
+        log.warn("Сущность не найдена: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleUsernameNotFoundException(UsernameNotFoundException ex) {
-        log.warn("Username not found: {}", ex.getMessage());
+        log.warn("Username не найден: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(EntityExistsException.class)
     public ResponseEntity<ApiResponse<Void>> handleEntityExistsException(EntityExistsException ex) {
-        log.warn("Entity exists: {}", ex.getMessage());
+        log.warn("Сущность существует: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(ex.getMessage()));
     }
 
@@ -63,54 +63,61 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        log.warn("Validation failed: {}", errors);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("Validation failed", errors));
+        log.warn("Ошибка валидации: {}", errors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("Ошибка валидации", errors));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException ex) {
-        log.warn("Bad credentials: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Invalid username or password"));
+        log.warn("Неверные учетные данные: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error("Неверный логин или пароль"));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Access denied"));
+        log.warn("Доступ запрещен: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Доступ запрещён"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("Invalid argument: {}", ex.getMessage());
+        log.warn("Неверные аргументы: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error(ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalStateException(IllegalStateException ex) {
+        log.warn("Неверное состояние: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(JwtAuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleJwtException(JwtAuthenticationException ex) {
-        log.warn("JWT Authentication failed: {}", ex.getMessage());
+        log.warn("Ошибка JWT авторизации: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Authentication failed: " + ex.getMessage()));
+                .body(ApiResponse.error("Ошибка аутентификации: " + ex.getMessage()));
     }
 
     @ExceptionHandler(ExpiredTokenException.class)
     public ResponseEntity<ApiResponse<Void>> handleExpiredTokenException(
             com.bm.wschat.shared.exception.ExpiredTokenException ex) {
-        log.warn("Token expired: {}", ex.getMessage());
+        log.warn("Токен просрочен: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidRefreshTokenException(
             InvalidRefreshTokenException ex) {
-        log.warn("Invalid refresh token: {}", ex.getMessage());
+        log.warn("Некорректный refresh токен: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationCredentialsNotFoundException(
             AuthenticationCredentialsNotFoundException ex) {
-        log.warn("Unauthorized: {}", ex.getMessage());
+        log.warn("Неавторизован: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(ex.getMessage()));
     }
@@ -118,33 +125,31 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpRequestMethodNotSupportedException(
             HttpRequestMethodNotSupportedException ex) {
-        log.warn("Method not supported: {}", ex.getMessage());
+        log.warn("HTTP метод запрещен: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameterException(
-            MissingServletRequestParameterException ex
-    ) {
-        log.warn("Missing request parameter: {}", ex.getMessage());
+            MissingServletRequestParameterException ex) {
+        log.warn("Отстутсвует обязательный параметр http запроса: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(ex.getMessage() + " template (/api/v1/reports/time/by-specialist?from=2025-01-01&to=2025-01-31)"));
+                .body(ApiResponse.error("Отсутствует обязательный параметр: " + ex.getParameterName()));
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthorizationDeniedException(
-            AuthorizationDeniedException ex
-    ) {
-        log.warn("Authorization denied: {}", ex.getMessage());
+            AuthorizationDeniedException ex) {
+        log.warn("Авторизация отклонена: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex) {
-        log.error("Unexpected error occurred", ex);
+        log.error("Произошла непредвиденная ошибка", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("An unexpected error occurred"));
+                .body(ApiResponse.error("Произошла непредвиденная ошибка"));
     }
 }

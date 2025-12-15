@@ -32,13 +32,13 @@ public class DirectMessageService {
     @Transactional
     public DirectMessageResponse sendMessage(SendDirectMessageRequest request, Long senderId) {
         User sender = userRepository.findById(senderId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + senderId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + senderId));
 
         User recipient = userRepository.findById(request.recipientId())
-                .orElseThrow(() -> new EntityNotFoundException("Recipient not found: " + request.recipientId()));
+                .orElseThrow(() -> new EntityNotFoundException("Получатель не найден: " + request.recipientId()));
 
         if (senderId.equals(request.recipientId())) {
-            throw new IllegalArgumentException("Cannot send message to yourself");
+            throw new IllegalArgumentException("Вы не можете отправить сообщение самому себе");
         }
 
         DirectMessage dm = DirectMessage.builder()
@@ -55,7 +55,7 @@ public class DirectMessageService {
 
     public Page<DirectMessageResponse> getConversation(Long userId, Long partnerId, Pageable pageable) {
         if (!userRepository.existsById(partnerId)) {
-            throw new EntityNotFoundException("User not found: " + partnerId);
+            throw new EntityNotFoundException("Пользователь не найден: " + partnerId);
         }
 
         Page<DirectMessage> messages = dmRepository.findConversation(userId, partnerId, pageable);
@@ -89,10 +89,10 @@ public class DirectMessageService {
     @Transactional
     public void deleteMessage(Long messageId, Long userId) {
         DirectMessage dm = dmRepository.findById(messageId)
-                .orElseThrow(() -> new EntityNotFoundException("Message not found: " + messageId));
+                .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + messageId));
 
         if (!dm.getSender().getId().equals(userId)) {
-            throw new AccessDeniedException("You can only delete your own messages");
+            throw new AccessDeniedException("Вы можете удалять только свои собщения");
         }
 
         dmRepository.delete(dm); // Soft delete

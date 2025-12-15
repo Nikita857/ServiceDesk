@@ -36,7 +36,7 @@ public class WikiArticleController {
             @Valid @RequestBody CreateWikiArticleRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Article created",
+                .body(ApiResponse.success("Статья создана",
                         wikiArticleService.createArticle(request, user.getId())));
     }
 
@@ -83,7 +83,7 @@ public class WikiArticleController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateWikiArticleRequest request,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Article updated",
+        return ResponseEntity.ok(ApiResponse.success("Статья обновлена",
                 wikiArticleService.updateArticle(id, request, user.getId())));
     }
 
@@ -94,13 +94,13 @@ public class WikiArticleController {
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
         wikiArticleService.deleteArticle(id, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Article deleted"));
+        return ResponseEntity.ok(ApiResponse.success("Статья удалена"));
     }
 
     @PostMapping("/{id}/like")
     @Operation(summary = "Поставить лайк статье Wiki", description = "Увеличивает счетчик лайков для статьи базы знаний.")
     public ResponseEntity<ApiResponse<Void>> likeArticle(@PathVariable Long id) {
         wikiArticleService.likeArticle(id);
-        return ResponseEntity.ok(ApiResponse.success("Article liked"));
+        return ResponseEntity.ok(ApiResponse.success("Статья лайкнута"));
     }
 }

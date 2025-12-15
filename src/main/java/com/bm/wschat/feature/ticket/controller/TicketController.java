@@ -38,7 +38,7 @@ public class TicketController {
             @Valid @RequestBody CreateTicketRequest request,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Ticket created successfully",
+                .body(ApiResponse.success("Тикет создан",
                         ticketService.createTicket(request, user.getId())));
     }
 
@@ -55,7 +55,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> updateTicket(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTicketRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Ticket updated successfully",
+        return ResponseEntity.ok(ApiResponse.success("Тикет обновлен",
                 ticketService.updateTicket(id, request)));
     }
 
@@ -64,7 +64,7 @@ public class TicketController {
     @Operation(summary = "Удалить тикет", description = "Удаляет тикет по его уникальному идентификатору (логическое удаление).")
     public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
         ticketService.deleteTicket(id);
-        return ResponseEntity.ok(ApiResponse.success("Ticket deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.success("Тикет удален"));
     }
 
     @PatchMapping("/{id}/status")
@@ -73,7 +73,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
             @PathVariable Long id,
             @Valid @RequestBody ChangeStatusRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Status changed successfully",
+        return ResponseEntity.ok(ApiResponse.success("Статус тикета обновлен",
                 ticketService.changeStatus(id, request)));
     }
 
@@ -83,7 +83,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> assignToLine(
             @PathVariable Long id,
             @RequestParam Long lineId) {
-        return ResponseEntity.ok(ApiResponse.success("Assigned to line successfully",
+        return ResponseEntity.ok(ApiResponse.success("Тикет назначен на линию",
                 ticketService.assignToLine(id, lineId)));
     }
 
@@ -93,7 +93,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> assignToSpecialist(
             @PathVariable Long id,
             @RequestParam Long specialistId) {
-        return ResponseEntity.ok(ApiResponse.success("Assigned to specialist successfully",
+        return ResponseEntity.ok(ApiResponse.success("Тикет назначен на специалиста",
                 ticketService.assignToSpecialist(id, specialistId)));
     }
 
@@ -103,7 +103,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> takeTicket(
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Ticket taken successfully",
+        return ResponseEntity.ok(ApiResponse.success("Тикет взят в работу",
                 ticketService.takeTicket(id, user.getId())));
     }
 
@@ -112,7 +112,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> setUserCategory(
             @PathVariable Long id,
             @RequestParam Long categoryId) {
-        return ResponseEntity.ok(ApiResponse.success("User category set successfully",
+        return ResponseEntity.ok(ApiResponse.success("Пользовательская категория установлена",
                 ticketService.setUserCategory(id, categoryId)));
     }
 
@@ -122,7 +122,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<TicketResponse>> setSupportCategory(
             @PathVariable Long id,
             @RequestParam Long categoryId) {
-        return ResponseEntity.ok(ApiResponse.success("Support category set successfully",
+        return ResponseEntity.ok(ApiResponse.success("Категория по мнению поддержки установлена",
                 ticketService.setSupportCategory(id, categoryId)));
     }
 
@@ -131,7 +131,8 @@ public class TicketController {
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> listTickets(
             @AuthenticationPrincipal User user,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getVisibleTickets(user, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.getVisibleTickets(user, pageable)));
     }
 
     @GetMapping("/my")
@@ -139,7 +140,8 @@ public class TicketController {
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getMyTickets(
             @AuthenticationPrincipal User user,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getMyTickets(user.getId(), pageable)));
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.getMyTickets(user.getId(), pageable)));
     }
 
     @GetMapping("/assigned")
@@ -148,7 +150,8 @@ public class TicketController {
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getAssignedTickets(
             @AuthenticationPrincipal User user,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getAssignedTickets(user.getId(), pageable)));
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.getAssignedTickets(user.getId(), pageable)));
     }
 
     @GetMapping("/status/{status}")
@@ -156,7 +159,8 @@ public class TicketController {
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByStatus(
             @PathVariable TicketStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketsByStatus(status, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.getTicketsByStatus(status, pageable)));
     }
 
     @GetMapping("/line/{lineId}")
@@ -164,6 +168,7 @@ public class TicketController {
     public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByLine(
             @PathVariable Long lineId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketsByLine(lineId, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.getTicketsByLine(lineId, pageable)));
     }
 }

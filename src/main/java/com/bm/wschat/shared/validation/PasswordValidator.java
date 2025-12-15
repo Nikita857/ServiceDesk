@@ -23,7 +23,7 @@ public class PasswordValidator {
     }
 
     public String getValidationMessage() {
-        return "Password must contain at least 8 characters with at least one digit, " +
-               "one lowercase letter, one uppercase letter, one special character, and no whitespace.";
+        return "Пароль должен содержать минимум 8 символов, как минимум 1 цифру, " +
+               "одну букву ниженего регистра, одну верхнего регистра, один спец символ, и не содержать пробелов.";
     }
 }
