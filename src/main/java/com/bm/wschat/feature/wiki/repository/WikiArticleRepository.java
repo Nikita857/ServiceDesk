@@ -23,7 +23,7 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
     boolean existsByTitle(String title);
 
     // С категорией
-    @Query("SELECT a FROM WikiArticle a LEFT JOIN FETCH a.category LEFT JOIN FETCH a.createdBy WHERE a.slug = :slug")
+    @Query("SELECT a FROM WikiArticle a LEFT JOIN FETCH a.category LEFT JOIN FETCH a.createdBy WHERE a.slug = :slug ")
     Optional<WikiArticle> findBySlugWithDetails(@Param("slug") String slug);
 
     // Все статьи
@@ -50,11 +50,6 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
     @Modifying
     @Query("UPDATE WikiArticle a SET a.viewCount = a.viewCount + 1 WHERE a.id = :id")
     void incrementViewCount(@Param("id") Long id);
-
-    // Инкремент лайков
-    @Modifying
-    @Query("UPDATE WikiArticle a SET a.likeCount = a.likeCount + 1 WHERE a.id = :id")
-    void incrementLikeCount(@Param("id") Long id);
 
     // Статьи автора
     Page<WikiArticle> findByCreatedByIdOrderByUpdatedAtDesc(Long userId, Pageable pageable);

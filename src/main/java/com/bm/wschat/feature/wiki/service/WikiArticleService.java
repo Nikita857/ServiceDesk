@@ -7,10 +7,13 @@ import com.bm.wschat.feature.wiki.dto.request.UpdateWikiArticleRequest;
 import com.bm.wschat.feature.wiki.dto.response.WikiArticleListResponse;
 import com.bm.wschat.feature.wiki.dto.response.WikiArticleResponse;
 import com.bm.wschat.feature.wiki.mapper.WikiArticleMapper;
+import com.bm.wschat.feature.wiki.model.ArticleLike;
 import com.bm.wschat.feature.wiki.model.WikiArticle;
+import com.bm.wschat.feature.wiki.repository.ArticleLikeRepository;
 import com.bm.wschat.feature.wiki.repository.WikiArticleRepository;
 import com.bm.wschat.shared.model.Category;
 import com.bm.wschat.shared.repository.CategoryRepository;
+import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -34,6 +38,7 @@ public class WikiArticleService {
     private final WikiArticleRepository wikiArticleRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final ArticleLikeRepository articleLikeRepository;
     private final WikiArticleMapper wikiArticleMapper;
 
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
@@ -86,7 +91,23 @@ public class WikiArticleService {
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + slug));
 
         // Инкремент просмотров
+        // TODO это хуйня надо будет написать нормальный запрос и расширить dto, чтобы была булдеан передавать чтобы определять ставил ли пользователь лайк на статью
         wikiArticleRepository.incrementViewCount(article.getId());
+
+        long likes = articleLikeRepository.countByArticle(article);
+
+        WikiArticleListResponse response = new WikiArticleListResponse(
+                article.getId(),
+                article.getTitle(),
+                article.getSlug(),
+                article.getExcerpt(),
+                article.getCategory().getName(),
+                article.getTagSet(),
+                article.getCreatedBy().getFio(),
+                article.getViewCount(),
+                likes,
+                article.getUpdatedAt()
+        );
 
         return wikiArticleMapper.toResponse(article);
     }
@@ -204,11 +225,22 @@ public class WikiArticleService {
      * Лайкнуть статью
      */
     @Transactional
-    public void likeArticle(Long id) {
-        if (!wikiArticleRepository.existsById(id)) {
-            throw new EntityNotFoundException("Статья не найдена: " + id);
+    public void likeArticle(Long id, User user) {
+        WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
+                () -> new EntityNotFoundException("Статья не найдена: "+ id)
+        );
+
+        if(articleLikeRepository.existsByArticleAndUser(article, user)) {
+            throw new EntityExistsException("Вы уже лайкнули эту статью");
         }
-        wikiArticleRepository.incrementLikeCount(id);
+
+        articleLikeRepository.save(
+                ArticleLike
+                        .builder()
+                        .user(user)
+                        .article(article)
+                        .build()
+        );
     }
 
     // === Private helpers ===

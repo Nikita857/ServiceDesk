@@ -1,8 +1,6 @@
 package com.bm.wschat.shared.security.jwt;
 
-import com.bm.wschat.shared.exception.ExpiredTokenException;
-import com.bm.wschat.shared.exception.InvalidTokenException;
-import com.bm.wschat.shared.exception.JwtAuthenticationException;
+import com.bm.wschat.shared.common.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -11,6 +9,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,6 +19,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
@@ -28,11 +29,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final ObjectMapper objectMapper;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
         if (isPublicPath(path)) {
@@ -55,8 +55,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails,
-                            null, userDetails.getAuthorities());
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
@@ -65,19 +64,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } catch (ExpiredJwtException e) {
-            throw new ExpiredTokenException("JWT токен просрочен");
+            sendUnauthorized("JWT токен просрочен", response);
         } catch (SignatureException | MalformedJwtException e) {
-            throw new InvalidTokenException("Неверный JWT токен");
+            sendUnauthorized("Неверный JWT токен", response);
         } catch (UsernameNotFoundException e) {
-            throw new UsernameNotFoundException("Имя пользователя не найдено");
+            sendUnauthorized("Имя пользователя не найдено", response);
         } catch (Exception e) {
-            throw new JwtAuthenticationException("Не удалось авторизоваться");
+            sendUnauthorized("Не удалось авторизоваться", response);
         }
     }
 
     private boolean isPublicPath(String path) {
-        return path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/webjars/")
-                || path.startsWith("/images/") || path.startsWith("/static/") || path.startsWith("/login")
-                || path.startsWith("/api/auth/");
+        return  path.startsWith("/css/") ||
+                path.startsWith("/js/") ||
+                path.startsWith("/webjars/") ||
+                path.startsWith("/images/") ||
+                path.startsWith("/static/") ||
+                path.startsWith("/login") ||
+                path.startsWith("/api/auth/");
+    }
+
+    private void sendUnauthorized(String message, HttpServletResponse response) throws IOException {
+        ApiResponse<Void> errorResponse = ApiResponse.error(message);
+
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

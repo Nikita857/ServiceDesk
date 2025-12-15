@@ -109,10 +109,6 @@ public class WikiArticle {
     @Column(name = "view_count", nullable = false)
     private Long viewCount = 0L;
 
-    @Builder.Default
-    @Column(name = "like_count", nullable = false)
-    private Long likeCount = 0L;
-
     // ← Soft delete
     @Column(name = "deleted_at")
     private Instant deletedAt;
@@ -129,10 +125,6 @@ public class WikiArticle {
 
     public void incrementView() {
         this.viewCount++;
-    }
-
-    public void incrementLike() {
-        this.likeCount++;
     }
 
     // Для UI: "1С / Зарплата / Ошибка"
