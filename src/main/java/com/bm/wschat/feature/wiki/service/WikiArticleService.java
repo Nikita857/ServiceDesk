@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -86,77 +85,73 @@ public class WikiArticleService {
      * Получить по slug
      */
     @Transactional
-    public WikiArticleResponse getBySlug(String slug) {
+    public WikiArticleResponse getBySlug(String slug, Long userId) {
         WikiArticle article = wikiArticleRepository.findBySlugWithDetails(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + slug));
 
         // Инкремент просмотров
-        // TODO это хуйня надо будет написать нормальный запрос и расширить dto, чтобы была булдеан передавать чтобы определять ставил ли пользователь лайк на статью
         wikiArticleRepository.incrementViewCount(article.getId());
 
-        long likes = articleLikeRepository.countByArticle(article);
+        // Получаем количество лайков из отдельной таблицы
+        long likeCount = articleLikeRepository.countByArticleId(article.getId());
 
-        WikiArticleListResponse response = new WikiArticleListResponse(
-                article.getId(),
-                article.getTitle(),
-                article.getSlug(),
-                article.getExcerpt(),
-                article.getCategory().getName(),
-                article.getTagSet(),
-                article.getCreatedBy().getFio(),
-                article.getViewCount(),
-                likes,
-                article.getUpdatedAt()
-        );
+        // Проверяем, лайкнул ли текущий пользователь
+        boolean likedByCurrentUser = userId != null &&
+                articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
 
-        return wikiArticleMapper.toResponse(article);
+        return buildArticleResponse(article, likeCount, likedByCurrentUser);
     }
 
     /**
      * Получить по ID
      */
-    public WikiArticleResponse getById(Long id) {
+    public WikiArticleResponse getById(Long id, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена " + id));
-        return wikiArticleMapper.toResponse(article);
+
+        long likeCount = articleLikeRepository.countByArticleId(article.getId());
+        boolean likedByCurrentUser = userId != null &&
+                articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
+
+        return buildArticleResponse(article, likeCount, likedByCurrentUser);
     }
 
     /**
      * Список всех статей
      */
-    public Page<WikiArticleListResponse> getAllArticles(Pageable pageable) {
+    public Page<WikiArticleListResponse> getAllArticles(Pageable pageable, Long userId) {
         Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByUpdatedAtDesc(pageable);
-        return articles.map(wikiArticleMapper::toListResponse);
+        return articles.map(article -> buildListResponse(article, userId));
     }
 
     /**
      * Популярные статьи
      */
-    public Page<WikiArticleListResponse> getPopularArticles(Pageable pageable) {
+    public Page<WikiArticleListResponse> getPopularArticles(Pageable pageable, Long userId) {
         Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByViewCountDesc(pageable);
-        return articles.map(wikiArticleMapper::toListResponse);
+        return articles.map(article -> buildListResponse(article, userId));
     }
 
     /**
      * Поиск
      */
-    public Page<WikiArticleListResponse> search(String query, Pageable pageable) {
+    public Page<WikiArticleListResponse> search(String query, Pageable pageable, Long userId) {
         if (query == null || query.trim().isEmpty()) {
-            return getAllArticles(pageable);
+            return getAllArticles(pageable, userId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.search(query.trim(), pageable);
-        return articles.map(wikiArticleMapper::toListResponse);
+        return articles.map(article -> buildListResponse(article, userId));
     }
 
     /**
      * По категории
      */
-    public Page<WikiArticleListResponse> getByCategory(Long categoryId, Pageable pageable) {
+    public Page<WikiArticleListResponse> getByCategory(Long categoryId, Pageable pageable, Long userId) {
         if (!categoryRepository.existsById(categoryId)) {
             throw new EntityNotFoundException("Категория не найдена: " + categoryId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.findByCategoryIdOrderByUpdatedAtDesc(categoryId, pageable);
-        return articles.map(wikiArticleMapper::toListResponse);
+        return articles.map(article -> buildListResponse(article, userId));
     }
 
     /**
@@ -227,10 +222,9 @@ public class WikiArticleService {
     @Transactional
     public void likeArticle(Long id, User user) {
         WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
-                () -> new EntityNotFoundException("Статья не найдена: "+ id)
-        );
+                () -> new EntityNotFoundException("Статья не найдена: " + id));
 
-        if(articleLikeRepository.existsByArticleAndUser(article, user)) {
+        if (articleLikeRepository.existsByArticleAndUser(article, user)) {
             throw new EntityExistsException("Вы уже лайкнули эту статью");
         }
 
@@ -239,8 +233,7 @@ public class WikiArticleService {
                         .builder()
                         .user(user)
                         .article(article)
-                        .build()
-        );
+                        .build());
     }
 
     // === Private helpers ===
@@ -268,5 +261,52 @@ public class WikiArticleService {
         }
 
         return slug;
+    }
+
+    /**
+     * Построить полный ответ со статьей
+     */
+    private WikiArticleResponse buildArticleResponse(WikiArticle article, long likeCount, boolean likedByCurrentUser) {
+        return new WikiArticleResponse(
+                article.getId(),
+                article.getTitle(),
+                article.getSlug(),
+                article.getContent(),
+                article.getExcerpt(),
+                article.getCategory() != null ? article.getCategory().getId() : null,
+                article.getCategory() != null ? article.getCategory().getName() : null,
+                article.getTagSet(),
+                article.getCreatedBy() != null ? wikiArticleMapper.toUserShortResponse(article.getCreatedBy()) : null,
+                article.getUpdatedBy() != null ? wikiArticleMapper.toUserShortResponse(article.getUpdatedBy()) : null,
+                article.getViewCount(),
+                likeCount,
+                likedByCurrentUser,
+                article.getCreatedAt(),
+                article.getUpdatedAt());
+    }
+
+    /**
+     * Построить краткий ответ для списка
+     */
+    private WikiArticleListResponse buildListResponse(WikiArticle article, Long userId) {
+        long likeCount = articleLikeRepository.countByArticleId(article.getId());
+        boolean likedByCurrentUser = userId != null &&
+                articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
+
+        return new WikiArticleListResponse(
+                article.getId(),
+                article.getTitle(),
+                article.getSlug(),
+                article.getExcerpt(),
+                article.getCategory() != null ? article.getCategory().getName() : null,
+                article.getTagSet(),
+                article.getCreatedBy() != null
+                        ? (article.getCreatedBy().getFio() != null ? article.getCreatedBy().getFio()
+                                : article.getCreatedBy().getUsername())
+                        : null,
+                article.getViewCount(),
+                likeCount,
+                likedByCurrentUser,
+                article.getUpdatedAt());
     }
 }
