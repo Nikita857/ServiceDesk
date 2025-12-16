@@ -10,8 +10,11 @@ import com.bm.wschat.feature.wiki.dto.response.WikiArticleResponse;
 import com.bm.wschat.feature.wiki.mapper.WikiArticleMapper;
 import com.bm.wschat.feature.wiki.model.ArticleLike;
 import com.bm.wschat.feature.wiki.model.WikiArticle;
+import com.bm.wschat.feature.wiki.model.WikiArticleView;
+import com.bm.wschat.feature.wiki.model.WikiArticleViewId;
 import com.bm.wschat.feature.wiki.repository.ArticleLikeRepository;
 import com.bm.wschat.feature.wiki.repository.WikiArticleRepository;
+import com.bm.wschat.feature.wiki.repository.WikiArticleViewRepository;
 import com.bm.wschat.shared.model.Category;
 import com.bm.wschat.shared.repository.CategoryRepository;
 import jakarta.persistence.EntityExistsException;
@@ -25,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.time.Instant;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,6 +44,7 @@ public class WikiArticleService {
     private final UserRepository userRepository;
     private final ArticleLikeRepository articleLikeRepository;
     private final WikiArticleMapper wikiArticleMapper;
+    private final WikiArticleViewRepository wikiArticleViewRepository;
 
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
@@ -74,10 +79,14 @@ public class WikiArticleService {
                 .tagSet(request.tags() != null ? new HashSet<>(request.tags()) : new HashSet<>())
                 .createdBy(author)
                 .updatedBy(author)
+                .createdAt(Instant.now())
                 .build();
 
         WikiArticle saved = wikiArticleRepository.save(article);
         log.info("Статья вики создана: id={}, slug={}", saved.getId(), slug);
+
+        //Делаем автора автоматически просмотревшим статью
+        incrementViews(author, article);
 
         return wikiArticleMapper.toResponse(saved);
     }
@@ -94,15 +103,18 @@ public class WikiArticleService {
         // WARN 11448 HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
         Set<String> tags = wikiArticleRepository.findTagsByArticleId(article.getId());
 
-        // Инкремент просмотров
-        wikiArticleRepository.incrementViewCount(article.getId());
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new EntityNotFoundException("Пользователь не найден: " + userId)
+        );
+
+        //Увеличиваем счетчик просмотров
+        incrementViews(user, article);
 
         // Получаем количество лайков из отдельной таблицы
         long likeCount = articleLikeRepository.countByArticleId(article.getId());
 
         // Проверяем, лайкнул ли текущий пользователь
-        boolean likedByCurrentUser = userId != null &&
-                articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
+        boolean likedByCurrentUser = articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
 
         return buildArticleResponse(article, tags, likeCount, likedByCurrentUser);
     }
@@ -145,7 +157,7 @@ public class WikiArticleService {
      * Популярные статьи
      */
     public Page<WikiArticleListResponse> getPopularArticles(Pageable pageable, Long userId) {
-        Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByViewCountDesc(pageable);
+        Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByViewsTotalDesc(pageable);
 
         Map<Long, Set<String>> articleTags = articleTagFetcher(articles);
         return articles.map(
@@ -295,7 +307,7 @@ public class WikiArticleService {
     private boolean canModify(WikiArticle article, Long userId) {
         // Автор или специалист/админ
         if (article.getCreatedBy().getId().equals(userId)) {
-            if(article.getCreatedBy().getRoles().contains(SenderType.ADMIN.name())) {
+            if (article.getCreatedBy().getRoles().contains(SenderType.ADMIN.name())) {
                 return true;
             }
             return true;
@@ -335,7 +347,7 @@ public class WikiArticleService {
                 tagSet,
                 article.getCreatedBy() != null ? wikiArticleMapper.toUserShortResponse(article.getCreatedBy()) : null,
                 article.getUpdatedBy() != null ? wikiArticleMapper.toUserShortResponse(article.getUpdatedBy()) : null,
-                article.getViewCount(),
+                article.getViewsTotal(),
                 likeCount,
                 likedByCurrentUser,
                 article.getCreatedAt(),
@@ -359,9 +371,9 @@ public class WikiArticleService {
                 tags,
                 article.getCreatedBy() != null
                         ? (article.getCreatedBy().getFio() != null ? article.getCreatedBy().getFio()
-                                : article.getCreatedBy().getUsername())
+                        : article.getCreatedBy().getUsername())
                         : null,
-                article.getViewCount(),
+                article.getViewsTotal(),
                 likeCount,
                 likedByCurrentUser,
                 article.getUpdatedAt());
@@ -369,7 +381,7 @@ public class WikiArticleService {
 
     private Map<Long, Set<String>> articleTagFetcher(Page<WikiArticle> articles) {
 
-        if(articles.isEmpty()) {
+        if (articles.isEmpty()) {
             return Map.of();
         }
 
@@ -377,13 +389,29 @@ public class WikiArticleService {
                 .map(WikiArticle::getId)
                 .toList();
         return
-            wikiArticleRepository.findTagsByArticleIds(ids).stream()
-                    .collect(Collectors.groupingBy(
-                            row -> (Long) row[0],
-                            Collectors.mapping(
-                                    row -> (String) row[1],
-                                    Collectors.toSet()
-                            )
-                    ));
+                wikiArticleRepository.findTagsByArticleIds(ids).stream()
+                        .collect(Collectors.groupingBy(
+                                row -> (Long) row[0],
+                                Collectors.mapping(
+                                        row -> (String) row[1],
+                                        Collectors.toSet()
+                                )
+                        ));
     }
+
+    private void incrementViews(User user, WikiArticle article) {
+        // Инкремент просмотров только если пользователь ещё не смотрел статью
+        if (!wikiArticleViewRepository.existsByArticleAndUser(article, user)) {
+            WikiArticleView view = WikiArticleView.builder()
+                    .id(new WikiArticleViewId(article.getId(), user.getId()))
+                    .article(article)
+                    .user(user)
+                    .build();
+            wikiArticleViewRepository.save(view);
+
+            // Инкремент агрегированного поля
+            wikiArticleViewRepository.incrementViewsTotal(article.getId());
+        }
+    }
+
 }
