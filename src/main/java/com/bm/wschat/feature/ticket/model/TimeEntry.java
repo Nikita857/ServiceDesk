@@ -25,7 +25,7 @@ import java.time.LocalDate;
 
         // 4. Комбинированный для аналитики: "кто сколько наработал за период"
         @Index(name = "idx_time_specialist_period", columnList = "specialist_id, entry_date") })
-@SQLRestriction("deleted_at IS NULL") // soft delete (очень рекомендуется!)
+@SQLRestriction("deleted_at IS NULL")
 @Audited
 @Getter
 @Setter

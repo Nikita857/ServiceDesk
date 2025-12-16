@@ -22,8 +22,8 @@ import java.time.Instant;
         }
 )
 @Audited
-@SQLRestriction("deleted_at IS NULL")                                   // soft delete
-@SQLDelete(sql = "UPDATE categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
 @Getter @Setter
 @Builder @NoArgsConstructor @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)

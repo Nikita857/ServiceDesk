@@ -37,7 +37,7 @@ import java.util.Set;
 })
 @Audited
 @SQLRestriction("deleted_at IS NULL")
-@SQLDelete(sql = "UPDATE wiki_articles SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE wiki_articles SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
 @Getter
 @Setter
 @Builder
@@ -114,6 +114,11 @@ public class WikiArticle {
 
     @Version
     private Long version;
+
+    @PrePersist
+    private void onCreate() {
+        this.setViewsTotal(0L);
+    }
 
     @PreUpdate
     private void preUpdate() {

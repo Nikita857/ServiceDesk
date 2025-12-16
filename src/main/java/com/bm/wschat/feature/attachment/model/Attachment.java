@@ -32,7 +32,7 @@ import java.time.Instant;
         // 6. По типу (фильтр "только фото")
         @Index(name = "idx_attachment_type", columnList = "type") })
 @SQLRestriction("deleted_at IS NULL")
-@SQLDelete(sql = "UPDATE attachments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE attachments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
 @Getter
 @Setter
 @Builder

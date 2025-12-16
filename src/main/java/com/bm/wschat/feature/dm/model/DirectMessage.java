@@ -19,7 +19,7 @@ import java.time.Instant;
         @Index(name = "idx_dm_recipient_unread", columnList = "recipient_id, read_at")
 })
 @SQLRestriction("deleted_at IS NULL")
-@SQLDelete(sql = "UPDATE direct_messages SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE direct_messages SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? and version = ?")
 @Getter
 @Setter
 @Builder

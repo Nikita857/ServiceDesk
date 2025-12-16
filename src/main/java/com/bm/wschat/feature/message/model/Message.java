@@ -35,7 +35,7 @@ import java.util.List;
 })
 @Audited
 @SQLRestriction("deleted_at IS NULL") // только живые сообщения
-@SQLDelete(sql = "UPDATE messages SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE messages SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? and version = ?")
 @Getter
 @Setter
 @Builder
