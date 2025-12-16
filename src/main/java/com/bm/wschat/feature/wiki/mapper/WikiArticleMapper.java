@@ -16,6 +16,7 @@ public interface WikiArticleMapper {
     @Mapping(target = "tags", source = "tagSet")
     @Mapping(target = "likeCount", ignore = true)
     @Mapping(target = "likedByCurrentUser", ignore = true)
+    @Mapping(target = "viewCount", source = "viewsTotal")
     WikiArticleResponse toResponse(WikiArticle article);
 
     @Mapping(target = "categoryName", source = "category.name")
@@ -23,6 +24,7 @@ public interface WikiArticleMapper {
     @Mapping(target = "authorName", expression = "java(article.getCreatedBy().getFio() != null ? article.getCreatedBy().getFio() : article.getCreatedBy().getUsername())")
     @Mapping(target = "likeCount", ignore = true)
     @Mapping(target = "likedByCurrentUser", ignore = true)
+    @Mapping(target = "viewCount", source = "viewsTotal")
     WikiArticleListResponse toListResponse(WikiArticle article);
 
     UserShortResponse toUserShortResponse(User user);

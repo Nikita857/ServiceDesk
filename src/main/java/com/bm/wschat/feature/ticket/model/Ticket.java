@@ -33,7 +33,7 @@ import java.util.Optional;
         @Index(name = "idx_ticket_telegram_thread", columnList = "telegram_message_thread_id")
 })
 @SQLRestriction("deleted_at IS NULL")
-@SQLDelete(sql = "UPDATE tickets SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE tickets SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
 @Data
 @Builder
 @NoArgsConstructor
