@@ -6,11 +6,14 @@ import com.bm.wschat.feature.wiki.dto.request.UpdateWikiArticleRequest;
 import com.bm.wschat.feature.wiki.dto.response.WikiArticleListResponse;
 import com.bm.wschat.feature.wiki.dto.response.WikiArticleResponse;
 import com.bm.wschat.feature.wiki.service.WikiArticleService;
+import com.bm.wschat.feature.wiki.service.WikiDownloadService;
 import com.bm.wschat.shared.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -21,6 +24,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/api/v1/wiki")
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 public class WikiArticleController {
 
         private final WikiArticleService wikiArticleService;
+        private final WikiDownloadService wikiDownloadService;
 
         @PostMapping
         @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
@@ -136,5 +142,11 @@ public class WikiArticleController {
                 wikiArticleService.unlikeArticle(id, user);
                 return ResponseEntity.ok(
                                 ApiResponse.success("Лайк убран"));
+        }
+
+        @GetMapping("/{slug}/download")
+        @Operation(summary = "Скачать PDF представление статьи", description = "Получает данные о статье из БД, создает PDF и отправляет его")
+        public void downloadPdf(HttpServletResponse response, @PathVariable String slug) throws IOException {
+                wikiDownloadService.generatePdf(response, slug);
         }
 }
