@@ -105,6 +105,7 @@ public class WikiArticle {
     @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<WikiArticleView> views = new HashSet<>();
 
+    @Builder.Default
     @Column(name = "views_total", nullable = false)
     private Long viewsTotal = 0L;
 
