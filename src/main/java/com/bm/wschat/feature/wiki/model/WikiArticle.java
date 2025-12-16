@@ -101,8 +101,12 @@ public class WikiArticle {
 
     // ← Статистика
     @Builder.Default
-    @Column(name = "view_count", nullable = false)
-    private Long viewCount = 0L;
+    @NotAudited
+    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<WikiArticleView> views = new HashSet<>();
+
+    @Column(name = "views_total", nullable = false)
+    private Long viewsTotal = 0L;
 
     // ← Soft delete
     @Column(name = "deleted_at")
@@ -111,19 +115,8 @@ public class WikiArticle {
     @Version
     private Long version;
 
-    // === Удобства ===
-
     @PreUpdate
     private void preUpdate() {
         this.updatedAt = Instant.now();
-    }
-
-    public void incrementView() {
-        this.viewCount++;
-    }
-
-    // Для UI: "1С / Зарплата / Ошибка"
-    public String getTagsAsString() {
-        return tagSet != null ? String.join(" / ", tagSet) : "";
     }
 }
