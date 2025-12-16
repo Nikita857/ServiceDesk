@@ -46,14 +46,14 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
 
     // Популярные
     @EntityGraph(attributePaths = { "category", "createdBy" })
-    Page<WikiArticle> findAllByOrderByViewCountDesc(Pageable pageable);
+    Page<WikiArticle> findAllByOrderByViewsTotalDesc(Pageable pageable);
 
     // Поиск по title и content
     @EntityGraph(attributePaths = { "category", "createdBy" })
     @Query("SELECT a FROM WikiArticle a WHERE " +
             "LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(a.content) LIKE LOWER(CONCAT('%', :query, '%')) " +
-            "ORDER BY a.viewCount DESC")
+            "ORDER BY a.viewsTotal DESC")
     Page<WikiArticle> search(@Param("query") String query, Pageable pageable);
 
     // Поиск по тегам
@@ -62,8 +62,8 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
 
     // Инкремент просмотров
     @Modifying
-    @Query("UPDATE WikiArticle a SET a.viewCount = a.viewCount + 1 WHERE a.id = :id")
-    void incrementViewCount(@Param("id") Long id);
+    @Query("UPDATE WikiArticle a SET a.viewsTotal = a.viewsTotal + 1 WHERE a.id = :id")
+    void incrementViewsTotal(@Param("id") Long id);
 
     // Статьи автора
     @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
