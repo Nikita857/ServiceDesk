@@ -131,7 +131,7 @@ public class WikiArticleService {
     public Page<WikiArticleListResponse> getAllArticles(Pageable pageable, Long userId) {
         Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByUpdatedAtDesc(pageable);
 
-        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        Map<Long, Set<String>> articleTags = articleTagFetcher(articles);
         return articles.map(
                 article -> buildListResponse(
                         article,
@@ -147,7 +147,7 @@ public class WikiArticleService {
     public Page<WikiArticleListResponse> getPopularArticles(Pageable pageable, Long userId) {
         Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByViewCountDesc(pageable);
 
-        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        Map<Long, Set<String>> articleTags = articleTagFetcher(articles);
         return articles.map(
                 article -> buildListResponse(
                         article,
@@ -165,7 +165,7 @@ public class WikiArticleService {
             return getAllArticles(pageable, userId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.search(query.trim(), pageable);
-        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        Map<Long, Set<String>> articleTags = articleTagFetcher(articles);
         return articles.map(
                 article -> buildListResponse(
                         article,
@@ -183,7 +183,7 @@ public class WikiArticleService {
             throw new EntityNotFoundException("Категория не найдена: " + categoryId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.findByCategoryIdOrderByUpdatedAtDesc(categoryId, pageable);
-        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        Map<Long, Set<String>> articleTags = articleTagFetcher(articles);
         return articles.map(
                 article -> buildListResponse(
                         article,
@@ -367,7 +367,7 @@ public class WikiArticleService {
                 article.getUpdatedAt());
     }
 
-    private Map<Long, Set<String>> artcileTagFetcher(Page<WikiArticle> articles) {
+    private Map<Long, Set<String>> articleTagFetcher(Page<WikiArticle> articles) {
 
         if(articles.isEmpty()) {
             return Map.of();
