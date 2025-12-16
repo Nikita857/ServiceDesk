@@ -1,5 +1,6 @@
 package com.bm.wschat.feature.wiki.service;
 
+import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
 import com.bm.wschat.feature.wiki.dto.request.CreateWikiArticleRequest;
@@ -24,9 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
-import java.util.HashSet;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -89,6 +90,10 @@ public class WikiArticleService {
         WikiArticle article = wikiArticleRepository.findBySlugWithDetails(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + slug));
 
+        //Получаем теги отдельным запросом для избежания
+        // WARN 11448 HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+        Set<String> tags = wikiArticleRepository.findTagsByArticleId(article.getId());
+
         // Инкремент просмотров
         wikiArticleRepository.incrementViewCount(article.getId());
 
@@ -99,7 +104,7 @@ public class WikiArticleService {
         boolean likedByCurrentUser = userId != null &&
                 articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
 
-        return buildArticleResponse(article, likeCount, likedByCurrentUser);
+        return buildArticleResponse(article, tags, likeCount, likedByCurrentUser);
     }
 
     /**
@@ -109,11 +114,15 @@ public class WikiArticleService {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена " + id));
 
+        //Получаем теги отдельным запросом для избежания
+        // WARN 11448 HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+        Set<String> tags = wikiArticleRepository.findTagsByArticleId(article.getId());
+
         long likeCount = articleLikeRepository.countByArticleId(article.getId());
         boolean likedByCurrentUser = userId != null &&
                 articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
 
-        return buildArticleResponse(article, likeCount, likedByCurrentUser);
+        return buildArticleResponse(article, tags, likeCount, likedByCurrentUser);
     }
 
     /**
@@ -121,7 +130,15 @@ public class WikiArticleService {
      */
     public Page<WikiArticleListResponse> getAllArticles(Pageable pageable, Long userId) {
         Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByUpdatedAtDesc(pageable);
-        return articles.map(article -> buildListResponse(article, userId));
+
+        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        return articles.map(
+                article -> buildListResponse(
+                        article,
+                        articleTags.getOrDefault(article.getId(), Set.of()),
+                        userId
+                )
+        );
     }
 
     /**
@@ -129,7 +146,15 @@ public class WikiArticleService {
      */
     public Page<WikiArticleListResponse> getPopularArticles(Pageable pageable, Long userId) {
         Page<WikiArticle> articles = wikiArticleRepository.findAllByOrderByViewCountDesc(pageable);
-        return articles.map(article -> buildListResponse(article, userId));
+
+        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        return articles.map(
+                article -> buildListResponse(
+                        article,
+                        articleTags.getOrDefault(article.getId(), Set.of()),
+                        userId
+                )
+        );
     }
 
     /**
@@ -140,7 +165,14 @@ public class WikiArticleService {
             return getAllArticles(pageable, userId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.search(query.trim(), pageable);
-        return articles.map(article -> buildListResponse(article, userId));
+        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        return articles.map(
+                article -> buildListResponse(
+                        article,
+                        articleTags.getOrDefault(article.getId(), Set.of()),
+                        userId
+                )
+        );
     }
 
     /**
@@ -151,7 +183,14 @@ public class WikiArticleService {
             throw new EntityNotFoundException("Категория не найдена: " + categoryId);
         }
         Page<WikiArticle> articles = wikiArticleRepository.findByCategoryIdOrderByUpdatedAtDesc(categoryId, pageable);
-        return articles.map(article -> buildListResponse(article, userId));
+        Map<Long, Set<String>> articleTags = artcileTagFetcher(articles);
+        return articles.map(
+                article -> buildListResponse(
+                        article,
+                        articleTags.getOrDefault(article.getId(), Set.of()),
+                        userId
+                )
+        );
     }
 
     /**
@@ -256,6 +295,9 @@ public class WikiArticleService {
     private boolean canModify(WikiArticle article, Long userId) {
         // Автор или специалист/админ
         if (article.getCreatedBy().getId().equals(userId)) {
+            if(article.getCreatedBy().getRoles().contains(SenderType.ADMIN.name())) {
+                return true;
+            }
             return true;
         }
         User user = userRepository.findById(userId).orElse(null);
@@ -281,7 +323,7 @@ public class WikiArticleService {
     /**
      * Построить полный ответ со статьей
      */
-    private WikiArticleResponse buildArticleResponse(WikiArticle article, long likeCount, boolean likedByCurrentUser) {
+    private WikiArticleResponse buildArticleResponse(WikiArticle article, Set<String> tagSet, long likeCount, boolean likedByCurrentUser) {
         return new WikiArticleResponse(
                 article.getId(),
                 article.getTitle(),
@@ -290,7 +332,7 @@ public class WikiArticleService {
                 article.getExcerpt(),
                 article.getCategory() != null ? article.getCategory().getId() : null,
                 article.getCategory() != null ? article.getCategory().getName() : null,
-                article.getTagSet(),
+                tagSet,
                 article.getCreatedBy() != null ? wikiArticleMapper.toUserShortResponse(article.getCreatedBy()) : null,
                 article.getUpdatedBy() != null ? wikiArticleMapper.toUserShortResponse(article.getUpdatedBy()) : null,
                 article.getViewCount(),
@@ -303,7 +345,7 @@ public class WikiArticleService {
     /**
      * Построить краткий ответ для списка
      */
-    private WikiArticleListResponse buildListResponse(WikiArticle article, Long userId) {
+    private WikiArticleListResponse buildListResponse(WikiArticle article, Set<String> tags, Long userId) {
         long likeCount = articleLikeRepository.countByArticleId(article.getId());
         boolean likedByCurrentUser = userId != null &&
                 articleLikeRepository.existsByArticleIdAndUserId(article.getId(), userId);
@@ -314,7 +356,7 @@ public class WikiArticleService {
                 article.getSlug(),
                 article.getExcerpt(),
                 article.getCategory() != null ? article.getCategory().getName() : null,
-                article.getTagSet(),
+                tags,
                 article.getCreatedBy() != null
                         ? (article.getCreatedBy().getFio() != null ? article.getCreatedBy().getFio()
                                 : article.getCreatedBy().getUsername())
@@ -323,5 +365,25 @@ public class WikiArticleService {
                 likeCount,
                 likedByCurrentUser,
                 article.getUpdatedAt());
+    }
+
+    private Map<Long, Set<String>> artcileTagFetcher(Page<WikiArticle> articles) {
+
+        if(articles.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> ids = articles.stream()
+                .map(WikiArticle::getId)
+                .toList();
+        return
+            wikiArticleRepository.findTagsByArticleIds(ids).stream()
+                    .collect(Collectors.groupingBy(
+                            row -> (Long) row[0],
+                            Collectors.mapping(
+                                    row -> (String) row[1],
+                                    Collectors.toSet()
+                            )
+                    ));
     }
 }

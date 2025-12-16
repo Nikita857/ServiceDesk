@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> {
@@ -23,24 +24,32 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
 
     boolean existsByTitle(String title);
 
-    // С категорией и тегами
-    @Query("SELECT a FROM WikiArticle a LEFT JOIN FETCH a.category LEFT JOIN FETCH a.createdBy LEFT JOIN FETCH a.tagSet WHERE a.slug = :slug")
+    // С категорией
+    @Query("SELECT a FROM WikiArticle a LEFT JOIN FETCH a.category LEFT JOIN FETCH a.createdBy WHERE a.slug = :slug")
     Optional<WikiArticle> findBySlugWithDetails(@Param("slug") String slug);
 
+    @Query("SELECT t FROM WikiArticle a JOIN a.tagSet t WHERE a.id = :id")
+    Set<String> findTagsByArticleId(@Param("id") Long id);
+
+    // Получаем список тегов по списку id статей List<ID> -> query -> List<Tag>
+    //Избегаем JOIN FETCH тегов через EntityGraph поскольку это ломает SQL пагинацию
+    @Query("SELECT a.id, t FROM WikiArticle a LEFT JOIN a.tagSet t WHERE a.id IN :ids")
+    List<Object[]> findTagsByArticleIds(@Param("ids") List<Long> ids);
+
     // Все статьи (с подгрузкой связей)
-    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
+    @EntityGraph(attributePaths = { "category", "createdBy" })
     Page<WikiArticle> findAllByOrderByUpdatedAtDesc(Pageable pageable);
 
     // По категории
-    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
+    @EntityGraph(attributePaths = { "category", "createdBy" })
     Page<WikiArticle> findByCategoryIdOrderByUpdatedAtDesc(Long categoryId, Pageable pageable);
 
     // Популярные
-    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
+    @EntityGraph(attributePaths = { "category", "createdBy" })
     Page<WikiArticle> findAllByOrderByViewCountDesc(Pageable pageable);
 
     // Поиск по title и content
-    @EntityGraph(attributePaths = { "category", "createdBy", "tagSet" })
+    @EntityGraph(attributePaths = { "category", "createdBy" })
     @Query("SELECT a FROM WikiArticle a WHERE " +
             "LOWER(a.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(a.content) LIKE LOWER(CONCAT('%', :query, '%')) " +
