@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/servicedesk
     username: postgres
-    password: 123456789
+    password: 2w3a236fdj!
     driver-class-name: org.postgresql.Driver
 
   # =========================================================
@@ -46,6 +46,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 15MB
 
+  # =========================================================
+  # Redis
+  # =========================================================
+
+  data:
+    redis:
+      host: localhost
+      port: 6739
+      timeout: 60000
+
 # =========================================================
 # JWT Configuration
 # =========================================================
@@ -67,8 +77,9 @@ app:
       - application/pdf
       - text/plain
       - application/msword
+
 # =========================================================
-# Logging (uncomment when needed)
+# Logging
 # =========================================================
 #logging:
 #  level:
