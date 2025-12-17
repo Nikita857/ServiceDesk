@@ -1,2 +1,0 @@
-1. Допилить кеширование до нормального уровня (Высокий приоритет)
-2. Проверить реализацию webscoket messaging templates в TicketService. Возможно понадобится реализовать в AssignmentService
