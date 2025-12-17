@@ -130,6 +130,7 @@ public class TicketService {
         TicketResponse response = toResponseWithAssignment(saved);
 
         // Отправляем новый тикет сисадминам
+        log.debug("== Send new ticket to frontend ==");
         messagingTemplate.convertAndSend("/topic/ticket/new", response);
 
         return response;
@@ -292,9 +293,11 @@ public class TicketService {
         // Уведомление об изменении статуса
         sendStatusChangeNotification(updated, currentStatus, newStatus);
 
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+        TicketResponse response = ticketMapper.toResponse(updated);
 
-        return ticketMapper.toResponse(updated);
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+
+        return response;
     }
 
     /**
@@ -343,11 +346,11 @@ public class TicketService {
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
 
-        log.info("Ticket {} taken by {}", ticketId, specialist.getUsername());
+        TicketResponse response = ticketMapper.toResponse(updated);
 
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
 
-        return ticketMapper.toResponse(updated);
+        return response;
     }
 
     /**
@@ -393,9 +396,11 @@ public class TicketService {
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
 
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+        TicketResponse response = ticketMapper.toResponse(updated);
 
-        return ticketMapper.toResponse(updated);
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+
+        return response;
     }
 
     @Transactional
