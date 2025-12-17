@@ -21,6 +21,8 @@ import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -47,6 +49,9 @@ public class WikiArticleService {
     private final ArticleLikeRepository articleLikeRepository;
     private final WikiArticleMapper wikiArticleMapper;
     private final WikiArticleViewRepository wikiArticleViewRepository;
+    private final CacheManager cacheManager;
+
+    private static final String WIKI_CACHE = "wiki-article";
 
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
@@ -87,7 +92,7 @@ public class WikiArticleService {
         WikiArticle saved = wikiArticleRepository.save(article);
         log.info("Статья вики создана: id={}, slug={}", saved.getId(), slug);
 
-        //Делаем автора автоматически просмотревшим статью
+        // Делаем автора автоматически просмотревшим статью
         incrementViews(author, article.getSlug());
 
         return wikiArticleMapper.toResponse(saved);
@@ -106,8 +111,9 @@ public class WikiArticleService {
             throw new EntityNotFoundException("Пользователь не найден id: " + userId);
         }
 
-        //Получаем теги отдельным запросом для избежания
-        // WARN 11448 HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+        // Получаем теги отдельным запросом для избежания
+        // WARN 11448 HHH90003004: firstResult/maxResults specified with collection
+        // fetch; applying in memory
         Set<String> tags = wikiArticleRepository.findTagsByArticleId(article.getId());
 
         // Получаем количество лайков из отдельной таблицы
@@ -126,8 +132,9 @@ public class WikiArticleService {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена " + id));
 
-        //Получаем теги отдельным запросом для избежания
-        // WARN 11448 HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
+        // Получаем теги отдельным запросом для избежания
+        // WARN 11448 HHH90003004: firstResult/maxResults specified with collection
+        // fetch; applying in memory
         Set<String> tags = wikiArticleRepository.findTagsByArticleId(article.getId());
 
         long likeCount = articleLikeRepository.countByArticleId(article.getId());
@@ -148,9 +155,7 @@ public class WikiArticleService {
                 article -> buildListResponse(
                         article,
                         articleTags.getOrDefault(article.getId(), Set.of()),
-                        userId
-                )
-        );
+                        userId));
     }
 
     /**
@@ -164,9 +169,7 @@ public class WikiArticleService {
                 article -> buildListResponse(
                         article,
                         articleTags.getOrDefault(article.getId(), Set.of()),
-                        userId
-                )
-        );
+                        userId));
     }
 
     /**
@@ -182,9 +185,7 @@ public class WikiArticleService {
                 article -> buildListResponse(
                         article,
                         articleTags.getOrDefault(article.getId(), Set.of()),
-                        userId
-                )
-        );
+                        userId));
     }
 
     /**
@@ -200,19 +201,19 @@ public class WikiArticleService {
                 article -> buildListResponse(
                         article,
                         articleTags.getOrDefault(article.getId(), Set.of()),
-                        userId
-                )
-        );
+                        userId));
     }
 
     /**
      * Обновить статью
      */
-    @CacheEvict(cacheNames = "wiki-article", key = "#request.title()")
     @Transactional
     public WikiArticleResponse updateArticle(Long id, UpdateWikiArticleRequest request, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + id));
+
+        // Сохраняем старый slug для инвалидации кеша
+        String oldSlug = article.getSlug();
 
         User editor = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
@@ -247,6 +248,12 @@ public class WikiArticleService {
         article.setUpdatedBy(editor);
         WikiArticle updated = wikiArticleRepository.save(article);
 
+        // Инвалидируем кеш по старому slug (и новому, если изменился)
+        evictArticleCache(oldSlug);
+        if (!oldSlug.equals(updated.getSlug())) {
+            evictArticleCache(updated.getSlug());
+        }
+
         log.info("Вики статья обновлена: id={}", id);
 
         return wikiArticleMapper.toResponse(updated);
@@ -256,7 +263,6 @@ public class WikiArticleService {
      * Удалить статью
      */
     @Transactional
-    @CacheEvict(cacheNames = "wiki-article", key = "#id")
     public void deleteArticle(Long id, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + id));
@@ -265,7 +271,12 @@ public class WikiArticleService {
             throw new AccessDeniedException("У вас нет прав удалять эту статью");
         }
 
+        String slug = article.getSlug();
         wikiArticleRepository.delete(article); // Soft delete
+
+        // Инвалидируем кеш по slug
+        evictArticleCache(slug);
+
         log.info("Вики статья удалена: id={}", id);
     }
 
@@ -273,7 +284,6 @@ public class WikiArticleService {
      * Лайкнуть статью
      */
     @Transactional
-    @CacheEvict(cacheNames = "wiki-article", key = "#id")
     public void likeArticle(Long id, User user) {
         WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("Статья не найдена: " + id));
@@ -288,13 +298,15 @@ public class WikiArticleService {
                         .user(user)
                         .article(article)
                         .build());
+
+        // Инвалидируем кеш по slug
+        evictArticleCache(article.getSlug());
     }
 
     /**
      * Убрать лайк со статьи
      */
     @Transactional
-    @CacheEvict(cacheNames = "wiki-article", key = "#id")
     public void unlikeArticle(Long id, User user) {
         WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("Статья не найдена: " + id));
@@ -304,9 +316,23 @@ public class WikiArticleService {
         }
 
         articleLikeRepository.deleteByArticleAndUser(article, user);
+
+        // Инвалидируем кеш по slug
+        evictArticleCache(article.getSlug());
     }
 
     // === Private helpers ===
+
+    /**
+     * Программная инвалидация кеша статьи по slug
+     */
+    private void evictArticleCache(String slug) {
+        Cache cache = cacheManager.getCache(WIKI_CACHE);
+        if (cache != null) {
+            cache.evict(slug);
+            log.debug("Кеш инвалидирован для slug: {}", slug);
+        }
+    }
 
     private boolean canModify(WikiArticle article, Long userId) {
         // Автор или специалист/админ
@@ -339,7 +365,8 @@ public class WikiArticleService {
     /**
      * Построить полный ответ со статьей
      */
-    private WikiArticleResponse buildArticleResponse(WikiArticle article, Set<String> tagSet, long likeCount, boolean likedByCurrentUser) {
+    private WikiArticleResponse buildArticleResponse(WikiArticle article, Set<String> tagSet, long likeCount,
+            boolean likedByCurrentUser) {
         return new WikiArticleResponse(
                 article.getId(),
                 article.getTitle(),
@@ -375,7 +402,7 @@ public class WikiArticleService {
                 tags,
                 article.getCreatedBy() != null
                         ? (article.getCreatedBy().getFio() != null ? article.getCreatedBy().getFio()
-                        : article.getCreatedBy().getUsername())
+                                : article.getCreatedBy().getUsername())
                         : null,
                 article.getViewsTotal(),
                 likeCount,
@@ -392,15 +419,12 @@ public class WikiArticleService {
         List<Long> ids = articles.stream()
                 .map(WikiArticle::getId)
                 .toList();
-        return
-                wikiArticleRepository.findTagsByArticleIds(ids).stream()
-                        .collect(Collectors.groupingBy(
-                                row -> (Long) row[0],
-                                Collectors.mapping(
-                                        row -> (String) row[1],
-                                        Collectors.toSet()
-                                )
-                        ));
+        return wikiArticleRepository.findTagsByArticleIds(ids).stream()
+                .collect(Collectors.groupingBy(
+                        row -> (Long) row[0],
+                        Collectors.mapping(
+                                row -> (String) row[1],
+                                Collectors.toSet())));
     }
 
     @Transactional
@@ -408,8 +432,7 @@ public class WikiArticleService {
     public void incrementViews(User user, String slug) {
         // Инкремент просмотров только если пользователь ещё не смотрел статью
         WikiArticle article = wikiArticleRepository.findBySlug(slug).orElseThrow(
-                () -> new EntityNotFoundException("Статья не найдена")
-        );
+                () -> new EntityNotFoundException("Статья не найдена"));
         if (!wikiArticleViewRepository.existsByArticleAndUser(article, user)) {
             log.debug("Просмотра записи id {} нет у пользователя id {}", article.getSlug(), user.getId());
             WikiArticleView view = WikiArticleView.builder()

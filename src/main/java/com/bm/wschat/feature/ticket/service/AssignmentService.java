@@ -44,7 +44,7 @@ public class AssignmentService {
      * Создать назначение тикета
      */
     @Transactional
-    @CacheEvict(value = "ticket", key = "request.ticketId()")
+    @CacheEvict(cacheNames = "ticket", key = "#request.ticketId()")
     public AssignmentResponse createAssignment(AssignmentCreateRequest request, Long assignedById) {
         Ticket ticket = ticketRepository.findById(request.ticketId())
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + request.ticketId()));
@@ -142,7 +142,7 @@ public class AssignmentService {
      * Принять назначение
      */
     @Transactional
-    @CacheEvict(key = "ticket")
+    @CacheEvict(cacheNames = "ticket", allEntries = true)
     public AssignmentResponse acceptAssignment(Long assignmentId, Long userId) {
         Assignment assignment = assignmentRepository.findByIdWithDetails(assignmentId)
                 .orElseThrow(() -> new EntityNotFoundException("Назначение не найдено: " + assignmentId));

@@ -68,12 +68,6 @@ public class TicketService {
 
     @Transactional
     @CacheEvict(cacheNames = "ticket", allEntries = true)
-    @Caching(
-            evict = {
-                    @CacheEvict(cacheNames = "ticket", allEntries = true),  // если нужно очистить списки
-                    @CacheEvict(cacheNames = "ticket", key = "#result.id")  // для нового тикета, если он сразу читается
-            }
-    )
     public TicketResponse createTicket(CreateTicketRequest request, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
@@ -135,7 +129,7 @@ public class TicketService {
 
         TicketResponse response = toResponseWithAssignment(saved);
 
-        //Отправляем новый тикет сисадминам
+        // Отправляем новый тикет сисадминам
         messagingTemplate.convertAndSend("/topic/ticket/new", response);
 
         return response;
@@ -251,7 +245,7 @@ public class TicketService {
 
         TicketResponse response = ticketMapper.toResponse(updated);
 
-        //Отправляем обновленный тикет
+        // Отправляем обновленный тикет
         messagingTemplate.convertAndSend("/topic/ticket/" + response.id(), response);
 
         return response;
@@ -276,7 +270,8 @@ public class TicketService {
         TicketStatus newStatus = request.status();
 
         if (!isValidStatusTransition(currentStatus, newStatus)) {
-            throw new IllegalArgumentException("Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
+            throw new IllegalArgumentException(
+                    "Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
         }
 
         ticket.setStatus(newStatus);
