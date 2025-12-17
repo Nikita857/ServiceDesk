@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -34,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -252,12 +252,16 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public void deleteTicket(Long id) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         ticket.setDeletedAt(Instant.now());
         ticketRepository.save(ticket);
+
+        // WebSocket: уведомляем об удалении
+        broadcastTicketDeleted(id);
     }
 
     @Transactional
@@ -415,7 +419,10 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = toResponseWithAssignment(updated);
+        broadcastTicketUpdate(response);
+        return response;
     }
 
     @Transactional
@@ -430,7 +437,10 @@ public class TicketService {
         ticket.setCategoryUser(category);
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = toResponseWithAssignment(updated);
+        broadcastTicketUpdate(response);
+        return response;
     }
 
     @Transactional
@@ -445,7 +455,10 @@ public class TicketService {
         ticket.setCategorySupport(category);
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = toResponseWithAssignment(updated);
+        broadcastTicketUpdate(response);
+        return response;
     }
 
     public Page<TicketListResponse> listTickets(Pageable pageable) {
@@ -512,5 +525,24 @@ public class TicketService {
             case REJECTED -> ALLOWED_FROM_REJECTED.contains(to);
             case CANCELLED -> ALLOWED_FROM_CANCELLED.contains(to);
         };
+    }
+
+    // === WebSocket helpers ===
+
+    /**
+     * Отправить обновление тикета через WebSocket
+     */
+    private void broadcastTicketUpdate(TicketResponse ticket) {
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticket.id(), ticket);
+        log.debug("WebSocket: обновление тикета {}", ticket.id());
+    }
+
+    /**
+     * Отправить уведомление об удалении тикета через WebSocket
+     */
+    private void broadcastTicketDeleted(Long ticketId) {
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId + "/deleted",
+                (Object) Map.of("id", ticketId, "deleted", true));
+        log.debug("WebSocket: тикет {} удалён", ticketId);
     }
 }
