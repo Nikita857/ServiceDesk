@@ -5,6 +5,7 @@ import com.bm.wschat.feature.wiki.model.ArticleLike;
 import com.bm.wschat.feature.wiki.model.WikiArticle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
