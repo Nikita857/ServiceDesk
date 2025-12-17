@@ -2,11 +2,22 @@
 
 ## Каналы подписки (Subscribe)
 
-| Канал                        | Описание           | Данные                        |
-| ---------------------------- | ------------------ | ----------------------------- |
-| `/topic/ticket/new`          | Новый тикет создан | `TicketResponse`              |
-| `/topic/ticket/{id}`         | Обновление тикета  | `TicketResponse`              |
-| `/topic/ticket/{id}/deleted` | Тикет удалён       | `{ id: Long, deleted: true }` |
+| Канал                         | Описание           | Данные                        |
+| ----------------------------- | ------------------ | ----------------------------- |
+| `/topic/ticket/new`           | Новый тикет создан | `TicketResponse`              |
+| `/topic/ticket/{id}`          | Обновление тикета  | `TicketResponse`              |
+| `/topic/ticket/{id}/messages` | Сообщения чата     | `ChatMessage`                 |
+| `/topic/ticket/{id}/typing`   | Индикатор печати   | `TypingIndicator`             |
+| `/topic/ticket/{id}/deleted`  | Тикет удалён       | `{ id: Long, deleted: true }` |
+
+---
+
+## Каналы отправки (App)
+
+| Канал                     | Описание            | Данные               |
+| ------------------------- | ------------------- | -------------------- |
+| `/app/ticket/{id}/send`   | Отправить сообщение | `SendMessageRequest` |
+| `/app/ticket/{id}/typing` | Печатает...         | `TypingIndicator`    |
 
 ---
 
@@ -34,6 +45,13 @@
 | `acceptAssignment` | `/topic/ticket/{id}` |
 | `rejectAssignment` | `/topic/ticket/{id}` |
 
+### MessageWebSocketController
+
+| Метод                 | Канал                         |
+| --------------------- | ----------------------------- |
+| `sendMessage`         | `/topic/ticket/{id}/messages` |
+| `sendTypingIndicator` | `/topic/ticket/{id}/typing`   |
+
 ---
 
 ## Пример подписки (JavaScript)
@@ -55,6 +73,18 @@ const client = new Client({
     client.subscribe("/topic/ticket/123", (message) => {
       const ticket = JSON.parse(message.body);
       console.log("Тикет обновлён:", ticket);
+    });
+
+    // Подписка на сообщения чата тикета
+    client.subscribe("/topic/ticket/123/messages", (message) => {
+      const chatMessage = JSON.parse(message.body);
+      console.log("Новое сообщение:", chatMessage);
+    });
+
+    // Подписка на индикатор печати
+    client.subscribe("/topic/ticket/123/typing", (message) => {
+      const typing = JSON.parse(message.body);
+      console.log("Печатает:", typing);
     });
 
     // Подписка на удаление тикета
