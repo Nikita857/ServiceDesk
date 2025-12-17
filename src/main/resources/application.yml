@@ -54,7 +54,11 @@ spring:
     redis:
       host: localhost
       port: 6739
-      timeout: 60000
+      timeout: 2s
+      repositories:
+        enabled: false
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 
 # =========================================================
 # JWT Configuration

@@ -31,6 +31,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
 
     //PDF writer
     implementation("com.itextpdf:itext-core:9.4.0")
@@ -67,6 +68,7 @@ dependencies {
     // Tests
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-cache-test'
 }
 
 
