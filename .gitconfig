@@ -1,5 +1,0 @@
-[alias]
-    mnf = merge --no-ff -m
-
-[merge]
-    ff = false  # всегда использовать --no-ff

@@ -88,7 +88,7 @@ public class WikiArticleService {
         log.info("Статья вики создана: id={}, slug={}", saved.getId(), slug);
 
         //Делаем автора автоматически просмотревшим статью
-        incrementViews(author, article);
+        incrementViews(author, article.getSlug());
 
         return wikiArticleMapper.toResponse(saved);
     }
@@ -109,9 +109,6 @@ public class WikiArticleService {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new EntityNotFoundException("Пользователь не найден: " + userId)
         );
-
-        //Увеличиваем счетчик просмотров
-        incrementViews(user, article);
 
         // Получаем количество лайков из отдельной таблицы
         long likeCount = articleLikeRepository.countByArticleId(article.getId());
@@ -406,9 +403,15 @@ public class WikiArticleService {
                         ));
     }
 
-    private void incrementViews(User user, WikiArticle article) {
+    @Transactional
+    @CacheEvict(cacheNames = "wiki-article", key = "#slug")
+    public void incrementViews(User user, String slug) {
         // Инкремент просмотров только если пользователь ещё не смотрел статью
+        WikiArticle article = wikiArticleRepository.findBySlug(slug).orElseThrow(
+                () -> new EntityNotFoundException("Статья не найдена")
+        );
         if (!wikiArticleViewRepository.existsByArticleAndUser(article, user)) {
+            log.debug("Просмотра записи id {} нет у пользователя id {}", article.getSlug(), user.getId());
             WikiArticleView view = WikiArticleView.builder()
                     .id(new WikiArticleViewId(article.getId(), user.getId()))
                     .article(article)
@@ -417,6 +420,7 @@ public class WikiArticleService {
             wikiArticleViewRepository.save(view);
 
             // Инкремент агрегированного поля
+            log.debug("Код дошел до инкремента");
             wikiArticleViewRepository.incrementViewsTotal(article.getId());
         }
     }

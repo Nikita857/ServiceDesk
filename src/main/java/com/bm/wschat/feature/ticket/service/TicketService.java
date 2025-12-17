@@ -27,6 +27,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +50,7 @@ public class TicketService {
     private final NotificationService notificationService;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentMapper assignmentMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Status workflow based on TicketStatus enum
     private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
@@ -130,7 +132,13 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
-        return toResponseWithAssignment(saved);
+
+        TicketResponse response = toResponseWithAssignment(saved);
+
+        //Отправляем новый тикет сисадминам
+        messagingTemplate.convertAndSend("/topic/ticket/new", response);
+
+        return response;
     }
 
     /**
@@ -142,7 +150,7 @@ public class TicketService {
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         if (!canAccessTicket(ticket, user)) {
-            throw new org.springframework.security.access.AccessDeniedException("You don't have access to this ticket");
+            throw new AccessDeniedException("You don't have access to this ticket");
         }
 
         return toResponseWithAssignment(ticket);
@@ -242,7 +250,13 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = ticketMapper.toResponse(updated);
+
+        //Отправляем обновленный тикет
+        messagingTemplate.convertAndSend("/topic/ticket/" + response.id(), response);
+
+        return response;
     }
 
     @Transactional
@@ -280,6 +294,8 @@ public class TicketService {
 
         // Уведомление об изменении статуса
         sendStatusChangeNotification(updated, currentStatus, newStatus);
+
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
 
         return ticketMapper.toResponse(updated);
     }
@@ -332,6 +348,8 @@ public class TicketService {
 
         log.info("Ticket {} taken by {}", ticketId, specialist.getUsername());
 
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+
         return ticketMapper.toResponse(updated);
     }
 
@@ -377,6 +395,9 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
+
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+
         return ticketMapper.toResponse(updated);
     }
 
