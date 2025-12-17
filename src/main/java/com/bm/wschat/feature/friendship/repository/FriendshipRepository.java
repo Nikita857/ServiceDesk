@@ -3,11 +3,14 @@ package com.bm.wschat.feature.friendship.repository;
 import com.bm.wschat.feature.friendship.model.Friendship;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
 
     /**

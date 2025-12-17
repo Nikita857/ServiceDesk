@@ -22,14 +22,18 @@ import com.bm.wschat.shared.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -46,6 +50,7 @@ public class TicketService {
     private final NotificationService notificationService;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentMapper assignmentMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Status workflow based on TicketStatus enum
     private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
@@ -62,6 +67,7 @@ public class TicketService {
     private static final Set<TicketStatus> ALLOWED_FROM_CANCELLED = Set.of();
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", allEntries = true)
     public TicketResponse createTicket(CreateTicketRequest request, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
@@ -120,24 +126,25 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
-        return toResponseWithAssignment(saved);
-    }
 
-    public TicketResponse getTicketById(Long id) {
-        Ticket ticket = ticketRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
-        return toResponseWithAssignment(ticket);
+        TicketResponse response = toResponseWithAssignment(saved);
+
+        // Отправляем новый тикет сисадминам
+        messagingTemplate.convertAndSend("/topic/ticket/new", response);
+
+        return response;
     }
 
     /**
      * Get ticket by ID with access check
      */
+    @Cacheable(cacheNames = "ticket", key = "#id")
     public TicketResponse getTicketById(Long id, User user) {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         if (!canAccessTicket(ticket, user)) {
-            throw new org.springframework.security.access.AccessDeniedException("You don't have access to this ticket");
+            throw new AccessDeniedException("You don't have access to this ticket");
         }
 
         return toResponseWithAssignment(ticket);
@@ -208,15 +215,14 @@ public class TicketService {
                     .anyMatch(line -> line.getId().equals(ticket.getSupportLine().getId()));
 
             // Can access if in same line AND ticket is not assigned to someone else
-            if (inSameLine && ticket.getAssignedTo() == null) {
-                return true;
-            }
+            return inSameLine && ticket.getAssignedTo() == null;
         }
 
         return false;
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse updateTicket(Long id, UpdateTicketRequest request) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -236,19 +242,30 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = ticketMapper.toResponse(updated);
+
+        // Отправляем обновленный тикет
+        messagingTemplate.convertAndSend("/topic/ticket/" + response.id(), response);
+
+        return response;
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public void deleteTicket(Long id) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
         ticket.setDeletedAt(Instant.now());
         ticketRepository.save(ticket);
+
+        // WebSocket: уведомляем об удалении
+        broadcastTicketDeleted(id);
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse changeStatus(Long id, ChangeStatusRequest request) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -257,7 +274,8 @@ public class TicketService {
         TicketStatus newStatus = request.status();
 
         if (!isValidStatusTransition(currentStatus, newStatus)) {
-            throw new IllegalArgumentException("Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
+            throw new IllegalArgumentException(
+                    "Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
         }
 
         ticket.setStatus(newStatus);
@@ -274,6 +292,8 @@ public class TicketService {
         // Уведомление об изменении статуса
         sendStatusChangeNotification(updated, currentStatus, newStatus);
 
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+
         return ticketMapper.toResponse(updated);
     }
 
@@ -281,6 +301,7 @@ public class TicketService {
      * Взять тикет в работу (стать исполнителем)
      */
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#ticketId")
     public TicketResponse takeTicket(Long ticketId, Long userId) {
         Ticket ticket = ticketRepository.findByIdWithDetails(ticketId)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
@@ -324,6 +345,8 @@ public class TicketService {
 
         log.info("Ticket {} taken by {}", ticketId, specialist.getUsername());
 
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+
         return ticketMapper.toResponse(updated);
     }
 
@@ -351,6 +374,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse assignToLine(Long id, Long lineId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -368,10 +392,14 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
+
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), updated);
+
         return ticketMapper.toResponse(updated);
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse assignToSpecialist(Long id, Long specialistId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -391,10 +419,14 @@ public class TicketService {
 
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = toResponseWithAssignment(updated);
+        broadcastTicketUpdate(response);
+        return response;
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse setUserCategory(Long id, Long categoryId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -405,10 +437,14 @@ public class TicketService {
         ticket.setCategoryUser(category);
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = toResponseWithAssignment(updated);
+        broadcastTicketUpdate(response);
+        return response;
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse setSupportCategory(Long id, Long categoryId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -419,7 +455,10 @@ public class TicketService {
         ticket.setCategorySupport(category);
         ticket.touchUpdated();
         Ticket updated = ticketRepository.save(ticket);
-        return ticketMapper.toResponse(updated);
+
+        TicketResponse response = toResponseWithAssignment(updated);
+        broadcastTicketUpdate(response);
+        return response;
     }
 
     public Page<TicketListResponse> listTickets(Pageable pageable) {
@@ -486,5 +525,24 @@ public class TicketService {
             case REJECTED -> ALLOWED_FROM_REJECTED.contains(to);
             case CANCELLED -> ALLOWED_FROM_CANCELLED.contains(to);
         };
+    }
+
+    // === WebSocket helpers ===
+
+    /**
+     * Отправить обновление тикета через WebSocket
+     */
+    private void broadcastTicketUpdate(TicketResponse ticket) {
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticket.id(), ticket);
+        log.debug("WebSocket: обновление тикета {}", ticket.id());
+    }
+
+    /**
+     * Отправить уведомление об удалении тикета через WebSocket
+     */
+    private void broadcastTicketDeleted(Long ticketId) {
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId + "/deleted",
+                (Object) Map.of("id", ticketId, "deleted", true));
+        log.debug("WebSocket: тикет {} удалён", ticketId);
     }
 }

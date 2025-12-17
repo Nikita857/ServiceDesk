@@ -18,8 +18,10 @@ import com.bm.wschat.feature.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,11 +40,14 @@ public class AssignmentService {
     private final SupportLineRepository supportLineRepository;
     private final UserRepository userRepository;
     private final AssignmentMapper assignmentMapper;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final com.bm.wschat.feature.ticket.mapper.TicketMapper ticketMapper;
 
     /**
      * Создать назначение тикета
      */
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#request.ticketId()")
     public AssignmentResponse createAssignment(AssignmentCreateRequest request, Long assignedById) {
         Ticket ticket = ticketRepository.findById(request.ticketId())
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + request.ticketId()));
@@ -133,6 +138,9 @@ public class AssignmentService {
                 ticket.getId(), toLine.getName(),
                 saved.getToUser() != null ? saved.getToUser().getUsername() : "auto");
 
+        // WebSocket: уведомляем об обновлении тикета
+        broadcastTicketUpdate(ticket);
+
         return assignmentMapper.toResponse(saved);
     }
 
@@ -140,6 +148,7 @@ public class AssignmentService {
      * Принять назначение
      */
     @Transactional
+    @CacheEvict(cacheNames = "ticket", allEntries = true)
     public AssignmentResponse acceptAssignment(Long assignmentId, Long userId) {
         Assignment assignment = assignmentRepository.findByIdWithDetails(assignmentId)
                 .orElseThrow(() -> new EntityNotFoundException("Назначение не найдено: " + assignmentId));
@@ -169,6 +178,9 @@ public class AssignmentService {
         ticketRepository.save(ticket);
 
         log.info("Assignment accepted: id={}, by={}", assignmentId, user.getUsername());
+
+        // WebSocket: уведомляем об обновлении тикета
+        broadcastTicketUpdate(ticket);
 
         return assignmentMapper.toResponse(saved);
     }
@@ -222,6 +234,9 @@ public class AssignmentService {
                 assignmentId, user.getUsername(), request.reason(),
                 assignment.getFromLine() != null ? assignment.getFromLine().getName() : "none",
                 assignment.getFromUser() != null ? assignment.getFromUser().getUsername() : "none");
+
+        // WebSocket: уведомляем об обновлении тикета
+        broadcastTicketUpdate(ticket);
 
         return assignmentMapper.toResponse(saved);
     }
@@ -308,5 +323,16 @@ public class AssignmentService {
         }
 
         return best;
+    }
+
+    // === WebSocket helpers ===
+
+    /**
+     * Отправить обновление тикета через WebSocket
+     */
+    private void broadcastTicketUpdate(Ticket ticket) {
+        var response = ticketMapper.toResponse(ticket);
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticket.getId(), response);
+        log.debug("WebSocket: обновление тикета {} (из AssignmentService)", ticket.getId());
     }
 }

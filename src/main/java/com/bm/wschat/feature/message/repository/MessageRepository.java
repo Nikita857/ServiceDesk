@@ -45,7 +45,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("UPDATE Message m SET m.readBySpecialistAt = :now WHERE m.ticket.id = :ticketId " +
             "AND m.readBySpecialistAt IS NULL AND m.sender.id != :userId")
     int markAsReadBySpecialist(@Param("ticketId") Long ticketId, @Param("userId") Long userId,
-            @Param("now") Instant now);
+                               @Param("now") Instant now);
 
     // Общее количество сообщений в тикете
     Long countByTicketId(Long ticketId);

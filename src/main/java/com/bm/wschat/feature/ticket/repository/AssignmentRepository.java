@@ -24,7 +24,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByToUserIdAndStatusOrderByCreatedAtDesc(Long userId, AssignmentStatus status);
 
     Page<Assignment> findByToUserIdAndStatusOrderByCreatedAtDesc(Long userId, AssignmentStatus status,
-            Pageable pageable);
+                                                                 Pageable pageable);
 
     // Назначения на линию по статусу
     List<Assignment> findByToLineIdAndStatusOrderByCreatedAtDesc(Long lineId, AssignmentStatus status);

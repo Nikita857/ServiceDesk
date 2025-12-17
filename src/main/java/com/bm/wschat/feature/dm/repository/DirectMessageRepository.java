@@ -48,7 +48,7 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
     @Query("UPDATE DirectMessage dm SET dm.readAt = :now " +
             "WHERE dm.sender.id = :senderId AND dm.recipient.id = :recipientId AND dm.readAt IS NULL")
     int markAsReadFrom(@Param("senderId") Long senderId, @Param("recipientId") Long recipientId,
-            @Param("now") Instant now);
+                       @Param("now") Instant now);
 
     /**
      * Список диалогов (последнее сообщение с каждым пользователем)
