@@ -37,7 +37,7 @@ public class MessageWebSocketController {
         /**
          * Send message to ticket chat
          * Client sends to: /app/ticket/{ticketId}/send
-         * Broadcast to: /topic/ticket/{ticketId}
+         * Broadcast to: /topic/ticket/{ticketId}/messages
          */
         @MessageMapping("/ticket/{ticketId}/send")
         public void sendMessage(
@@ -86,7 +86,7 @@ public class MessageWebSocketController {
                                 saved.isInternal());
 
                 // Broadcast to all subscribers of this ticket
-                String destination = "/topic/ticket/" + ticketId;
+                String destination = "/topic/ticket/" + ticketId + "/messages";
 
                 if (request.internal()) {
                         // Internal messages - send only to specialists of the ticket's support line
