@@ -18,6 +18,7 @@ import com.bm.wschat.feature.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -43,6 +44,7 @@ public class AssignmentService {
      * Создать назначение тикета
      */
     @Transactional
+    @CacheEvict(value = "ticket", key = "request.ticketId()")
     public AssignmentResponse createAssignment(AssignmentCreateRequest request, Long assignedById) {
         Ticket ticket = ticketRepository.findById(request.ticketId())
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + request.ticketId()));
@@ -140,6 +142,7 @@ public class AssignmentService {
      * Принять назначение
      */
     @Transactional
+    @CacheEvict(key = "ticket")
     public AssignmentResponse acceptAssignment(Long assignmentId, Long userId) {
         Assignment assignment = assignmentRepository.findByIdWithDetails(assignmentId)
                 .orElseThrow(() -> new EntityNotFoundException("Назначение не найдено: " + assignmentId));
