@@ -22,6 +22,9 @@ import com.bm.wschat.shared.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -62,6 +65,13 @@ public class TicketService {
     private static final Set<TicketStatus> ALLOWED_FROM_CANCELLED = Set.of();
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", allEntries = true)
+    @Caching(
+            evict = {
+                    @CacheEvict(cacheNames = "ticket", allEntries = true),  // если нужно очистить списки
+                    @CacheEvict(cacheNames = "ticket", key = "#result.id")  // для нового тикета, если он сразу читается
+            }
+    )
     public TicketResponse createTicket(CreateTicketRequest request, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
@@ -123,15 +133,10 @@ public class TicketService {
         return toResponseWithAssignment(saved);
     }
 
-    public TicketResponse getTicketById(Long id) {
-        Ticket ticket = ticketRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
-        return toResponseWithAssignment(ticket);
-    }
-
     /**
      * Get ticket by ID with access check
      */
+    @Cacheable(cacheNames = "ticket", key = "#id")
     public TicketResponse getTicketById(Long id, User user) {
         Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -217,6 +222,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse updateTicket(Long id, UpdateTicketRequest request) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -249,6 +255,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse changeStatus(Long id, ChangeStatusRequest request) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -281,6 +288,7 @@ public class TicketService {
      * Взять тикет в работу (стать исполнителем)
      */
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#ticketId")
     public TicketResponse takeTicket(Long ticketId, Long userId) {
         Ticket ticket = ticketRepository.findByIdWithDetails(ticketId)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
@@ -351,6 +359,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse assignToLine(Long id, Long lineId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -372,6 +381,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse assignToSpecialist(Long id, Long specialistId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -395,6 +405,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse setUserCategory(Long id, Long categoryId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
@@ -409,6 +420,7 @@ public class TicketService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse setSupportCategory(Long id, Long categoryId) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));

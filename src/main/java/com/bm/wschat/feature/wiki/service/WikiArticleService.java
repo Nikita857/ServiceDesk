@@ -21,6 +21,8 @@ import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -95,6 +97,7 @@ public class WikiArticleService {
      * Получить по slug
      */
     @Transactional
+    @Cacheable(cacheNames = "wiki-article", key = "#slug")
     public WikiArticleResponse getBySlug(String slug, Long userId) {
         WikiArticle article = wikiArticleRepository.findBySlugWithDetails(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + slug));
@@ -208,6 +211,7 @@ public class WikiArticleService {
     /**
      * Обновить статью
      */
+    @CacheEvict(cacheNames = "wiki-article", key = "#request.title()")
     @Transactional
     public WikiArticleResponse updateArticle(Long id, UpdateWikiArticleRequest request, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
@@ -255,6 +259,7 @@ public class WikiArticleService {
      * Удалить статью
      */
     @Transactional
+    @CacheEvict(cacheNames = "wiki-article", key = "#id")
     public void deleteArticle(Long id, Long userId) {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + id));
@@ -271,6 +276,7 @@ public class WikiArticleService {
      * Лайкнуть статью
      */
     @Transactional
+    @CacheEvict(cacheNames = "wiki-article", key = "#id")
     public void likeArticle(Long id, User user) {
         WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("Статья не найдена: " + id));
@@ -291,6 +297,7 @@ public class WikiArticleService {
      * Убрать лайк со статьи
      */
     @Transactional
+    @CacheEvict(cacheNames = "wiki-article", key = "#id")
     public void unlikeArticle(Long id, User user) {
         WikiArticle article = wikiArticleRepository.findById(id).orElseThrow(
                 () -> new EntityNotFoundException("Статья не найдена: " + id));

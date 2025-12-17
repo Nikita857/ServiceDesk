@@ -7,6 +7,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class UserManagementService {
     private final PasswordValidator passwordValidator;
 
     @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
     public User createUser(@NotNull String username, @NotNull String password,
                           String fio, String email, Set<String> roles, boolean active) {
         // Validate password
@@ -55,6 +58,7 @@ public class UserManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
     public User updateUser(Long userId, String fio, String email, Set<String> roles, Boolean active) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
@@ -72,6 +76,7 @@ public class UserManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
     public void changePassword(Long userId, String newPassword) {
         // Validate password
         if (!passwordValidator.isValid(newPassword)) {
@@ -89,6 +94,7 @@ public class UserManagementService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("Пользователь не найден: " + userId);
@@ -99,6 +105,7 @@ public class UserManagementService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "users", key = "#id")
     public User findUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + id));
