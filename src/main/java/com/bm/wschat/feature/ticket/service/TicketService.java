@@ -221,9 +221,7 @@ public class TicketService {
                     .anyMatch(line -> line.getId().equals(ticket.getSupportLine().getId()));
 
             // Can access if in same line AND ticket is not assigned to someone else
-            if (inSameLine && ticket.getAssignedTo() == null) {
-                return true;
-            }
+            return inSameLine && ticket.getAssignedTo() == null;
         }
 
         return false;

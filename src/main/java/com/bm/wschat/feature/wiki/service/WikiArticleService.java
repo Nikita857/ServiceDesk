@@ -102,13 +102,13 @@ public class WikiArticleService {
         WikiArticle article = wikiArticleRepository.findBySlugWithDetails(slug)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + slug));
 
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException("Пользователь не найден id: " + userId);
+        }
+
         //Получаем теги отдельным запросом для избежания
         // WARN 11448 HHH90003004: firstResult/maxResults specified with collection fetch; applying in memory
         Set<String> tags = wikiArticleRepository.findTagsByArticleId(article.getId());
-
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new EntityNotFoundException("Пользователь не найден: " + userId)
-        );
 
         // Получаем количество лайков из отдельной таблицы
         long likeCount = articleLikeRepository.countByArticleId(article.getId());
