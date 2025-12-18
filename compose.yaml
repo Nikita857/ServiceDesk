@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: service-desk-backend
+    container_name: servicedesk-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # ========= Spring =========
+      SPRING_APPLICATION_NAME: servicedesk
+
+      # ========= PostgreSQL =========
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/servicedesk
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 2w3a236fdj!
+
+      # ========= JPA =========
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_OPEN_IN_VIEW: "false"
+
+      # ========= Flyway =========
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_MIXED: "true"
+
+      # ========= Redis =========
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_TIMEOUT: 2s
+      SPRING_DATA_REDIS_REPOSITORIES_ENABLED: "false"
+
+      # ========= JWT =========
+      JWT_SECRET: mySecretKeyThatShouldBeChangedInProductionAndMustBeAtLeast256BitsLongForHS512
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - servicedesk-net
+
+
+  postgres:
+    image: postgres:16
+    container_name: servicedesk-postgres
+    environment:
+      POSTGRES_DB: servicedesk
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 2w3a236fdj!
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - servicedesk-net
+
+
+  redis:
+    image: redis:7
+    container_name: servicedesk-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - servicedesk-net
+
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+
+
+networks:
+  servicedesk-net:
+    driver: bridge

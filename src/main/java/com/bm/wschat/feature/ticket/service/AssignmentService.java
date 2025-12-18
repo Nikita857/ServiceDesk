@@ -26,6 +26,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 
@@ -50,13 +51,13 @@ public class AssignmentService {
     @CacheEvict(cacheNames = "ticket", key = "#request.ticketId()")
     public AssignmentResponse createAssignment(AssignmentCreateRequest request, Long assignedById) {
         Ticket ticket = ticketRepository.findById(request.ticketId())
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + request.ticketId()));
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + request.ticketId()));
 
         SupportLine toLine = supportLineRepository.findById(request.toLineId())
-                .orElseThrow(() -> new EntityNotFoundException("Support line not found: " + request.toLineId()));
+                .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + request.toLineId()));
 
         User assignedBy = userRepository.findById(assignedById)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + assignedById));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + assignedById));
 
         if (ticket.getStatus().equals(TicketStatus.CLOSED) || ticket.getStatus().equals(TicketStatus.RESOLVED)) {
             throw new IllegalStateException(
