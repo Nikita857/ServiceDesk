@@ -18,6 +18,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ public class MessageService {
     private final UserRepository userRepository;
     private final MessageMapper messageMapper;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public MessageResponse sendMessage(Long ticketId, SendMessageRequest request, Long userId) {
@@ -65,8 +67,11 @@ public class MessageService {
 
         // Отправка уведомлений участникам тикета (кроме отправителя)
         sendMessageNotifications(ticket, sender, saved.getContent());
+        // Send WebSocket notification about new message
+        MessageResponse response = messageMapper.toResponse(saved);
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId + "/messages", response);
 
-        return messageMapper.toResponse(saved);
+        return response;
     }
 
     /**

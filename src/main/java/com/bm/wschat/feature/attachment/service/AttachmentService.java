@@ -137,7 +137,16 @@ public class AttachmentService {
 
         Attachment saved = attachmentRepository.save(attachment);
         log.info("Вложение прикреплено к сообщению {}: {}", messageId, saved.getId());
-        return attachmentMapper.toResponse(saved);
+
+        AttachmentResponse response = attachmentMapper.toResponse(saved);
+
+        // Send WebSocket notification about new attachment
+        // Use message.getTicket() since attachment to message doesn't have direct
+        // ticket link
+        messagingTemplate.convertAndSend("/topic/ticket/" + message.getTicket().getId() + "/attachment", response);
+        log.debug("Sending attachment details on /topic/ticket/{}", message.getTicket().getId());
+
+        return response;
     }
 
     @Transactional
