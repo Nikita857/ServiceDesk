@@ -443,7 +443,6 @@ public class WikiArticleService {
             wikiArticleViewRepository.save(view);
 
             // Инкремент агрегированного поля
-            log.debug("Код дошел до инкремента");
             wikiArticleViewRepository.incrementViewsTotal(article.getId());
         }
     }
