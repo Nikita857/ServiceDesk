@@ -27,6 +27,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -40,6 +42,7 @@ public class AttachmentService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     // Опасные расширения файлов, которые блокируем
     private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
@@ -99,7 +102,14 @@ public class AttachmentService {
 
         Attachment saved = attachmentRepository.save(attachment);
         log.info("Вложение прикреплено к тикету {}: {}", ticketId, saved.getId());
-        return attachmentMapper.toResponse(saved);
+
+        AttachmentResponse response = attachmentMapper.toResponse(saved);
+
+        // Send WebSocket notification about new attachment
+        log.debug("Sending WebSocket notification about new attachment: {}", response);
+        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId + "/attachment", response);
+
+        return response;
     }
 
     @Transactional
