@@ -1,5 +1,6 @@
 package com.bm.wschat.feature.message.mapper;
 
+import com.bm.wschat.feature.attachment.mapper.AttachmentMapper;
 import com.bm.wschat.feature.message.dto.request.SendMessageRequest;
 import com.bm.wschat.feature.message.dto.response.MessageResponse;
 import com.bm.wschat.feature.message.model.Message;
@@ -11,7 +12,7 @@ import org.mapstruct.Mapping;
 import java.time.Instant;
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = { AttachmentMapper.class })
 public interface MessageMapper {
 
     @Mapping(target = "id", ignore = true)
