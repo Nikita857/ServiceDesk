@@ -72,9 +72,10 @@ public class TicketController {
     @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
     public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
             @PathVariable Long id,
+            @AuthenticationPrincipal User user,
             @Valid @RequestBody ChangeStatusRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Статус тикета обновлен",
-                ticketService.changeStatus(id, request)));
+                ticketService.changeStatus(id, user, request)));
     }
 
     @PatchMapping("/{id}/assign-line")

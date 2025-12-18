@@ -130,7 +130,6 @@ public class TicketService {
         TicketResponse response = toResponseWithAssignment(saved);
 
         // Отправляем новый тикет сисадминам
-        log.debug("== Send new ticket to frontend ==");
         messagingTemplate.convertAndSend("/topic/ticket/new", response);
 
         return response;
@@ -267,7 +266,7 @@ public class TicketService {
 
     @Transactional
     @CacheEvict(cacheNames = "ticket", key = "#id")
-    public TicketResponse changeStatus(Long id, ChangeStatusRequest request) {
+    public TicketResponse changeStatus(Long id, User user, ChangeStatusRequest request) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + id));
 
@@ -277,6 +276,12 @@ public class TicketService {
         if (!isValidStatusTransition(currentStatus, newStatus)) {
             throw new IllegalArgumentException(
                     "Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
+        }
+
+//        Дополнительная проверка. Проверяем что пользователь является исполнителем тикета
+
+        if(!ticket.getAssignedTo().getId().equals(user.getId())) {
+            throw new AccessDeniedException("У вас больше нет права управлять этим тикетом");
         }
 
         ticket.setStatus(newStatus);
