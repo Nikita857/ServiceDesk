@@ -6,11 +6,7 @@ import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentCreateReque
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentRejectRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.response.AssignmentResponse;
 import com.bm.wschat.feature.ticket.mapper.assignment.AssignmentMapper;
-import com.bm.wschat.feature.ticket.model.Assignment;
-import com.bm.wschat.feature.ticket.model.AssignmentMode;
-import com.bm.wschat.feature.ticket.model.AssignmentStatus;
-import com.bm.wschat.feature.ticket.model.Ticket;
-import com.bm.wschat.feature.ticket.model.TicketStatus;
+import com.bm.wschat.feature.ticket.model.*;
 import com.bm.wschat.feature.ticket.repository.AssignmentRepository;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
@@ -26,7 +22,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 

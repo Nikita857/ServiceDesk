@@ -6,7 +6,6 @@ import com.bm.wschat.feature.auth.dto.response.AuthResponse;
 import com.bm.wschat.feature.auth.mapper.AuthMapper;
 import com.bm.wschat.feature.auth.model.RefreshToken;
 import com.bm.wschat.feature.user.model.User;
-import com.bm.wschat.feature.user.service.UserService;
 import com.bm.wschat.shared.exception.InvalidRefreshTokenException;
 import com.bm.wschat.shared.security.events.UserLoginEvent;
 import com.bm.wschat.shared.security.jwt.JwtService;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor

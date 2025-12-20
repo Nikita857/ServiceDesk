@@ -10,8 +10,6 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,7 +29,7 @@ public class UserActivityStatusService {
         UserActivityStatusEntity userActivityStatus = repository.findByUser(user).orElseThrow(
                 () -> new EntityNotFoundException("Запись статуса не найдена")
         );
-        if(userActivityStatus.getStatus() == status) {
+        if (userActivityStatus.getStatus() == status) {
             throw new IllegalArgumentException("Нельзя менять стаутус на тот же самый");
         }
         updateStatus(user, status);

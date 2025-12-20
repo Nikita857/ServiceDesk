@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
         if (cause instanceof InvalidFormatException invalidFormat) {
             String fieldName = invalidFormat.getPath().isEmpty()
                     ? "неизвестное поле"
-                    : invalidFormat.getPath().get(0).getPropertyName();
+                    : invalidFormat.getPath().getFirst().getPropertyName();
 
             if (invalidFormat.getTargetType().isEnum()) {
                 String validValues = Arrays.stream(invalidFormat.getTargetType().getEnumConstants())
