@@ -5,12 +5,15 @@ import com.bm.wschat.feature.supportline.repository.SupportLineRepository;
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentCreateRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentRejectRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.response.AssignmentResponse;
+import com.bm.wschat.feature.ticket.mapper.TicketMapper;
 import com.bm.wschat.feature.ticket.mapper.assignment.AssignmentMapper;
 import com.bm.wschat.feature.ticket.model.*;
 import com.bm.wschat.feature.ticket.repository.AssignmentRepository;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
+import com.bm.wschat.feature.user.model.UserActivityStatus;
 import com.bm.wschat.feature.user.repository.UserRepository;
+import com.bm.wschat.feature.user.service.UserActivityStatusService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +28,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Сервис управления назначениями тикетов.
+ * <p>
+ * Тикеты назначаются либо на линию поддержки (специалисты берут сами),
+ * либо на конкретного специалиста (с проверкой его доступности).
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,7 +46,8 @@ public class AssignmentService {
     private final UserRepository userRepository;
     private final AssignmentMapper assignmentMapper;
     private final SimpMessagingTemplate messagingTemplate;
-    private final com.bm.wschat.feature.ticket.mapper.TicketMapper ticketMapper;
+    private final TicketMapper ticketMapper;
+    private final UserActivityStatusService userActivityStatusService;
 
     /**
      * Создать назначение тикета
@@ -77,7 +87,6 @@ public class AssignmentService {
         // Для остальных специалистов переадресация возможна только ВВЕРХ (на более
         // высокий displayOrder)
 
-
         if (!assignedBy.isAdmin() && toOrder < fromOrder) {
             throw new IllegalArgumentException(
                     "Нельзя переназначить тикет на линию с более низким приоритетом. " +
@@ -99,7 +108,7 @@ public class AssignmentService {
         builder.fromLine(fromLine);
         builder.fromUser(assignedBy);
 
-        // Если указан конкретный специалист
+        // Если указан конкретный специалист - назначаем напрямую
         if (request.toUserId() != null) {
             User toUser = userRepository.findById(request.toUserId())
                     .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + request.toUserId()));
@@ -113,15 +122,19 @@ public class AssignmentService {
                 throw new IllegalArgumentException("Специалист не входит в выбранную линию поддержки");
             }
 
+            // Проверка доступности специалиста по статусу активности
+            if (!userActivityStatusService.isAvailableForAssignment(toUser.getId())) {
+                UserActivityStatus status = userActivityStatusService.getStatus(toUser.getId());
+                throw new IllegalStateException(
+                        "Специалист " + toUser.getUsername() + " недоступен для назначения тикетов. " +
+                                "Текущий статус: " + status);
+            }
+
             builder.toUser(toUser);
             builder.mode(AssignmentMode.DIRECT);
-        } else if (request.mode() == AssignmentMode.FIRST_AVAILABLE || request.mode() == null) {
-            // Авто-выбор специалиста
-            User autoAssigned = findBestSpecialist(toLine);
-            if (autoAssigned != null) {
-                builder.toUser(autoAssigned);
-            }
         }
+        // Если специалист не указан - тикет назначается на линию
+        // Специалисты линии будут брать тикеты самостоятельно
 
         Assignment saved = assignmentRepository.save(builder.build());
 
@@ -300,27 +313,6 @@ public class AssignmentService {
 
         // Админ может всё
         return user.isAdmin();
-    }
-
-    private User findBestSpecialist(SupportLine line) {
-        Set<User> specialists = line.getSpecialists();
-        if (specialists == null || specialists.isEmpty()) {
-            return null;
-        }
-
-        // Простая логика: выбрать с минимальной нагрузкой
-        User best = null;
-        long minLoad = Long.MAX_VALUE;
-
-        for (User specialist : specialists) {
-            Long activeCount = assignmentRepository.countActiveByUserId(specialist.getId());
-            if (activeCount < minLoad) {
-                minLoad = activeCount;
-                best = specialist;
-            }
-        }
-
-        return best;
     }
 
     // === WebSocket helpers ===

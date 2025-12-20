@@ -6,43 +6,132 @@ import com.bm.wschat.feature.user.model.UserActivityStatusEntity;
 import com.bm.wschat.feature.user.repository.UserActivityStatusRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Сервис управления статусом активности специалистов.
+ * <p>
+ * Статусы влияют на возможность назначения тикетов:
+ * <ul>
+ * <li>AVAILABLE, BUSY - можно назначать тикеты</li>
+ * <li>UNAVAILABLE, TECHNICAL_ISSUE, OFFLINE - нельзя назначать</li>
+ * </ul>
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class UserActivityStatusService {
 
-    private final UserActivityStatusRepository repository;
+    private final UserActivityStatusRepository statusRepository;
+    private final UserActivityLogService activityLogService;
 
+    /**
+     * Получить текущий статус пользователя.
+     * Если запись не найдена, возвращает OFFLINE.
+     */
+    public UserActivityStatus getStatus(Long userId) {
+        return statusRepository.findByUserId(userId)
+                .map(UserActivityStatusEntity::getStatus)
+                .orElse(UserActivityStatus.OFFLINE);
+    }
+
+    /**
+     * Получить сущность статуса пользователя (с временем обновления).
+     */
+    public UserActivityStatusEntity getStatusEntity(Long userId) {
+        return statusRepository.findByUserId(userId)
+                .orElse(null);
+    }
+
+    /**
+     * Проверить, может ли специалист получать тикеты.
+     * 
+     * @param userId ID пользователя
+     * @return true если AVAILABLE или BUSY
+     */
+    public boolean isAvailableForAssignment(Long userId) {
+        UserActivityStatus status = getStatus(userId);
+        return status.isAvailableForAssignment();
+    }
+
+    /**
+     * Обработка входа пользователя.
+     * Устанавливает статус AVAILABLE.
+     */
+    @Transactional
     public void onLogin(User user) {
-        updateStatus(user, UserActivityStatus.AVAILABLE);
+        updateStatus(user, UserActivityStatus.AVAILABLE, false);
+        log.debug("Статус при входе: userId={}, status=AVAILABLE", user.getId());
     }
 
+    /**
+     * Обработка выхода пользователя.
+     * Устанавливает статус OFFLINE.
+     */
+    @Transactional
     public void onLogout(User user) {
-        updateStatus(user, UserActivityStatus.OFFLINE);
+        updateStatus(user, UserActivityStatus.OFFLINE, false);
+        log.debug("Статус при выходе: userId={}, status=OFFLINE", user.getId());
     }
 
-    public void setStatus(User user, UserActivityStatus status) throws HttpMessageNotReadableException {
-        UserActivityStatusEntity userActivityStatus = repository.findByUser(user).orElseThrow(
-                () -> new EntityNotFoundException("Запись статуса не найдена")
-        );
-        if (userActivityStatus.getStatus() == status) {
-            throw new IllegalArgumentException("Нельзя менять стаутус на тот же самый");
+    /**
+     * Установить статус вручную (только для специалистов).
+     * 
+     * @param user      текущий пользователь
+     * @param newStatus новый статус
+     * @return установленный статус
+     * @throws AccessDeniedException если пользователь не специалист
+     * @throws IllegalStateException если статус уже установлен
+     */
+    @Transactional
+    public UserActivityStatus setStatus(User user, UserActivityStatus newStatus) {
+        // Валидация: только специалисты могут менять статус
+        if (!user.isSpecialist()) {
+            throw new AccessDeniedException("Только специалисты могут управлять статусом активности");
         }
-        updateStatus(user, status);
+
+        // Получаем текущий статус
+        UserActivityStatusEntity entity = statusRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Запись статуса не найдена для пользователя: " + user.getId()));
+
+        // Проверка на повторную установку того же статуса
+        if (entity.getStatus() == newStatus) {
+            throw new IllegalStateException("Статус уже установлен в: " + newStatus);
+        }
+
+        UserActivityStatus oldStatus = entity.getStatus();
+        updateStatus(user, newStatus, true);
+
+        log.info("Статус изменён: userId={}, username={}, {} -> {}",
+                user.getId(), user.getUsername(), oldStatus, newStatus);
+
+        return newStatus;
     }
 
-    private void updateStatus(User user, UserActivityStatus newStatus) {
-        UserActivityStatusEntity status = repository.findById(user.getId())
+    /**
+     * Внутренний метод обновления статуса.
+     * 
+     * @param user      пользователь
+     * @param newStatus новый статус
+     * @param logChange записывать ли в аудит
+     */
+    private void updateStatus(User user, UserActivityStatus newStatus, boolean logChange) {
+        UserActivityStatusEntity entity = statusRepository.findById(user.getId())
                 .orElseGet(() -> UserActivityStatusEntity.builder()
-                        .user(user)  // только user — userId скопируется через @MapsId
+                        .user(user)
                         .status(newStatus)
                         .build());
 
-        status.setStatus(newStatus);
-        repository.save(status);  // INSERT или UPDATE
+        entity.setStatus(newStatus);
+        statusRepository.save(entity);
+
+        if (logChange) {
+            activityLogService.logStatusChange(user);
+        }
     }
 }

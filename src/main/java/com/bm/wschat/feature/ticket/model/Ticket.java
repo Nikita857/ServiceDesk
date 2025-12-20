@@ -4,22 +4,20 @@ import com.bm.wschat.feature.attachment.model.Attachment;
 import com.bm.wschat.feature.message.model.Message;
 import com.bm.wschat.feature.supportline.model.SupportLine;
 import com.bm.wschat.feature.user.model.User;
-
 import com.bm.wschat.shared.model.Category;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.envers.Audited;
 import org.hibernate.envers.NotAudited;
+import org.hibernate.proxy.HibernateProxy;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Entity
@@ -34,22 +32,17 @@ import java.util.Optional;
 })
 @SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE tickets SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
-@Data
+@Getter
+@Setter
+@ToString
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Ticket {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "ticket_seq"
-    )
-    @SequenceGenerator(
-            name = "ticket_seq",
-            sequenceName = "tickets_id_seq",
-            allocationSize = 1
-    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ticket_seq")
+    @SequenceGenerator(name = "ticket_seq", sequenceName = "tickets_id_seq", allocationSize = 1)
     private Long id;
 
     @NotBlank
@@ -95,19 +88,23 @@ public class Ticket {
 
     @Builder.Default
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<Message> messages = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     @NotAudited
+    @ToString.Exclude
     private List<Attachment> attachments = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<Assignment> assignments = new ArrayList<>();
 
     @Builder.Default
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<TimeEntry> timeEntries = new ArrayList<>();
 
     @Builder.Default
@@ -153,5 +150,30 @@ public class Ticket {
 
     public void touchUpdated() {
         this.updatedAt = Instant.now();
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null)
+            return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass()
+                : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass()
+                : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass)
+            return false;
+        Ticket ticket = (Ticket) o;
+        return getId() != null && Objects.equals(getId(), ticket.getId());
+    }
+
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode()
+                : getClass().hashCode();
     }
 }

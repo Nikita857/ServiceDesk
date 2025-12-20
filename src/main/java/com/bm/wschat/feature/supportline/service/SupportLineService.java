@@ -9,7 +9,9 @@ import com.bm.wschat.feature.supportline.mapper.SupportLineMapper;
 import com.bm.wschat.feature.supportline.model.SupportLine;
 import com.bm.wschat.feature.supportline.repository.SupportLineRepository;
 import com.bm.wschat.feature.user.model.User;
+import com.bm.wschat.feature.user.model.UserActivityStatus;
 import com.bm.wschat.feature.user.repository.UserRepository;
+import com.bm.wschat.feature.user.service.UserActivityStatusService;
 import jakarta.persistence.EntityExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+/**
+ * Сервис управления линиями поддержки и их специалистами.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,6 +33,7 @@ public class SupportLineService {
     private final SupportLineRepository supportLineRepository;
     private final UserRepository userRepository;
     private final SupportLineMapper mapper;
+    private final UserActivityStatusService userActivityStatusService;
 
     @Transactional
     public SupportLineResponse createLine(CreateSupportLineRequest request) {
@@ -36,13 +44,13 @@ public class SupportLineService {
         SupportLine line = mapper.toEntity(request);
         SupportLine saved = supportLineRepository.save(line);
 
-        return mapper.toResponse(saved);
+        return toResponseWithSpecialists(saved);
     }
 
     public SupportLineResponse getLineById(Long id) {
         SupportLine line = supportLineRepository.findByIdWithSpecialists(id)
                 .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + id));
-        return mapper.toResponse(line);
+        return toResponseWithSpecialists(line);
     }
 
     public List<SupportLineListResponse> getAllLines() {
@@ -77,7 +85,7 @@ public class SupportLineService {
         }
 
         SupportLine updated = supportLineRepository.save(line);
-        return mapper.toResponse(updated);
+        return toResponseWithSpecialists(updated);
     }
 
     @Transactional
@@ -103,7 +111,7 @@ public class SupportLineService {
         line.getSpecialists().add(specialist);
         SupportLine updated = supportLineRepository.save(line);
 
-        return mapper.toResponse(updated);
+        return toResponseWithSpecialists(updated);
     }
 
     @Transactional
@@ -117,13 +125,60 @@ public class SupportLineService {
         line.getSpecialists().remove(specialist);
         SupportLine updated = supportLineRepository.save(line);
 
-        return mapper.toResponse(updated);
+        return toResponseWithSpecialists(updated);
     }
 
+    /**
+     * Получить список специалистов линии с их статусами активности.
+     */
     public List<SpecialistResponse> getLineSpecialists(Long lineId) {
         SupportLine line = supportLineRepository.findByIdWithSpecialists(lineId)
                 .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
-        return mapper.toSpecialistResponses(line.getSpecialists());
+        return toSpecialistResponsesWithStatus(line.getSpecialists());
+    }
+
+    // === Private helpers ===
+
+    /**
+     * Создаёт SupportLineResponse с заполненным списком специалистов и их
+     * статусами.
+     */
+    private SupportLineResponse toResponseWithSpecialists(SupportLine line) {
+        List<SpecialistResponse> specialists = toSpecialistResponsesWithStatus(line.getSpecialists());
+
+        return new SupportLineResponse(
+                line.getId(),
+                line.getName(),
+                line.getDescription(),
+                line.getSlaMinutes(),
+                line.getAssignmentMode(),
+                line.getDisplayOrder(),
+                specialists.size(),
+                specialists,
+                line.getCreatedAt(),
+                line.getUpdatedAt());
+    }
+
+    /**
+     * Конвертирует специалистов в DTO с добавлением их статусов активности.
+     */
+    private List<SpecialistResponse> toSpecialistResponsesWithStatus(Set<User> specialists) {
+        if (specialists == null || specialists.isEmpty()) {
+            return List.of();
+        }
+
+        return specialists.stream()
+                .map(user -> {
+                    UserActivityStatus status = userActivityStatusService.getStatus(user.getId());
+                    return new SpecialistResponse(
+                            user.getId(),
+                            user.getUsername(),
+                            user.getFio(),
+                            user.isActive(),
+                            status,
+                            status.isAvailableForAssignment());
+                })
+                .collect(Collectors.toList());
     }
 }
