@@ -1,9 +1,12 @@
 package com.bm.wschat.feature.ticket.controller;
 
+import com.bm.wschat.feature.supportline.dto.response.SupportLineListResponse;
+import com.bm.wschat.feature.supportline.mapper.SupportLineMapper;
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentCreateRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentRejectRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.response.AssignmentResponse;
 import com.bm.wschat.feature.ticket.service.AssignmentService;
+import com.bm.wschat.feature.ticket.service.ForwardingRulesService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,78 +31,100 @@ import java.util.List;
 @Tag(name = "Assignments", description = "Управление назначениями тикетов")
 public class AssignmentController {
 
-    private final AssignmentService assignmentService;
+        private final AssignmentService assignmentService;
+        private final ForwardingRulesService forwardingRulesService;
+        private final SupportLineMapper supportLineMapper;
 
-    @PostMapping("/assignments")
-    @Operation(summary = "Создать новое назначение для тикета", description = "Назначает тикет специалисту или линии поддержки.")
-    public ResponseEntity<ApiResponse<AssignmentResponse>> createAssignment(
-            @Valid @RequestBody AssignmentCreateRequest request,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Назначение создано",
-                        assignmentService.createAssignment(request, user.getId())));
-    }
+        @PostMapping("/assignments")
+        @Operation(summary = "Создать новое назначение для тикета", description = "Назначает тикет специалисту или линии поддержки.")
+        public ResponseEntity<ApiResponse<AssignmentResponse>> createAssignment(
+                        @Valid @RequestBody AssignmentCreateRequest request,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Назначение создано",
+                                                assignmentService.createAssignment(request, user.getId())));
+        }
 
-    @PostMapping("/assignments/{id}/accept")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Принять назначение тикета", description = "Текущий пользователь принимает назначенную ему задачу по тикету.")
-    public ResponseEntity<ApiResponse<AssignmentResponse>> acceptAssignment(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Назначение принято",
-                assignmentService.acceptAssignment(id, user.getId())));
-    }
+        @PostMapping("/assignments/{id}/accept")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Принять назначение тикета", description = "Текущий пользователь принимает назначенную ему задачу по тикету.")
+        public ResponseEntity<ApiResponse<AssignmentResponse>> acceptAssignment(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success("Назначение принято",
+                                assignmentService.acceptAssignment(id, user.getId())));
+        }
 
-    @PostMapping("/assignments/{id}/reject")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Отклонить назначение тикета", description = "Текущий пользователь отклоняет назначенную ему задачу по тикету с указанием причины.")
-    public ResponseEntity<ApiResponse<AssignmentResponse>> rejectAssignment(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignmentRejectRequest request,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Назначение отклонено",
-                assignmentService.rejectAssignment(id, request, user.getId())));
-    }
+        @PostMapping("/assignments/{id}/reject")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Отклонить назначение тикета", description = "Текущий пользователь отклоняет назначенную ему задачу по тикету с указанием причины.")
+        public ResponseEntity<ApiResponse<AssignmentResponse>> rejectAssignment(
+                        @PathVariable Long id,
+                        @Valid @RequestBody AssignmentRejectRequest request,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success("Назначение отклонено",
+                                assignmentService.rejectAssignment(id, request, user.getId())));
+        }
 
-    @GetMapping("/tickets/{ticketId}/assignments")
-    @Operation(summary = "Получить историю назначений для тикета", description = "Возвращает список всех назначений для указанного тикета.")
-    public ResponseEntity<ApiResponse<List<AssignmentResponse>>> getTicketAssignments(
-            @PathVariable Long ticketId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                assignmentService.getTicketAssignments(ticketId)));
-    }
+        @GetMapping("/tickets/{ticketId}/assignments")
+        @Operation(summary = "Получить историю назначений для тикета", description = "Возвращает список всех назначений для указанного тикета.")
+        public ResponseEntity<ApiResponse<List<AssignmentResponse>>> getTicketAssignments(
+                        @PathVariable Long ticketId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                assignmentService.getTicketAssignments(ticketId)));
+        }
 
-    @GetMapping("/assignments/{id}")
-    @Operation(summary = "Получить назначение по ID", description = "Возвращает информацию о конкретном назначении по его ID.")
-    public ResponseEntity<ApiResponse<AssignmentResponse>> getAssignment(
-            @PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(assignmentService.getById(id)));
-    }
+        @GetMapping("/assignments/{id}")
+        @Operation(summary = "Получить назначение по ID", description = "Возвращает информацию о конкретном назначении по его ID.")
+        public ResponseEntity<ApiResponse<AssignmentResponse>> getAssignment(
+                        @PathVariable Long id) {
+                return ResponseEntity.ok(ApiResponse.success(assignmentService.getById(id)));
+        }
 
-    @GetMapping("/assignments/pending")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Получить мои ожидающие назначения", description = "Возвращает пагинированный список назначений, ожидающих принятия текущим специалистом.")
-    public ResponseEntity<ApiResponse<Page<AssignmentResponse>>> getMyPendingAssignments(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success(
-                assignmentService.getMyPendingAssignments(user.getId(), pageable)));
-    }
+        @GetMapping("/assignments/pending")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Получить мои ожидающие назначения", description = "Возвращает пагинированный список назначений, ожидающих принятия текущим специалистом.")
+        public ResponseEntity<ApiResponse<Page<AssignmentResponse>>> getMyPendingAssignments(
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                assignmentService.getMyPendingAssignments(user.getId(), pageable)));
+        }
 
-    @GetMapping("/assignments/pending-count")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Получить количество моих ожидающих назначений", description = "Возвращает количество назначений, ожидающих принятия текущим специалистом.")
-    public ResponseEntity<ApiResponse<Long>> getPendingCount(
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success(
-                assignmentService.getPendingCount(user.getId())));
-    }
+        @GetMapping("/assignments/pending-count")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Получить количество моих ожидающих назначений", description = "Возвращает количество назначений, ожидающих принятия текущим специалистом.")
+        public ResponseEntity<ApiResponse<Long>> getPendingCount(
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                assignmentService.getPendingCount(user.getId())));
+        }
 
-    @GetMapping("/tickets/{ticketId}/current-assignment")
-    @Operation(summary = "Получить текущее активное назначение для тикета", description = "Возвращает информацию о текущем активном назначении для указанного тикета, если оно есть.")
-    public ResponseEntity<ApiResponse<AssignmentResponse>> getCurrentAssignment(
-            @PathVariable Long ticketId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                assignmentService.getCurrentAssignment(ticketId)));
-    }
+        @GetMapping("/tickets/{ticketId}/current-assignment")
+        @Operation(summary = "Получить текущее активное назначение для тикета", description = "Возвращает информацию о текущем активном назначении для указанного тикета, если оно есть.")
+        public ResponseEntity<ApiResponse<AssignmentResponse>> getCurrentAssignment(
+                        @PathVariable Long ticketId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                assignmentService.getCurrentAssignment(ticketId)));
+        }
+
+        /**
+         * Получить список линий поддержки, на которые текущий пользователь может
+         * переадресовать тикет.
+         * Список зависит от роли пользователя:
+         * - SYSADMIN → 1CSUPPORT
+         * - 1CSUPPORT → SYSADMIN, DEV1C
+         * - DEV1C → SYSADMIN, 1CSUPPORT, DEV1C, DEVELOPER
+         * - DEVELOPER → SYSADMIN, 1CSUPPORT, DEV1C, DEVELOPER
+         * - ADMIN → все линии
+         */
+        @GetMapping("/assignments/available-lines")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Получить доступные линии для переадресации", description = "Возвращает список линий поддержки, на которые текущий пользователь может переадресовать тикеты согласно его роли.")
+        public ResponseEntity<ApiResponse<List<SupportLineListResponse>>> getAvailableForwardingLines(
+                        @AuthenticationPrincipal User user) {
+                var lines = forwardingRulesService.getAvailableForwardingLines(user);
+                var response = supportLineMapper.toListResponses(lines);
+                return ResponseEntity.ok(ApiResponse.success(response));
+        }
 }

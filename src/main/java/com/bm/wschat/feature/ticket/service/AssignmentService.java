@@ -30,7 +30,6 @@ import java.util.Set;
 
 /**
  * Сервис управления назначениями тикетов.
- * <p>
  * Тикеты назначаются либо на линию поддержки (специалисты берут сами),
  * либо на конкретного специалиста (с проверкой его доступности).
  */
@@ -48,6 +47,7 @@ public class AssignmentService {
     private final SimpMessagingTemplate messagingTemplate;
     private final TicketMapper ticketMapper;
     private final UserActivityStatusService userActivityStatusService;
+    private final ForwardingRulesService forwardingRulesService;
 
     /**
      * Создать назначение тикета
@@ -78,24 +78,13 @@ public class AssignmentService {
         SupportLine fromLine = supportLineRepository.findById(request.fromLineId()).orElseThrow(
                 () -> new EntityNotFoundException("Линия поддержки не найдена: " + request.fromLineId()));
 
-        // Получаем displayOrder с дефолтными значениями (null = 0)
-        int fromOrder = fromLine.getDisplayOrder() != null ? fromLine.getDisplayOrder() : 0;
-        int toOrder = toLine.getDisplayOrder() != null ? toLine.getDisplayOrder() : 0;
-
-        // Администратор (DEVELOPER) может назначать тикет на любую линию без
-        // ограничений
-        // Для остальных специалистов переадресация возможна только ВВЕРХ (на более
-        // высокий displayOrder)
-
-        if (!assignedBy.isAdmin() && toOrder < fromOrder) {
-            throw new IllegalArgumentException(
-                    "Нельзя переназначить тикет на линию с более низким приоритетом. " +
-                            "Текущий уровень: " + fromOrder +
-                            ", Целевой уровень: " + toOrder);
-        }
-
-        // Если toOrder == fromOrder - это переназначение на ту же линию (разрешено,
-        // например другому специалисту)
+        // Проверка правил переадресации на основе ролей
+        // SYSADMIN → 1CSUPPORT
+        // 1CSUPPORT → SYSADMIN, DEV1C
+        // DEV1C → SYSADMIN, 1CSUPPORT, DEV1C, DEVELOPER
+        // DEVELOPER → SYSADMIN, 1CSUPPORT, DEV1C, DEVELOPER
+        // ADMIN → любая линия
+        forwardingRulesService.validateForwarding(assignedBy, fromLine, toLine);
 
         Assignment.AssignmentBuilder builder = Assignment.builder()
                 .ticket(ticket)

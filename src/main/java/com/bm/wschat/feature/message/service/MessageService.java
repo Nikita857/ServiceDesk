@@ -11,7 +11,6 @@ import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
-import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -61,7 +60,7 @@ public class MessageService {
         Message message = messageMapper.toEntity(request);
         message.setTicket(ticket);
         message.setSender(sender);
-        message.setSenderType(sender.isSpecialist() ? SenderType.SYSADMIN : SenderType.USER);
+        message.setSenderType(Message.determineSenderType(sender));
 
         Message saved = messageRepository.save(message);
 
