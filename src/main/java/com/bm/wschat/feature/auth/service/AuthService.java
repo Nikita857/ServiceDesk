@@ -1,16 +1,18 @@
 package com.bm.wschat.feature.auth.service;
 
-import com.bm.wschat.feature.auth.dto.request.RefreshTokenRequest;
 import com.bm.wschat.feature.auth.dto.request.AuthRequest;
+import com.bm.wschat.feature.auth.dto.request.RefreshTokenRequest;
 import com.bm.wschat.feature.auth.dto.response.AuthResponse;
 import com.bm.wschat.feature.auth.mapper.AuthMapper;
 import com.bm.wschat.feature.auth.model.RefreshToken;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.service.UserService;
 import com.bm.wschat.shared.exception.InvalidRefreshTokenException;
+import com.bm.wschat.shared.security.events.UserLoginEvent;
 import com.bm.wschat.shared.security.jwt.JwtService;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,15 +20,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final UserService userService;
     private final RefreshTokenService refreshTokenService;
     private final AuthMapper authMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public AuthResponse login(@NotNull AuthRequest request) {
@@ -35,9 +40,14 @@ public class AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        User user = userService.findByUsername(request.username());
+        User user = (User) Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getPrincipal();
+        if (user == null) {
+            throw new IllegalStateException("Не удалось кастовать юзера из контекста");
+        }
         String accessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        eventPublisher.publishEvent(new UserLoginEvent(user.getId()));
 
         return new AuthResponse(
                 accessToken,
