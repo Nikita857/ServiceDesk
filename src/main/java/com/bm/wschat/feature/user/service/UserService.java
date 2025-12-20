@@ -15,7 +15,6 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    @Cacheable(cacheNames = "users", key = "#username")
     public User findByUsername(String username) {
         return userRepository.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + username));
