@@ -51,8 +51,10 @@ public class TicketService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentMapper assignmentMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final TicketTimeTrackingService timeTrackingService;
 
     // Status workflow based on TicketStatus enum
+    // Обновлено для двухфакторного закрытия: RESOLVED -> PENDING_CLOSURE -> CLOSED
     private static final Set<TicketStatus> ALLOWED_FROM_NEW = Set.of(TicketStatus.OPEN, TicketStatus.REJECTED,
             TicketStatus.CANCELLED);
     private static final Set<TicketStatus> ALLOWED_FROM_OPEN = Set.of(TicketStatus.PENDING, TicketStatus.RESOLVED,
@@ -60,7 +62,13 @@ public class TicketService {
     private static final Set<TicketStatus> ALLOWED_FROM_PENDING = Set.of(TicketStatus.OPEN);
     private static final Set<TicketStatus> ALLOWED_FROM_ESCALATED = Set.of(TicketStatus.OPEN, TicketStatus.PENDING,
             TicketStatus.RESOLVED);
-    private static final Set<TicketStatus> ALLOWED_FROM_RESOLVED = Set.of(TicketStatus.CLOSED, TicketStatus.REOPENED);
+    // RESOLVED теперь переходит только в PENDING_CLOSURE (для пользователя) или
+    // REOPENED
+    private static final Set<TicketStatus> ALLOWED_FROM_RESOLVED = Set.of(TicketStatus.PENDING_CLOSURE,
+            TicketStatus.REOPENED);
+    // PENDING_CLOSURE -> CLOSED (подтверждено) или REOPENED (отклонено)
+    private static final Set<TicketStatus> ALLOWED_FROM_PENDING_CLOSURE = Set.of(TicketStatus.CLOSED,
+            TicketStatus.REOPENED);
     private static final Set<TicketStatus> ALLOWED_FROM_CLOSED = Set.of(TicketStatus.REOPENED);
     private static final Set<TicketStatus> ALLOWED_FROM_REOPENED = Set.of(TicketStatus.OPEN);
     private static final Set<TicketStatus> ALLOWED_FROM_REJECTED = Set.of();
@@ -126,6 +134,9 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
+
+        // Записываем начальный статус в историю для учёта времени
+        timeTrackingService.recordInitialStatus(saved, creator);
 
         TicketResponse response = toResponseWithAssignment(saved);
 
@@ -264,6 +275,64 @@ public class TicketService {
         broadcastTicketDeleted(id);
     }
 
+    /**
+     * Оценить качество обслуживания.
+     * Доступно только создателю тикета после его закрытия.
+     *
+     * @param ticketId ID тикета
+     * @param user     пользователь (должен быть создателем)
+     * @param rating   оценка 1-5
+     * @param feedback отзыв (опционально)
+     * @return обновлённый тикет
+     */
+    @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#ticketId")
+    public TicketResponse rateTicket(Long ticketId, User user, Integer rating, String feedback) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
+
+        // Проверка: только создатель может оценить
+        if (ticket.getCreatedBy() == null || !ticket.getCreatedBy().getId().equals(user.getId())) {
+            throw new AccessDeniedException("Только создатель тикета может оставить оценку");
+        }
+
+        // Проверка: тикет должен быть закрыт
+        if (ticket.getStatus() != TicketStatus.CLOSED) {
+            throw new IllegalStateException("Оценить можно только закрытый тикет");
+        }
+
+        // Проверка: тикет ещё не оценён
+        if (ticket.getRating() != null) {
+            throw new IllegalStateException("Тикет уже оценён");
+        }
+
+        // Валидация оценки
+        if (rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Оценка должна быть от 1 до 5");
+        }
+
+        ticket.setRating(rating);
+        ticket.setFeedback(feedback);
+        ticket.setRatedAt(Instant.now());
+        ticket.touchUpdated();
+
+        Ticket updated = ticketRepository.save(ticket);
+
+        log.info("Тикет {} оценён пользователем {} на {} баллов", ticketId, user.getUsername(), rating);
+
+        TicketResponse response = ticketMapper.toResponse(updated);
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+
+        // Отправляем уведомление исполнителю об оценке
+        if (ticket.getAssignedTo() != null) {
+            notificationService.notifyUser(
+                    ticket.getAssignedTo().getId(),
+                    Notification.rating(ticket.getId(), ticket.getTitle(), rating));
+        }
+
+        return response;
+    }
+
     @Transactional
     @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse changeStatus(Long id, User user, ChangeStatusRequest request) {
@@ -273,16 +342,48 @@ public class TicketService {
         TicketStatus currentStatus = ticket.getStatus();
         TicketStatus newStatus = request.status();
 
-        if (!isValidStatusTransition(currentStatus, newStatus)) {
+        // Администратор может закрыть тикет принудительно (минуя PENDING_CLOSURE)
+        boolean isAdminForceClose = user.isAdmin() &&
+                newStatus == TicketStatus.CLOSED &&
+                currentStatus != TicketStatus.PENDING_CLOSURE;
+
+        if (!isAdminForceClose && !isValidStatusTransition(currentStatus, newStatus)) {
             throw new IllegalArgumentException(
                     "Некорректная транзакция статусов: " + currentStatus + " -> " + newStatus);
         }
 
-//        Дополнительная проверка. Проверяем что пользователь является исполнителем тикета
+        // Проверка прав на смену статуса
+        boolean isCreator = ticket.getCreatedBy() != null && ticket.getCreatedBy().getId().equals(user.getId());
+        boolean isAssignee = ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(user.getId());
+        boolean isAdmin = user.isAdmin();
 
-        if(!ticket.getAssignedTo().getId().equals(user.getId())) {
-            throw new AccessDeniedException("У вас больше нет права управлять этим тикетом");
+        // Логика двухфакторного закрытия:
+        // 1. Специалист переводит RESOLVED -> PENDING_CLOSURE (запрос на закрытие)
+        // 2. Пользователь (создатель) подтверждает: PENDING_CLOSURE -> CLOSED
+        // 3. Пользователь отклоняет: PENDING_CLOSURE -> REOPENED
+        // 4. Админ может закрыть принудительно из любого статуса
+
+        if (newStatus == TicketStatus.PENDING_CLOSURE) {
+            // Только исполнитель может запросить закрытие
+            if (!isAssignee && !isAdmin) {
+                throw new AccessDeniedException("Только исполнитель может запросить закрытие тикета");
+            }
+            ticket.setClosureRequestedBy(user);
+            ticket.setClosureRequestedAt(Instant.now());
+        } else if (currentStatus == TicketStatus.PENDING_CLOSURE) {
+            // Из PENDING_CLOSURE: создатель подтверждает/отклоняет, админ тоже может
+            if (!isCreator && !isAdmin) {
+                throw new AccessDeniedException("Только создатель тикета может подтвердить или отклонить закрытие");
+            }
+        } else {
+            // Обычная смена статуса - только исполнитель или админ
+            if (!isAssignee && !isAdmin) {
+                throw new AccessDeniedException("У вас нет права управлять этим тикетом");
+            }
         }
+
+        // Записываем смену статуса в историю для учёта времени
+        timeTrackingService.recordStatusChange(ticket, newStatus, user, request.comment());
 
         ticket.setStatus(newStatus);
 
@@ -290,6 +391,15 @@ public class TicketService {
             ticket.setResolvedAt(Instant.now());
         } else if (newStatus == TicketStatus.CLOSED) {
             ticket.setClosedAt(Instant.now());
+            // Очищаем данные запроса на закрытие
+            ticket.setClosureRequestedBy(null);
+            ticket.setClosureRequestedAt(null);
+        } else if (newStatus == TicketStatus.REOPENED) {
+            // При переоткрытии сбрасываем время закрытия
+            ticket.setClosedAt(null);
+            ticket.setResolvedAt(null);
+            ticket.setClosureRequestedBy(null);
+            ticket.setClosureRequestedAt(null);
         }
 
         ticket.touchUpdated();
@@ -344,8 +454,17 @@ public class TicketService {
         ticket.setAssignedTo(specialist);
 
         // Если тикет новый - переводим в статус "В работе"
-        if (ticket.getStatus() == TicketStatus.NEW) {
+        TicketStatus oldStatus = ticket.getStatus();
+        if (oldStatus == TicketStatus.NEW) {
             ticket.setStatus(TicketStatus.OPEN);
+
+            // Записываем время первой реакции
+            if (ticket.getFirstResponseAt() == null) {
+                ticket.setFirstResponseAt(Instant.now());
+            }
+
+            // Записываем смену статуса в историю
+            timeTrackingService.recordStatusChange(ticket, TicketStatus.OPEN, specialist, "Тикет взят в работу");
         }
 
         ticket.touchUpdated();
@@ -530,6 +649,7 @@ public class TicketService {
             case PENDING -> ALLOWED_FROM_PENDING.contains(to);
             case ESCALATED -> ALLOWED_FROM_ESCALATED.contains(to);
             case RESOLVED -> ALLOWED_FROM_RESOLVED.contains(to);
+            case PENDING_CLOSURE -> ALLOWED_FROM_PENDING_CLOSURE.contains(to);
             case CLOSED -> ALLOWED_FROM_CLOSED.contains(to);
             case REOPENED -> ALLOWED_FROM_REOPENED.contains(to);
             case REJECTED -> ALLOWED_FROM_REJECTED.contains(to);

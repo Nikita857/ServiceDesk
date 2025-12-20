@@ -18,7 +18,6 @@ CREATE SEQUENCE IF NOT EXISTS support_lines_id_seq START WITH 1 INCREMENT BY 1;
 
 CREATE SEQUENCE IF NOT EXISTS tickets_id_seq START WITH 1 INCREMENT BY 1;
 
-CREATE SEQUENCE IF NOT EXISTS time_entries_id_seq START WITH 1 INCREMENT BY 1;
 
 CREATE SEQUENCE IF NOT EXISTS users_id_seq START WITH 1 INCREMENT BY 1;
 
@@ -298,39 +297,8 @@ CREATE TABLE tickets_aud
     CONSTRAINT tickets_aud_pkey PRIMARY KEY (rev, id)
 );
 
-CREATE TABLE time_entries
-(
-    work_date        date,
-    created_at       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    deleted_at       TIMESTAMP WITHOUT TIME ZONE,
-    duration_seconds BIGINT NOT NULL,
-    entry_date       TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    id               BIGINT NOT NULL    DEFAULT nextval('tickets_id_seq'),
-    specialist_id    BIGINT NOT NULL,
-    ticket_id        BIGINT NOT NULL,
-    updated_at       TIMESTAMP WITHOUT TIME ZONE,
-    version          BIGINT,
-    activity_type    VARCHAR(30),
-    note             VARCHAR(1000),
-    CONSTRAINT time_entries_pkey PRIMARY KEY (id)
-);
+-- time_entries tables removed - replaced by automatic ticket_status_history
 
-CREATE TABLE time_entries_aud
-(
-    rev              INTEGER NOT NULL,
-    revtype          SMALLINT,
-    work_date        date,
-    created_at       TIMESTAMP WITHOUT TIME ZONE,
-    deleted_at       TIMESTAMP WITHOUT TIME ZONE,
-    duration_seconds BIGINT,
-    entry_date       TIMESTAMP WITHOUT TIME ZONE,
-    id               BIGINT  NOT NULL,
-    ticket_id        BIGINT,
-    updated_at       TIMESTAMP WITHOUT TIME ZONE,
-    activity_type    VARCHAR(30),
-    note             VARCHAR(1000),
-    CONSTRAINT time_entries_aud_pkey PRIMARY KEY (rev, id)
-);
 
 CREATE TABLE user_roles
 (
@@ -479,11 +447,7 @@ CREATE INDEX idx_ticket_status ON tickets (status);
 
 CREATE INDEX idx_ticket_telegram_thread ON tickets (telegram_message_thread_id);
 
-CREATE INDEX idx_time_date ON time_entries (entry_date);
-
-CREATE INDEX idx_time_specialist_date ON time_entries (specialist_id, entry_date);
-
-CREATE INDEX idx_time_ticket_date ON time_entries (ticket_id, entry_date);
+-- time_entries indexes removed
 
 CREATE INDEX idx_user_domain_account ON users (domain_account);
 
@@ -566,8 +530,6 @@ ALTER TABLE wiki_articles
 
 CREATE INDEX idx_wiki_author ON wiki_articles (created_by_id);
 
-ALTER TABLE time_entries_aud
-    ADD CONSTRAINT fkefpsnlr5g0jhglyblk22cn3de FOREIGN KEY (rev) REFERENCES revinfo (rev) ON DELETE NO ACTION;
 
 ALTER TABLE friendships
     ADD CONSTRAINT fkeq5r8dvxs43wkt7or9pdno9av FOREIGN KEY (addressee_id) REFERENCES users (id) ON DELETE NO ACTION;
@@ -591,11 +553,6 @@ ALTER TABLE support_line_specialists
 ALTER TABLE tickets
     ADD CONSTRAINT fkjk9tjr46cg6r175fn1uhje2va FOREIGN KEY (category_support_id) REFERENCES categories (id) ON DELETE NO ACTION;
 
-ALTER TABLE time_entries
-    ADD CONSTRAINT fkjqnoxiyk0wkjy0lxylyau2s4y FOREIGN KEY (specialist_id) REFERENCES users (id) ON DELETE NO ACTION;
-
-ALTER TABLE time_entries
-    ADD CONSTRAINT fkk7nygqr8cn2qcyeck3ucvwn2n FOREIGN KEY (ticket_id) REFERENCES tickets (id) ON DELETE NO ACTION;
 
 ALTER TABLE direct_messages
     ADD CONSTRAINT fkkyyi2q21gbyogarwvwsr1hmik FOREIGN KEY (recipient_id) REFERENCES users (id) ON DELETE NO ACTION;

@@ -51,6 +51,18 @@ public record Notification(
                 Instant.now());
     }
 
+    public static Notification rating(Long ticketId, String ticketTitle, Integer rating) {
+        return new Notification(
+                NotificationType.RATING,
+                ticketId,
+                ticketTitle,
+                "Оценка тикета",
+                "Тикет #" + ticketId + " \"" + truncate(ticketTitle, 50) + "\" получил оценку " + rating + "/5",
+                null,
+                null,
+                Instant.now());
+    }
+
     private static String truncate(String text, int maxLength) {
         if (text == null)
             return "";

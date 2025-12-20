@@ -1,9 +1,12 @@
 package com.bm.wschat.feature.ticket.controller;
 
+import com.bm.wschat.feature.supportline.dto.response.SupportLineListResponse;
+import com.bm.wschat.feature.supportline.mapper.SupportLineMapper;
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentCreateRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.request.AssignmentRejectRequest;
 import com.bm.wschat.feature.ticket.dto.assignment.response.AssignmentResponse;
 import com.bm.wschat.feature.ticket.service.AssignmentService;
+import com.bm.wschat.feature.ticket.service.ForwardingRulesService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +32,8 @@ import java.util.List;
 public class AssignmentController {
 
         private final AssignmentService assignmentService;
+        private final ForwardingRulesService forwardingRulesService;
+        private final SupportLineMapper supportLineMapper;
 
         @PostMapping("/assignments")
         @Operation(summary = "Создать новое назначение для тикета", description = "Назначает тикет специалисту или линии поддержки.")
@@ -101,5 +106,25 @@ public class AssignmentController {
                         @PathVariable Long ticketId) {
                 return ResponseEntity.ok(ApiResponse.success(
                                 assignmentService.getCurrentAssignment(ticketId)));
+        }
+
+        /**
+         * Получить список линий поддержки, на которые текущий пользователь может
+         * переадресовать тикет.
+         * Список зависит от роли пользователя:
+         * - SYSADMIN → 1CSUPPORT
+         * - 1CSUPPORT → SYSADMIN, DEV1C
+         * - DEV1C → SYSADMIN, 1CSUPPORT, DEV1C, DEVELOPER
+         * - DEVELOPER → SYSADMIN, 1CSUPPORT, DEV1C, DEVELOPER
+         * - ADMIN → все линии
+         */
+        @GetMapping("/assignments/available-lines")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Получить доступные линии для переадресации", description = "Возвращает список линий поддержки, на которые текущий пользователь может переадресовать тикеты согласно его роли.")
+        public ResponseEntity<ApiResponse<List<SupportLineListResponse>>> getAvailableForwardingLines(
+                        @AuthenticationPrincipal User user) {
+                var lines = forwardingRulesService.getAvailableForwardingLines(user);
+                var response = supportLineMapper.toListResponses(lines);
+                return ResponseEntity.ok(ApiResponse.success(response));
         }
 }
