@@ -17,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Reports", description = "REST контроллер для создания отчетов о работе")
 public class ReportController {
 
@@ -26,7 +25,7 @@ public class ReportController {
     // =====================================================================
     // TIME REPORTS
     // =====================================================================
-
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/time/by-specialist")
     @Operation(summary = "Отчет по времени по специалистам", description = "Формирует отчет по затраченному времени, сгруппированный по специалистам за указанный период.")
     public ResponseEntity<ApiResponse<List<TimeReportBySpecialistResponse>>> getTimeReportBySpecialist(
@@ -36,6 +35,7 @@ public class ReportController {
                 reportService.getTimeReportBySpecialist(from, to)));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/time/by-line")
     @Operation(summary = "Отчет по времени по линиям поддержки", description = "Формирует отчет по затраченному времени, сгруппированный по линиям поддержки за указанный период.")
     public ResponseEntity<ApiResponse<List<TimeReportByLineResponse>>> getTimeReportByLine(
@@ -56,6 +56,7 @@ public class ReportController {
                 reportService.getTicketStatsByStatus()));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/tickets/by-user-category")
     @Operation(summary = "Статистика тикетов по пользовательским категориям", description = "Возвращает количество тикетов в каждой пользовательской категории.")
     public ResponseEntity<ApiResponse<List<TicketStatsByCategoryResponse>>> getTicketStatsByUserCategory() {
@@ -63,6 +64,7 @@ public class ReportController {
                 reportService.getTicketStatsByUserCategory()));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/tickets/by-support-category")
     @Operation(summary = "Статистика тикетов по категориям поддержки", description = "Возвращает количество тикетов в каждой категории поддержки.")
     public ResponseEntity<ApiResponse<List<TicketStatsByCategoryResponse>>> getTicketStatsBySupportCategory() {
@@ -70,6 +72,7 @@ public class ReportController {
                 reportService.getTicketStatsBySupportCategory()));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/tickets/resolution-time")
     @Operation(summary = "Статистика по времени решения тикетов", description = "Возвращает среднее, минимальное и максимальное время решения тикетов.")
     public ResponseEntity<ApiResponse<ResolutionTimeResponse>> getResolutionTimeStats() {
@@ -81,6 +84,7 @@ public class ReportController {
     // SPECIALIST WORKLOAD
     // =====================================================================
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/specialists/workload")
     @Operation(summary = "Отчет по загрузке специалистов", description = "Показывает количество открытых, закрытых и просроченных тикетов для каждого специалиста.")
     public ResponseEntity<ApiResponse<List<SpecialistWorkloadResponse>>> getSpecialistWorkload() {
