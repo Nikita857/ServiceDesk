@@ -11,7 +11,6 @@ import com.bm.wschat.feature.notification.service.NotificationService;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
-import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
