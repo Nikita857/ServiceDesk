@@ -30,7 +30,7 @@ public class RefreshToken {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     @ToString.Exclude
     private User user;
 
