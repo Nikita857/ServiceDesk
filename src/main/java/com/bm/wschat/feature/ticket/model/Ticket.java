@@ -103,11 +103,6 @@ public class Ticket {
     private List<Assignment> assignments = new ArrayList<>();
 
     @Builder.Default
-    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
-    private List<TimeEntry> timeEntries = new ArrayList<>();
-
-    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TicketPriority priority = TicketPriority.MEDIUM;
@@ -127,6 +122,19 @@ public class Ticket {
 
     @Column(name = "telegram_last_bot_message_id")
     private Long telegramLastBotMessageId;
+
+    /** Время первой реакции специалиста (взятие в работу) */
+    @Column(name = "first_response_at")
+    private Instant firstResponseAt;
+
+    /** Кто запросил закрытие тикета (для двухфакторного подтверждения) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "closure_requested_by_id")
+    private User closureRequestedBy;
+
+    /** Когда был запрошен запрос на закрытие */
+    @Column(name = "closure_requested_at")
+    private Instant closureRequestedAt;
 
     @Builder.Default
     private boolean escalated = false;

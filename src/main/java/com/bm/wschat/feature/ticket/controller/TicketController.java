@@ -5,8 +5,10 @@ import com.bm.wschat.feature.ticket.dto.ticket.request.CreateTicketRequest;
 import com.bm.wschat.feature.ticket.dto.ticket.request.UpdateTicketRequest;
 import com.bm.wschat.feature.ticket.dto.ticket.response.TicketListResponse;
 import com.bm.wschat.feature.ticket.dto.ticket.response.TicketResponse;
+import com.bm.wschat.feature.ticket.dto.ticket.response.TicketStatusHistoryResponse;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
 import com.bm.wschat.feature.ticket.service.TicketService;
+import com.bm.wschat.feature.ticket.service.TicketTimeTrackingService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,6 +25,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/tickets")
 @RequiredArgsConstructor
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 public class TicketController {
 
         private final TicketService ticketService;
+        private final TicketTimeTrackingService timeTrackingService;
 
         @PostMapping
         @PreAuthorize("(hasAnyRole('USER', 'ADMIN'))")
@@ -68,14 +73,70 @@ public class TicketController {
         }
 
         @PatchMapping("/{id}/status")
-        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
-        @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
+        @PreAuthorize("hasAnyRole('USER','SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета. Для закрытия требуется двухфакторное подтверждение: "
+                        +
+                        "специалист переводит в PENDING_CLOSURE, пользователь подтверждает в CLOSED. " +
+                        "Администратор может закрыть принудительно.")
         public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
                         @PathVariable Long id,
                         @AuthenticationPrincipal User user,
                         @Valid @RequestBody ChangeStatusRequest request) {
                 return ResponseEntity.ok(ApiResponse.success("Статус тикета обновлен",
                                 ticketService.changeStatus(id, user, request)));
+        }
+
+        /**
+         * Подтвердить закрытие тикета (для пользователя-создателя).
+         * Переводит тикет из PENDING_CLOSURE в CLOSED.
+         */
+        @PostMapping("/{id}/confirm-closure")
+        @Operation(summary = "Подтвердить закрытие тикета", description = "Пользователь подтверждает закрытие тикета, который находится в статусе PENDING_CLOSURE.")
+        public ResponseEntity<ApiResponse<TicketResponse>> confirmClosure(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal User user) {
+                var request = new ChangeStatusRequest(TicketStatus.CLOSED, "Закрытие подтверждено пользователем");
+                return ResponseEntity.ok(ApiResponse.success("Тикет закрыт",
+                                ticketService.changeStatus(id, user, request)));
+        }
+
+        /**
+         * Отклонить закрытие тикета (для пользователя-создателя).
+         * Переводит тикет из PENDING_CLOSURE в REOPENED.
+         */
+        @PostMapping("/{id}/reject-closure")
+        @Operation(summary = "Отклонить закрытие тикета", description = "Пользователь отклоняет закрытие тикета, который находится в статусе PENDING_CLOSURE. Тикет будет переоткрыт.")
+        public ResponseEntity<ApiResponse<TicketResponse>> rejectClosure(
+                        @PathVariable Long id,
+                        @RequestParam(required = false) String reason,
+                        @AuthenticationPrincipal User user) {
+                String comment = reason != null ? "Закрытие отклонено: " + reason : "Закрытие отклонено пользователем";
+                var request = new ChangeStatusRequest(TicketStatus.REOPENED, comment);
+                return ResponseEntity.ok(ApiResponse.success("Закрытие отклонено, тикет переоткрыт",
+                                ticketService.changeStatus(id, user, request)));
+        }
+
+        /**
+         * Получить историю статусов тикета для учёта времени.
+         */
+        @GetMapping("/{id}/status-history")
+        @Operation(summary = "Получить историю статусов тикета", description = "Возвращает список всех статусов тикета с временными метками для учёта времени работы.")
+        public ResponseEntity<ApiResponse<List<TicketStatusHistoryResponse>>> getStatusHistory(
+                        @PathVariable Long id) {
+                var history = timeTrackingService.getStatusHistory(id);
+                var response = history.stream()
+                                .map(h -> new TicketStatusHistoryResponse(
+                                                h.getId(),
+                                                h.getStatus().name(),
+                                                h.getEnteredAt(),
+                                                h.getExitedAt(),
+                                                h.getDurationSeconds(),
+                                                h.getDurationFormatted(),
+                                                h.getChangedBy() != null ? h.getChangedBy().getUsername() : null,
+                                                h.getChangedBy() != null ? h.getChangedBy().getFio() : null,
+                                                h.getComment()))
+                                .toList();
+                return ResponseEntity.ok(ApiResponse.success(response));
         }
 
         @PatchMapping("/{id}/assign-line")
