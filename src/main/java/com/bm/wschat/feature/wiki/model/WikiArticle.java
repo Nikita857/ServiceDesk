@@ -33,7 +33,7 @@ import java.util.Set;
         @Index(name = "idx_wiki_updated", columnList = "updated_at DESC"),
 
         // 6. По тегам (если используешь отдельную таблицу — см. ниже)
-        @Index(name = "idx_wiki_popular", columnList = "view_count DESC")
+        @Index(name = "idx_wiki_popular", columnList = "views_total DESC")
 })
 @Audited
 @SQLRestriction("deleted_at IS NULL")
@@ -68,11 +68,10 @@ public class WikiArticle {
     @Column(length = 500)
     private String excerpt;
 
-    // ← Или лучше — отдельная связь @ElementCollection
     @Builder.Default
     @ElementCollection
     @CollectionTable(name = "wiki_article_tags", joinColumns = @JoinColumn(name = "article_id"))
-    @Column(name = "tag")
+    @Column(name = "tag", nullable = false)
     @BatchSize(size = 50)
     private Set<String> tagSet = new HashSet<>();
 
