@@ -48,9 +48,11 @@ public class RefreshTokenService {
     }
 
     public RefreshToken verifyExpiration(@NotNull RefreshToken token) {
-        if (token.getExpiryDate().compareTo(Instant.now()) < 0) {
-            refreshTokenRepository.delete(token);
-            throw new ExpiredTokenException("Рефреш токен просрочен, пожалуйста войдите снова");
+        if (token.getExpiryDate().isBefore(Instant.now())) {
+            refreshTokenRepository.deleteByToken(token.getToken());
+            throw new ExpiredTokenException(
+                    "Рефреш токен просрочен, пожалуйста войдите снова"
+            );
         }
         return token;
     }
@@ -61,9 +63,9 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public int deleteByUserId(Long userId) {
+    public void deleteByUserId(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
-        return refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.deleteByUser(user);
     }
 }

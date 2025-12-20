@@ -9,6 +9,7 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
+import com.bm.wschat.feature.user.service.UserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
 import java.time.Instant;
+import java.util.Arrays;
 
 @Slf4j
 @Controller
@@ -33,6 +35,7 @@ public class MessageWebSocketController {
         private final SimpMessagingTemplate messagingTemplate;
         private final TicketRepository ticketRepository;
         private final MessageRepository messageRepository;
+        private final UserService userService;
 
         /**
          * Send message to ticket chat
@@ -66,7 +69,7 @@ public class MessageWebSocketController {
                                 .ticket(ticket)
                                 .content(request.content())
                                 .sender(user)
-                                .senderType(user.isSpecialist() ? SenderType.SYSADMIN : SenderType.USER)
+                                .senderType(SenderType.findMainRole(user.getRoles()))
                                 .internal(request.internal())
                                 .createdAt(Instant.now())
                                 .updatedAt(Instant.now())

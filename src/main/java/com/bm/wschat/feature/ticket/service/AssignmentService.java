@@ -81,6 +81,8 @@ public class AssignmentService {
         // ограничений
         // Для остальных специалистов переадресация возможна только ВВЕРХ (на более
         // высокий displayOrder)
+
+
         if (!assignedBy.isAdmin() && toOrder < fromOrder) {
             throw new IllegalArgumentException(
                     "Нельзя переназначить тикет на линию с более низким приоритетом. " +
