@@ -48,9 +48,9 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal User user) {
         refreshTokenService.deleteByUserId(user.getId());
 //      Записываем выход пользователя
-        log.debug("=================LOGOUT USER ID {}===================", user.getId());
-        if(user.getId() != null) {
-            eventPublisher.publishEvent(new UserLogoutEvent(user));
+        if(user.getId() != null && user.getUsername() != null) {
+            log.debug("Записываем событие выхода: id={}, username={}", user.getId(), user.getUsername());
+            eventPublisher.publishEvent(new UserLogoutEvent(user.getId()));
         }
         return ResponseEntity.ok(
                 ApiResponse.success("Успешный выход"));
