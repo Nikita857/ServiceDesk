@@ -29,147 +29,147 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Tickets", description = "Управление тикетами")
 public class TicketController {
 
-    private final TicketService ticketService;
+        private final TicketService ticketService;
 
-    @PostMapping
-    @PreAuthorize("(hasAnyRole('USER', 'ADMIN'))")
-    @Operation(summary = "Создать новый тикет", description = "Создает новый тикет от имени текущего аутентифицированного пользователя.")
-    public ResponseEntity<ApiResponse<TicketResponse>> createTicket(
-            @Valid @RequestBody CreateTicketRequest request,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Тикет создан",
-                        ticketService.createTicket(request, user.getId())));
-    }
+        @PostMapping
+        @PreAuthorize("(hasAnyRole('USER', 'ADMIN'))")
+        @Operation(summary = "Создать новый тикет", description = "Создает новый тикет от имени текущего аутентифицированного пользователя.")
+        public ResponseEntity<ApiResponse<TicketResponse>> createTicket(
+                        @Valid @RequestBody CreateTicketRequest request,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Тикет создан",
+                                                ticketService.createTicket(request, user.getId())));
+        }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Получить тикет по ID", description = "Возвращает полную информацию о тикете по его уникальному идентификатору (с проверкой доступа).")
-    public ResponseEntity<ApiResponse<TicketResponse>> getTicket(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketById(id, user)));
-    }
+        @GetMapping("/{id}")
+        @Operation(summary = "Получить тикет по ID", description = "Возвращает полную информацию о тикете по его уникальному идентификатору (с проверкой доступа).")
+        public ResponseEntity<ApiResponse<TicketResponse>> getTicket(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success(ticketService.getTicketById(id, user)));
+        }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Обновить информацию о тикете", description = "Обновляет основные данные существующего тикета.")
-    public ResponseEntity<ApiResponse<TicketResponse>> updateTicket(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateTicketRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Тикет обновлен",
-                ticketService.updateTicket(id, request)));
-    }
+        @PutMapping("/{id}")
+        @Operation(summary = "Обновить информацию о тикете", description = "Обновляет основные данные существующего тикета.")
+        public ResponseEntity<ApiResponse<TicketResponse>> updateTicket(
+                        @PathVariable Long id,
+                        @Valid @RequestBody UpdateTicketRequest request) {
+                return ResponseEntity.ok(ApiResponse.success("Тикет обновлен",
+                                ticketService.updateTicket(id, request)));
+        }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Удалить тикет", description = "Удаляет тикет по его уникальному идентификатору (логическое удаление).")
-    public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
-        ticketService.deleteTicket(id);
-        return ResponseEntity.ok(ApiResponse.success("Тикет удален"));
-    }
+        @DeleteMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        @Operation(summary = "Удалить тикет", description = "Удаляет тикет по его уникальному идентификатору (логическое удаление).")
+        public ResponseEntity<ApiResponse<Void>> deleteTicket(@PathVariable Long id) {
+                ticketService.deleteTicket(id);
+                return ResponseEntity.ok(ApiResponse.success("Тикет удален"));
+        }
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
-    public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user,
-            @Valid @RequestBody ChangeStatusRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Статус тикета обновлен",
-                ticketService.changeStatus(id, user, request)));
-    }
+        @PatchMapping("/{id}/status")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета на указанный.")
+        public ResponseEntity<ApiResponse<TicketResponse>> changeStatus(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal User user,
+                        @Valid @RequestBody ChangeStatusRequest request) {
+                return ResponseEntity.ok(ApiResponse.success("Статус тикета обновлен",
+                                ticketService.changeStatus(id, user, request)));
+        }
 
-    @PatchMapping("/{id}/assign-line")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Назначить тикет линии поддержки", description = "Назначает тикет указанной линии поддержки.")
-    public ResponseEntity<ApiResponse<TicketResponse>> assignToLine(
-            @PathVariable Long id,
-            @RequestParam Long lineId) {
-        return ResponseEntity.ok(ApiResponse.success("Тикет назначен на линию",
-                ticketService.assignToLine(id, lineId)));
-    }
+        @PatchMapping("/{id}/assign-line")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Назначить тикет линии поддержки", description = "Назначает тикет указанной линии поддержки.")
+        public ResponseEntity<ApiResponse<TicketResponse>> assignToLine(
+                        @PathVariable Long id,
+                        @RequestParam Long lineId) {
+                return ResponseEntity.ok(ApiResponse.success("Тикет назначен на линию",
+                                ticketService.assignToLine(id, lineId)));
+        }
 
-    @PatchMapping("/{id}/assign-specialist")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Назначить тикет специалисту", description = "Назначает тикет указанному специалисту.")
-    public ResponseEntity<ApiResponse<TicketResponse>> assignToSpecialist(
-            @PathVariable Long id,
-            @RequestParam Long specialistId) {
-        return ResponseEntity.ok(ApiResponse.success("Тикет назначен на специалиста",
-                ticketService.assignToSpecialist(id, specialistId)));
-    }
+        @PatchMapping("/{id}/assign-specialist")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Назначить тикет специалисту", description = "Назначает тикет указанному специалисту.")
+        public ResponseEntity<ApiResponse<TicketResponse>> assignToSpecialist(
+                        @PathVariable Long id,
+                        @RequestParam Long specialistId) {
+                return ResponseEntity.ok(ApiResponse.success("Тикет назначен на специалиста",
+                                ticketService.assignToSpecialist(id, specialistId)));
+        }
 
-    @PostMapping("/{id}/take")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
-    @Operation(summary = "Взять тикет в работу", description = "Специалист берёт неназначенный тикет в работу и становится его исполнителем.")
-    public ResponseEntity<ApiResponse<TicketResponse>> takeTicket(
-            @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(ApiResponse.success("Тикет взят в работу",
-                ticketService.takeTicket(id, user.getId())));
-    }
+        @PostMapping("/{id}/take")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
+        @Operation(summary = "Взять тикет в работу", description = "Специалист берёт неназначенный тикет в работу и становится его исполнителем.")
+        public ResponseEntity<ApiResponse<TicketResponse>> takeTicket(
+                        @PathVariable Long id,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success("Тикет взят в работу",
+                                ticketService.takeTicket(id, user.getId())));
+        }
 
-    @PatchMapping("/{id}/category-user")
-    @Operation(summary = "Установить пользовательскую категорию для тикета", description = "Устанавливает или изменяет пользовательскую категорию для тикета.")
-    public ResponseEntity<ApiResponse<TicketResponse>> setUserCategory(
-            @PathVariable Long id,
-            @RequestParam Long categoryId) {
-        return ResponseEntity.ok(ApiResponse.success("Пользовательская категория установлена",
-                ticketService.setUserCategory(id, categoryId)));
-    }
+        @PatchMapping("/{id}/category-user")
+        @Operation(summary = "Установить пользовательскую категорию для тикета", description = "Устанавливает или изменяет пользовательскую категорию для тикета.")
+        public ResponseEntity<ApiResponse<TicketResponse>> setUserCategory(
+                        @PathVariable Long id,
+                        @RequestParam Long categoryId) {
+                return ResponseEntity.ok(ApiResponse.success("Пользовательская категория установлена",
+                                ticketService.setUserCategory(id, categoryId)));
+        }
 
-    @PatchMapping("/{id}/category-support")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
-    @Operation(summary = "Установить категорию поддержки для тикета", description = "Устанавливает или изменяет категорию поддержки для тикета.")
-    public ResponseEntity<ApiResponse<TicketResponse>> setSupportCategory(
-            @PathVariable Long id,
-            @RequestParam Long categoryId) {
-        return ResponseEntity.ok(ApiResponse.success("Категория по мнению поддержки установлена",
-                ticketService.setSupportCategory(id, categoryId)));
-    }
+        @PatchMapping("/{id}/category-support")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER')")
+        @Operation(summary = "Установить категорию поддержки для тикета", description = "Устанавливает или изменяет категорию поддержки для тикета.")
+        public ResponseEntity<ApiResponse<TicketResponse>> setSupportCategory(
+                        @PathVariable Long id,
+                        @RequestParam Long categoryId) {
+                return ResponseEntity.ok(ApiResponse.success("Категория по мнению поддержки установлена",
+                                ticketService.setSupportCategory(id, categoryId)));
+        }
 
-    @GetMapping
-    @Operation(summary = "Получить список доступных тикетов", description = "Возвращает пагинированный список тикетов, видимых текущему пользователю в зависимости от его роли.")
-    public ResponseEntity<ApiResponse<Page<TicketListResponse>>> listTickets(
-            @AuthenticationPrincipal User user,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(
-                ticketService.getVisibleTickets(user, pageable)));
-    }
+        @GetMapping
+        @Operation(summary = "Получить список доступных тикетов", description = "Возвращает пагинированный список тикетов, видимых текущему пользователю в зависимости от его роли.")
+        public ResponseEntity<ApiResponse<Page<TicketListResponse>>> listTickets(
+                        @AuthenticationPrincipal User user,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                ticketService.getVisibleTickets(user, pageable)));
+        }
 
-    @GetMapping("/my")
-    @Operation(summary = "Получить список моих тикетов", description = "Возвращает пагинированный список тикетов, созданных текущим аутентифицированным пользователем.")
-    public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getMyTickets(
-            @AuthenticationPrincipal User user,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(
-                ticketService.getMyTickets(user.getId(), pageable)));
-    }
+        @GetMapping("/my")
+        @Operation(summary = "Получить список моих тикетов", description = "Возвращает пагинированный список тикетов, созданных текущим аутентифицированным пользователем.")
+        public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getMyTickets(
+                        @AuthenticationPrincipal User user,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                ticketService.getMyTickets(user.getId(), pageable)));
+        }
 
-    @GetMapping("/assigned")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER')")
-    @Operation(summary = "Получить список назначенных мне тикетов", description = "Возвращает пагинированный список тикетов, назначенных текущему аутентифицированному специалисту.")
-    public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getAssignedTickets(
-            @AuthenticationPrincipal User user,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(
-                ticketService.getAssignedTickets(user.getId(), pageable)));
-    }
+        @GetMapping("/assigned")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER')")
+        @Operation(summary = "Получить список назначенных мне тикетов", description = "Возвращает пагинированный список тикетов, назначенных текущему аутентифицированному специалисту.")
+        public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getAssignedTickets(
+                        @AuthenticationPrincipal User user,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                ticketService.getAssignedTickets(user.getId(), pageable)));
+        }
 
-    @GetMapping("/status/{status}")
-    @Operation(summary = "Получить список тикетов по статусу", description = "Возвращает пагинированный список тикетов с указанным статусом.")
-    public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByStatus(
-            @PathVariable TicketStatus status,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(
-                ticketService.getTicketsByStatus(status, pageable)));
-    }
+        @GetMapping("/status/{status}")
+        @Operation(summary = "Получить список тикетов по статусу", description = "Возвращает пагинированный список тикетов с указанным статусом.")
+        public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByStatus(
+                        @PathVariable TicketStatus status,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                ticketService.getTicketsByStatus(status, pageable)));
+        }
 
-    @GetMapping("/line/{lineId}")
-    @Operation(summary = "Получить список тикетов по линии поддержки", description = "Возвращает пагинированный список тикетов, относящихся к указанной линии поддержки.")
-    public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByLine(
-            @PathVariable Long lineId,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(
-                ticketService.getTicketsByLine(lineId, pageable)));
-    }
+        @GetMapping("/line/{lineId}")
+        @Operation(summary = "Получить список тикетов по линии поддержки", description = "Возвращает пагинированный список тикетов, относящихся к указанной линии поддержки.")
+        public ResponseEntity<ApiResponse<Page<TicketListResponse>>> getTicketsByLine(
+                        @PathVariable Long lineId,
+                        @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                ticketService.getTicketsByLine(lineId, pageable)));
+        }
 }

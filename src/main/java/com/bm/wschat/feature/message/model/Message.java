@@ -46,15 +46,8 @@ import java.util.Objects;
 public class Message {
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "messages_seq"
-    )
-    @SequenceGenerator(
-            name = "messages_seq",
-            sequenceName = "messages_id_seq",
-            allocationSize = 1
-    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "messages_seq")
+    @SequenceGenerator(name = "messages_seq", sequenceName = "messages_id_seq", allocationSize = 1)
     @EqualsAndHashCode.Include
     private Long id;
 
@@ -140,19 +133,52 @@ public class Message {
         return readByUserAt != null;
     }
 
+    /**
+     * Определяет SenderType на основе ролей пользователя.
+     * Используется при создании сообщения для корректного отображения типа
+     * отправителя.
+     */
+    public static SenderType determineSenderType(User user) {
+        if (user == null) {
+            return SenderType.USER;
+        }
+
+        // Получаем главную роль пользователя
+        if (!user.isSpecialist()) {
+            return SenderType.USER;
+        }
+
+        // Для специалистов определяем конкретную роль
+        var roles = user.getRoles();
+        if (roles != null && !roles.isEmpty()) {
+            return SenderType.findMainRole(roles);
+        }
+
+        return SenderType.USER;
+    }
+
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null) return false;
-        Class<?> oEffectiveClass = o instanceof HibernateProxy proxy ? proxy.getHibernateLazyInitializer().getPersistentClass() : o.getClass();
-        Class<?> thisEffectiveClass = this instanceof HibernateProxy proxy ? proxy.getHibernateLazyInitializer().getPersistentClass() : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass) return false;
+        if (this == o)
+            return true;
+        if (o == null)
+            return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass()
+                : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass()
+                : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass)
+            return false;
         Message message = (Message) o;
         return getId() != null && Objects.equals(getId(), message.getId());
     }
 
     @Override
     public final int hashCode() {
-        return this instanceof HibernateProxy proxy ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+        return this instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode()
+                : getClass().hashCode();
     }
 }

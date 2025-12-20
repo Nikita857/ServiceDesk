@@ -32,7 +32,7 @@ public class TimeEntryController {
     private final TimeEntryService timeEntryService;
 
     @PostMapping("/tickets/{ticketId}/time-entries")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Записать время по тикету", description = "Добавляет новую запись о затраченном времени для указанного тикета.")
     public ResponseEntity<ApiResponse<TimeEntryResponse>> createTimeEntry(
             @PathVariable Long ticketId,
@@ -64,7 +64,7 @@ public class TimeEntryController {
     }
 
     @GetMapping("/time-entries/my")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Получить мои записи времени", description = "Возвращает пагинированный список записей времени, созданных текущим аутентифицированным специалистом.")
     public ResponseEntity<ApiResponse<Page<TimeEntryResponse>>> getMyTimeEntries(
             @PageableDefault(size = 20, sort = "entryDate", direction = Sort.Direction.DESC) Pageable pageable,
@@ -74,7 +74,7 @@ public class TimeEntryController {
     }
 
     @PutMapping("/time-entries/{id}")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Обновить запись времени", description = "Обновляет существующую запись о затраченном времени.")
     public ResponseEntity<ApiResponse<TimeEntryResponse>> updateTimeEntry(
             @PathVariable Long id,
@@ -85,7 +85,7 @@ public class TimeEntryController {
     }
 
     @DeleteMapping("/time-entries/{id}")
-    @PreAuthorize("hasAnyRole('SYSADMIN','DEV1C','DEVELOPER','ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Удалить запись времени", description = "Удаляет указанную запись о затраченном времени.")
     public ResponseEntity<ApiResponse<Void>> deleteTimeEntry(
             @PathVariable Long id,

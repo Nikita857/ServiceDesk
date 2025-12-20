@@ -95,7 +95,7 @@ public class SupportLineController {
     }
 
     @GetMapping("/my-lines")
-    @PreAuthorize("hasAnyRole('SYSADMIN','SPECIALIST','DEVELOPER','ADMIN')")
+    @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
     @Operation(summary = "Получить линии поддержки текущего специалиста", description = "Возвращает список линий поддержки, к которым привязан текущий аутентифицированный специалист.")
     public ResponseEntity<ApiResponse<List<SupportLineListResponse>>> getMyLines(
             @AuthenticationPrincipal User user) {

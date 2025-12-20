@@ -92,7 +92,7 @@ public class UserController {
          * Доступно только специалистам и администраторам.
          */
         @GetMapping("/{userId}/status")
-        @PreAuthorize("hasAnyRole('SYSADMIN', 'DEV1C', 'DEVELOPER', 'ADMIN')")
+        @PreAuthorize("hasAnyRole('SYSADMIN', '1CSUPPORT', 'DEV1C', 'DEVELOPER', 'ADMIN')")
         @Operation(summary = "Получить статус пользователя по ID", description = "Возвращает статус активности указанного пользователя. "
                         +
                         "Доступно только специалистам для проверки перед назначением тикета.")
@@ -122,7 +122,7 @@ public class UserController {
          * Доступно только специалистам.
          */
         @PatchMapping("/status")
-        @PreAuthorize("hasAnyRole('SYSADMIN', 'DEV1C', 'DEVELOPER', 'ADMIN')")
+        @PreAuthorize("hasAnyRole('SYSADMIN', '1CSUPPORT', 'DEV1C', 'DEVELOPER', 'ADMIN')")
         @Operation(summary = "Изменить статус активности", description = "Обновляет статус активности специалиста. " +
                         "Статусы UNAVAILABLE, OFFLINE, TECHNICAL_ISSUE блокируют назначение тикетов. " +
                         "Статус BUSY позволяет назначать тикеты, но отображается предупреждение на UI.")

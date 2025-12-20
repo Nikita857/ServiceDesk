@@ -61,7 +61,7 @@ public class MessageService {
         Message message = messageMapper.toEntity(request);
         message.setTicket(ticket);
         message.setSender(sender);
-        message.setSenderType(sender.isSpecialist() ? SenderType.SYSADMIN : SenderType.USER);
+        message.setSenderType(Message.determineSenderType(sender));
 
         Message saved = messageRepository.save(message);
 
