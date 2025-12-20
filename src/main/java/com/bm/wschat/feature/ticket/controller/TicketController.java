@@ -139,6 +139,20 @@ public class TicketController {
                 return ResponseEntity.ok(ApiResponse.success(response));
         }
 
+        /**
+         * Оценить качество обслуживания.
+         * Доступно только создателю тикета после его закрытия.
+         */
+        @PostMapping("/{id}/rate")
+        @Operation(summary = "Оценить качество обслуживания", description = "Пользователь ставит оценку от 1 до 5 и оставляет отзыв после закрытия тикета.")
+        public ResponseEntity<ApiResponse<TicketResponse>> rateTicket(
+                        @PathVariable Long id,
+                        @Valid @RequestBody com.bm.wschat.feature.ticket.dto.ticket.request.RateTicketRequest request,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success("Спасибо за оценку!",
+                                ticketService.rateTicket(id, user, request.rating(), request.feedback())));
+        }
+
         @PatchMapping("/{id}/assign-line")
         @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
         @Operation(summary = "Назначить тикет линии поддержки", description = "Назначает тикет указанной линии поддержки.")

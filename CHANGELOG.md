@@ -18,6 +18,18 @@
 - ✅ Администратор может закрыть принудительно
 - ✅ Поля `closure_requested_by_id`, `closure_requested_at` в Ticket
 
+### Оценка качества обслуживания
+
+- ✅ Миграция `V9__ticket_rating.sql` — поле `rated_at`
+- ✅ `RateTicketRequest` DTO (оценка 1-5, feedback)
+- ✅ `TicketRatingResponse` DTO
+- ✅ Метод `rateTicket()` в TicketService
+- ✅ Эндпоинт `POST /api/v1/tickets/{id}/rate`
+- ✅ Тип уведомления `RATING` + factory-метод `Notification.rating()`
+- ✅ Только создатель может оценить закрытый тикет (один раз)
+- ✅ Администратор может закрыть принудительно
+- ✅ Поля `closure_requested_by_id`, `closure_requested_at` в Ticket
+
 ### Новые API-эндпоинты
 
 - ✅ `GET /api/v1/tickets/{id}/status-history` — история статусов

@@ -117,6 +117,10 @@ public class Ticket {
     private Integer rating;
     private String feedback;
 
+    /** Время когда была поставлена оценка */
+    @Column(name = "rated_at")
+    private Instant ratedAt;
+
     @Column(name = "telegram_message_thread_id")
     private Long telegramMessageThreadId;
 

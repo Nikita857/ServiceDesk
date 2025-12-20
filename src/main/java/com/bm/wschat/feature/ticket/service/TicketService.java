@@ -275,6 +275,64 @@ public class TicketService {
         broadcastTicketDeleted(id);
     }
 
+    /**
+     * Оценить качество обслуживания.
+     * Доступно только создателю тикета после его закрытия.
+     *
+     * @param ticketId ID тикета
+     * @param user     пользователь (должен быть создателем)
+     * @param rating   оценка 1-5
+     * @param feedback отзыв (опционально)
+     * @return обновлённый тикет
+     */
+    @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#ticketId")
+    public TicketResponse rateTicket(Long ticketId, User user, Integer rating, String feedback) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
+
+        // Проверка: только создатель может оценить
+        if (ticket.getCreatedBy() == null || !ticket.getCreatedBy().getId().equals(user.getId())) {
+            throw new AccessDeniedException("Только создатель тикета может оставить оценку");
+        }
+
+        // Проверка: тикет должен быть закрыт
+        if (ticket.getStatus() != TicketStatus.CLOSED) {
+            throw new IllegalStateException("Оценить можно только закрытый тикет");
+        }
+
+        // Проверка: тикет ещё не оценён
+        if (ticket.getRating() != null) {
+            throw new IllegalStateException("Тикет уже оценён");
+        }
+
+        // Валидация оценки
+        if (rating < 1 || rating > 5) {
+            throw new IllegalArgumentException("Оценка должна быть от 1 до 5");
+        }
+
+        ticket.setRating(rating);
+        ticket.setFeedback(feedback);
+        ticket.setRatedAt(Instant.now());
+        ticket.touchUpdated();
+
+        Ticket updated = ticketRepository.save(ticket);
+
+        log.info("Тикет {} оценён пользователем {} на {} баллов", ticketId, user.getUsername(), rating);
+
+        TicketResponse response = ticketMapper.toResponse(updated);
+        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+
+        // Отправляем уведомление исполнителю об оценке
+        if (ticket.getAssignedTo() != null) {
+            notificationService.notifyUser(
+                    ticket.getAssignedTo().getId(),
+                    Notification.rating(ticket.getId(), ticket.getTitle(), rating));
+        }
+
+        return response;
+    }
+
     @Transactional
     @CacheEvict(cacheNames = "ticket", key = "#id")
     public TicketResponse changeStatus(Long id, User user, ChangeStatusRequest request) {
