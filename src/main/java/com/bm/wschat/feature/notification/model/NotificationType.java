@@ -4,5 +4,6 @@ public enum NotificationType {
     MESSAGE,
     STATUS_CHANGE,
     ASSIGNMENT,
-    ESCALATION
+    ESCALATION,
+    RATING
 }

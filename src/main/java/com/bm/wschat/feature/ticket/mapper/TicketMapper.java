@@ -36,6 +36,7 @@ public interface TicketMapper {
     @Mapping(target = "deletedAt", ignore = true)
     @Mapping(target = "rating", ignore = true)
     @Mapping(target = "feedback", ignore = true)
+    @Mapping(target = "ratedAt", ignore = true)
     @Mapping(target = "telegramMessageThreadId", ignore = true)
     @Mapping(target = "telegramLastBotMessageId", ignore = true)
     @Mapping(target = "firstResponseAt", ignore = true)
