@@ -32,19 +32,11 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
     private final ObjectMapper objectMapper;
-    private final ApplicationEventPublisher eventPublisher;
     private final CustomUserDetailsService customUserDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
-        String path = request.getRequestURI();
-        if (isPublicPath(path)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
 
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -71,8 +63,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                             );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                    eventPublisher.publishEvent(new UserLoginEvent(user));
                 }
             }
 
@@ -87,16 +77,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             sendUnauthorized("Не удалось авторизоваться", response);
         }
-    }
-
-    private boolean isPublicPath(String path) {
-        return  path.startsWith("/css/") ||
-                path.startsWith("/js/") ||
-                path.startsWith("/webjars/") ||
-                path.startsWith("/images/") ||
-                path.startsWith("/static/") ||
-                path.startsWith("/login") ||
-                path.startsWith("/api/auth/");
     }
 
     private void sendUnauthorized(String message, HttpServletResponse response) throws IOException {
