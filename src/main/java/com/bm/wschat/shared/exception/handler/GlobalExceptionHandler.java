@@ -10,6 +10,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -22,9 +23,13 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
@@ -34,7 +39,32 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> noHandlerFoundException(final NoHandlerFoundException ex) {
         log.info("Маршрут не найден: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error("Маршрут не найден"));
+                .body(ApiResponse.error("Маршрут не найден: " + ex.getMessage()));
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        String message = "Некорректный формат данных в запросе";
+
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException invalidFormat) {
+            String fieldName = invalidFormat.getPath().isEmpty()
+                    ? "неизвестное поле"
+                    : invalidFormat.getPath().get(0).getPropertyName();
+
+            if (invalidFormat.getTargetType().isEnum()) {
+                String validValues = Arrays.stream(invalidFormat.getTargetType().getEnumConstants())
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", "));
+                message = String.format("Недопустимое значение для поля '%s'. Допустимые значения: %s", fieldName, validValues);
+            } else {
+                message = String.format("Некорректное значение для поля '%s'. Ожидался тип: %s",
+                        fieldName, invalidFormat.getTargetType().getSimpleName());
+            }
+        }
+
+        log.warn("Некорректный JSON: {}", message, ex);
+        return ResponseEntity.badRequest().body(
+                ApiResponse.error(message));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
@@ -156,10 +186,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    //Добавляем ID к ошибке чтобы в случае если пользователь получил ошибку найти ее в логах по ID
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex) {
-        log.error("Произошла непредвиденная ошибка", ex);
+        String errorId = UUID.randomUUID().toString();
+        log.error("Необработанная ошибка [ID: {}]", errorId, ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Произошла непредвиденная ошибка"));
+                .body(ApiResponse.error("Внутренняя ошибка сервера. ID: " + errorId));
     }
 }
