@@ -62,6 +62,7 @@ public class SecurityConfig {
                         )
                         .permitAll()
                         .anyRequest().authenticated())
+                .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
