@@ -134,6 +134,8 @@ public class Ticket {
     /** Кто запросил закрытие тикета (для двухфакторного подтверждения) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "closure_requested_by_id")
+    @NotAudited
+    @ToString.Exclude
     private User closureRequestedBy;
 
     /** Когда был запрошен запрос на закрытие */
