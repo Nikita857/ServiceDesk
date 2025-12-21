@@ -129,9 +129,9 @@ ON CONFLICT (name) DO UPDATE
 -----------------------------------------------------------
 INSERT INTO support_lines (display_order, name, description, assignment_mode, created_at, updated_at, version)
 VALUES (1, 'Первая линия (SYSADMIN)', 'Техническая поддержка и общие вопросы', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
-       (2, 'Линия 1С (DEV1C)', 'Специалисты по 1С - консультации', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
-       (3, 'Линия разработчиков (DEVELOPER)', 'Сложные, нестандартные или эскалированные обращения', 'LEAST_LOADED', NOW(), NOW(), 0),
-       (4, 'Поддержка 1С (1CSUPPORT)', 'Общая поддержка по 1С - выбирается пользователем', 'FIRST_AVAILABLE', NOW(), NOW(), 0)
+       (3, 'Линия 1С (DEV1C)', 'Специалисты по 1С - консультации', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
+       (4, 'Линия разработчиков (DEVELOPER)', 'Сложные, нестандартные или эскалированные обращения', 'LEAST_LOADED', NOW(), NOW(), 0),
+       (2, 'Поддержка 1С (1CSUPPORT)', 'Общая поддержка по 1С - выбирается пользователем', 'FIRST_AVAILABLE', NOW(), NOW(), 0)
 ON CONFLICT (name) DO UPDATE
     SET description     = EXCLUDED.description,
         assignment_mode = EXCLUDED.assignment_mode,
