@@ -30,7 +30,7 @@ public interface SupportLineMapper {
     @Mapping(target = "specialists", ignore = true) // Заполняется в сервисе с учётом статусов
     SupportLineResponse toResponse(SupportLine line);
 
-    @Mapping(target = "specialistCount", expression = "java(line.getSpecialists() != null ? line.getSpecialists().size() : 0)")
+    @Mapping(target = "specialistCount", ignore = true)
     SupportLineListResponse toListResponse(SupportLine line);
 
     List<SupportLineListResponse> toListResponses(List<SupportLine> lines);
