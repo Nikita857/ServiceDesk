@@ -33,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -52,6 +51,7 @@ public class TicketService {
     private final AssignmentMapper assignmentMapper;
     private final SimpMessagingTemplate messagingTemplate;
     private final TicketTimeTrackingService timeTrackingService;
+    private final com.bm.wschat.shared.messaging.TicketEventPublisher ticketEventPublisher;
 
     // Status workflow based on TicketStatus enum
     // Обновлено для двухфакторного закрытия: RESOLVED -> PENDING_CLOSURE -> CLOSED
@@ -129,7 +129,7 @@ public class TicketService {
                 throw new IllegalArgumentException("Специалист не в выбранной линии поддержки");
             }
 
-            ticket.setAssignedTo(specialist);
+            ticket.setAssignedToWithTracking(specialist);
             ticket.setStatus(TicketStatus.OPEN);
         }
 
@@ -140,8 +140,8 @@ public class TicketService {
 
         TicketResponse response = toResponseWithAssignment(saved);
 
-        // Отправляем новый тикет сисадминам
-        messagingTemplate.convertAndSend("/topic/ticket/new", response);
+        // Публикуем событие создания через RabbitMQ
+        ticketEventPublisher.publishCreated(saved.getId(), userId, response);
 
         return response;
     }
@@ -256,8 +256,8 @@ public class TicketService {
 
         TicketResponse response = ticketMapper.toResponse(updated);
 
-        // Отправляем обновленный тикет
-        messagingTemplate.convertAndSend("/topic/ticket/" + response.id(), response);
+        // Публикуем событие обновления через RabbitMQ
+        ticketEventPublisher.publishUpdated(updated.getId(), null, response);
 
         return response;
     }
@@ -321,7 +321,9 @@ public class TicketService {
         log.info("Тикет {} оценён пользователем {} на {} баллов", ticketId, user.getUsername(), rating);
 
         TicketResponse response = ticketMapper.toResponse(updated);
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+
+        // Публикуем событие оценки через RabbitMQ
+        ticketEventPublisher.publishRated(updated.getId(), user.getId(), response);
 
         // Отправляем уведомление исполнителю об оценке
         if (ticket.getAssignedTo() != null) {
@@ -410,7 +412,8 @@ public class TicketService {
 
         TicketResponse response = ticketMapper.toResponse(updated);
 
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+        // Публикуем событие смены статуса через RabbitMQ
+        ticketEventPublisher.publishStatusChanged(updated.getId(), user.getId(), response);
 
         return response;
     }
@@ -451,7 +454,7 @@ public class TicketService {
         }
 
         // Назначаем специалиста
-        ticket.setAssignedTo(specialist);
+        ticket.setAssignedToWithTracking(specialist);
 
         // Если тикет новый - переводим в статус "В работе"
         TicketStatus oldStatus = ticket.getStatus();
@@ -472,7 +475,8 @@ public class TicketService {
 
         TicketResponse response = ticketMapper.toResponse(updated);
 
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+        // Публикуем событие взятия в работу через RabbitMQ
+        ticketEventPublisher.publishAssigned(updated.getId(), specialist.getId(), response);
 
         return response;
     }
@@ -510,7 +514,7 @@ public class TicketService {
                 .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
         ticket.setSupportLine(line);
-        ticket.setAssignedTo(null);
+        ticket.setAssignedToWithTracking(null);
         ticket.setStatus(TicketStatus.ESCALATED);
 
         if (line.getSlaMinutes() != null && ticket.getSlaDeadline() == null) {
@@ -522,7 +526,8 @@ public class TicketService {
 
         TicketResponse response = ticketMapper.toResponse(updated);
 
-        messagingTemplate.convertAndSend("/topic/ticket/" + updated.getId(), response);
+        // Публикуем событие назначения на линию через RabbitMQ
+        ticketEventPublisher.publishAssigned(updated.getId(), null, response);
 
         return response;
     }
@@ -540,7 +545,7 @@ public class TicketService {
             throw new IllegalArgumentException("Пользователь не специалист");
         }
 
-        ticket.setAssignedTo(specialist);
+        ticket.setAssignedToWithTracking(specialist);
 
         if (ticket.getStatus() == TicketStatus.NEW) {
             ticket.setStatus(TicketStatus.OPEN);
@@ -657,22 +662,21 @@ public class TicketService {
         };
     }
 
-    // === WebSocket helpers ===
+    // === WebSocket helpers (deprecated - now using RabbitMQ) ===
 
     /**
-     * Отправить обновление тикета через WebSocket
+     * Отправить обновление тикета через RabbitMQ
      */
     private void broadcastTicketUpdate(TicketResponse ticket) {
-        messagingTemplate.convertAndSend("/topic/ticket/" + ticket.id(), ticket);
-        log.debug("WebSocket: обновление тикета {}", ticket.id());
+        ticketEventPublisher.publishUpdated(ticket.id(), null, ticket);
+        log.debug("RabbitMQ: обновление тикета {}", ticket.id());
     }
 
     /**
-     * Отправить уведомление об удалении тикета через WebSocket
+     * Отправить уведомление об удалении тикета через RabbitMQ
      */
     private void broadcastTicketDeleted(Long ticketId) {
-        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId + "/deleted",
-                (Object) Map.of("id", ticketId, "deleted", true));
-        log.debug("WebSocket: тикет {} удалён", ticketId);
+        ticketEventPublisher.publishDeleted(ticketId, null);
+        log.debug("RabbitMQ: тикет {} удалён", ticketId);
     }
 }

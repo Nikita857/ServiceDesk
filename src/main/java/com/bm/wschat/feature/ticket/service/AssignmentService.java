@@ -14,6 +14,8 @@ import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.model.UserActivityStatus;
 import com.bm.wschat.feature.user.repository.UserRepository;
 import com.bm.wschat.feature.user.service.UserActivityStatusService;
+import com.bm.wschat.shared.messaging.TicketEventPublisher;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,8 @@ public class AssignmentService {
     private final TicketMapper ticketMapper;
     private final UserActivityStatusService userActivityStatusService;
     private final ForwardingRulesService forwardingRulesService;
+    private final TicketTimeTrackingService ticketTimeTrackingService;
+    private final TicketEventPublisher ticketEventPublisher;
 
     /**
      * Создать назначение тикета
@@ -130,6 +134,9 @@ public class AssignmentService {
         // Обновить статус тикета
         if (ticket.getStatus() == TicketStatus.NEW) {
             ticket.setStatus(TicketStatus.OPEN);
+            // Фиксируем смену статуса
+            ticketTimeTrackingService.recordStatusChange(ticket, TicketStatus.OPEN, assignedBy,
+                    "Назначение создано: " + toLine.getName());
         }
         ticket.setSupportLine(toLine);
         ticketRepository.save(ticket);
@@ -138,8 +145,8 @@ public class AssignmentService {
                 ticket.getId(), toLine.getName(),
                 saved.getToUser() != null ? saved.getToUser().getUsername() : "auto");
 
-        // WebSocket: уведомляем об обновлении тикета
-        broadcastTicketUpdate(ticket);
+        // RabbitMQ: уведомляем об обновлении тикета
+        ticketEventPublisher.publishAssigned(ticket.getId(), assignedById, ticketMapper.toResponse(ticket));
 
         return assignmentMapper.toResponse(saved);
     }
@@ -173,14 +180,21 @@ public class AssignmentService {
 
         // Обновить тикет
         Ticket ticket = assignment.getTicket();
-        ticket.setAssignedTo(user);
+        TicketStatus oldStatus = ticket.getStatus();
+        ticket.setAssignedToWithTracking(user);
         ticket.setStatus(TicketStatus.OPEN);
         ticketRepository.save(ticket);
 
+        // Фиксируем смену статуса если изменился
+        if (oldStatus != TicketStatus.OPEN) {
+            ticketTimeTrackingService.recordStatusChange(ticket, TicketStatus.OPEN, user,
+                    "Назначение принято");
+        }
+
         log.info("Assignment accepted: id={}, by={}", assignmentId, user.getUsername());
 
-        // WebSocket: уведомляем об обновлении тикета
-        broadcastTicketUpdate(ticket);
+        // RabbitMQ: уведомляем об обновлении тикета
+        ticketEventPublisher.publishAssigned(ticket.getId(), userId, ticketMapper.toResponse(ticket));
 
         return assignmentMapper.toResponse(saved);
     }
@@ -217,15 +231,18 @@ public class AssignmentService {
 
         // Возвращаем исходному пользователю (если был)
         if (assignment.getFromUser() != null) {
-            ticket.setAssignedTo(assignment.getFromUser());
+            ticket.setAssignedToWithTracking(assignment.getFromUser());
         } else {
             // Если конкретного отправителя не было - убираем назначение
-            ticket.setAssignedTo(null);
+            ticket.setAssignedToWithTracking(null);
         }
 
         // Убедимся что тикет виден (статус не ESCALATED если вернулся)
         if (ticket.getStatus() == TicketStatus.ESCALATED) {
             ticket.setStatus(TicketStatus.OPEN);
+            // Фиксируем смену статуса
+            ticketTimeTrackingService.recordStatusChange(ticket, TicketStatus.OPEN, user,
+                    "Назначение отклонено: " + request.reason());
         }
 
         ticketRepository.save(ticket);
@@ -235,8 +252,8 @@ public class AssignmentService {
                 assignment.getFromLine() != null ? assignment.getFromLine().getName() : "none",
                 assignment.getFromUser() != null ? assignment.getFromUser().getUsername() : "none");
 
-        // WebSocket: уведомляем об обновлении тикета
-        broadcastTicketUpdate(ticket);
+        // RabbitMQ: уведомляем об обновлении тикета
+        ticketEventPublisher.publishUpdated(ticket.getId(), userId, ticketMapper.toResponse(ticket));
 
         return assignmentMapper.toResponse(saved);
     }
@@ -302,16 +319,5 @@ public class AssignmentService {
 
         // Админ может всё
         return user.isAdmin();
-    }
-
-    // === WebSocket helpers ===
-
-    /**
-     * Отправить обновление тикета через WebSocket
-     */
-    private void broadcastTicketUpdate(Ticket ticket) {
-        var response = ticketMapper.toResponse(ticket);
-        messagingTemplate.convertAndSend("/topic/ticket/" + ticket.getId(), response);
-        log.debug("WebSocket: обновление тикета {} (из AssignmentService)", ticket.getId());
     }
 }

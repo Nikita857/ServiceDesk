@@ -59,6 +59,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
 
+    //RabbitMQ
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
+    // AOP for event aggregation (Aspect orientation programming)
+    implementation("org.springframework.boot:spring-boot-starter-aop:4.0.0-M2")
+
     // Flyway
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-core'

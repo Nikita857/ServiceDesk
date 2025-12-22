@@ -9,7 +9,8 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.SenderType;
 import com.bm.wschat.feature.user.model.User;
-import com.bm.wschat.feature.user.service.UserService;
+import com.bm.wschat.shared.messaging.TicketEventPublisher;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class MessageWebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final TicketRepository ticketRepository;
     private final MessageRepository messageRepository;
-    private final UserService userService;
+    private final TicketEventPublisher ticketEventPublisher;
 
     /**
      * Send message to ticket chat
@@ -103,9 +104,9 @@ public class MessageWebSocketController {
                         ticket.getSupportLine().getSpecialists().size(), ticketId);
             }
         } else {
-            // Public messages - send to all subscribers
-            messagingTemplate.convertAndSend(destination, chatMessage);
-            log.debug("Message sent to {}: {}", destination, chatMessage.id());
+            // Public messages - отправляем через RabbitMQ
+            ticketEventPublisher.publishMessageSent(ticketId, user.getId(), chatMessage);
+            log.debug("Message published to RabbitMQ for ticket {}", ticketId);
         }
     }
 

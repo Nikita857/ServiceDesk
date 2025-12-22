@@ -156,6 +156,15 @@ public class Ticket {
     @Column(name = "updated_at")
     private Instant updatedAt = Instant.now();
 
+    /** Когда тикет стал без assignedTo (null если назначен) */
+    @Column(name = "unassigned_since")
+    private Instant unassignedSince;
+
+    /** Общее время без назначения в секундах */
+    @Column(name = "total_unassigned_seconds")
+    @Builder.Default
+    private Long totalUnassignedSeconds = 0L;
+
     public void addTime(long seconds) {
         if (seconds <= 0)
             return;
@@ -164,6 +173,42 @@ public class Ticket {
 
     public void touchUpdated() {
         this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Установить исполнителя с автоматическим отслеживанием времени без назначения.
+     * Используйте этот метод вместо прямого setAssignedTo.
+     */
+    public void setAssignedToWithTracking(User user) {
+        if (user != null && this.assignedTo == null) {
+            // Назначаем — закрываем период без назначения
+            if (this.unassignedSince != null) {
+                long seconds = java.time.Duration.between(this.unassignedSince, Instant.now()).getSeconds();
+                this.totalUnassignedSeconds = Optional.ofNullable(this.totalUnassignedSeconds).orElse(0L) + seconds;
+                this.unassignedSince = null;
+            }
+        } else if (user == null && this.assignedTo != null) {
+            // Снимаем назначение — начинаем период без назначения
+            this.unassignedSince = Instant.now();
+        }
+        this.assignedTo = user;
+    }
+
+    /**
+     * Получить текущее время без назначения (если тикет сейчас не назначен).
+     */
+    public long getCurrentUnassignedSeconds() {
+        if (this.unassignedSince != null) {
+            return java.time.Duration.between(this.unassignedSince, Instant.now()).getSeconds();
+        }
+        return 0;
+    }
+
+    /**
+     * Получить общее время без назначения (включая текущий период).
+     */
+    public long getTotalUnassignedSecondsWithCurrent() {
+        return Optional.ofNullable(this.totalUnassignedSeconds).orElse(0L) + getCurrentUnassignedSeconds();
     }
 
     @Override
