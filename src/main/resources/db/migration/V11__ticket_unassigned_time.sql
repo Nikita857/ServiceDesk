@@ -5,6 +5,10 @@
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS unassigned_since TIMESTAMP;
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS total_unassigned_seconds BIGINT DEFAULT 0;
 
+-- Добавляем колонки в audit таблицу (Hibernate Envers)
+ALTER TABLE tickets_aud ADD COLUMN IF NOT EXISTS unassigned_since TIMESTAMP;
+ALTER TABLE tickets_aud ADD COLUMN IF NOT EXISTS total_unassigned_seconds BIGINT;
+
 -- Индекс для поиска тикетов без назначения
 CREATE INDEX IF NOT EXISTS idx_ticket_unassigned ON tickets(unassigned_since) WHERE unassigned_since IS NOT NULL;
 
