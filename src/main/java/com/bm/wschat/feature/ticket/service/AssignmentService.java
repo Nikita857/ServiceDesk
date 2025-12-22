@@ -181,7 +181,7 @@ public class AssignmentService {
         // Обновить тикет
         Ticket ticket = assignment.getTicket();
         TicketStatus oldStatus = ticket.getStatus();
-        ticket.setAssignedTo(user);
+        ticket.setAssignedToWithTracking(user);
         ticket.setStatus(TicketStatus.OPEN);
         ticketRepository.save(ticket);
 
@@ -231,10 +231,10 @@ public class AssignmentService {
 
         // Возвращаем исходному пользователю (если был)
         if (assignment.getFromUser() != null) {
-            ticket.setAssignedTo(assignment.getFromUser());
+            ticket.setAssignedToWithTracking(assignment.getFromUser());
         } else {
             // Если конкретного отправителя не было - убираем назначение
-            ticket.setAssignedTo(null);
+            ticket.setAssignedToWithTracking(null);
         }
 
         // Убедимся что тикет виден (статус не ESCALATED если вернулся)

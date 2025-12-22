@@ -129,7 +129,7 @@ public class TicketService {
                 throw new IllegalArgumentException("Специалист не в выбранной линии поддержки");
             }
 
-            ticket.setAssignedTo(specialist);
+            ticket.setAssignedToWithTracking(specialist);
             ticket.setStatus(TicketStatus.OPEN);
         }
 
@@ -454,7 +454,7 @@ public class TicketService {
         }
 
         // Назначаем специалиста
-        ticket.setAssignedTo(specialist);
+        ticket.setAssignedToWithTracking(specialist);
 
         // Если тикет новый - переводим в статус "В работе"
         TicketStatus oldStatus = ticket.getStatus();
@@ -514,7 +514,7 @@ public class TicketService {
                 .orElseThrow(() -> new EntityNotFoundException("Линия поддержки не найдена: " + lineId));
 
         ticket.setSupportLine(line);
-        ticket.setAssignedTo(null);
+        ticket.setAssignedToWithTracking(null);
         ticket.setStatus(TicketStatus.ESCALATED);
 
         if (line.getSlaMinutes() != null && ticket.getSlaDeadline() == null) {
@@ -545,7 +545,7 @@ public class TicketService {
             throw new IllegalArgumentException("Пользователь не специалист");
         }
 
-        ticket.setAssignedTo(specialist);
+        ticket.setAssignedToWithTracking(specialist);
 
         if (ticket.getStatus() == TicketStatus.NEW) {
             ticket.setStatus(TicketStatus.OPEN);
