@@ -60,6 +60,15 @@ spring:
   autoconfigure:
     exclude: org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 
+  # =========================================================
+  # RabbitMQ
+  # =========================================================
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
 # =========================================================
 # JWT Configuration
 # =========================================================
