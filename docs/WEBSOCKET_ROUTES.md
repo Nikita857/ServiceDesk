@@ -1,14 +1,35 @@
 # WebSocket маршруты (Ticket)
 
+## Архитектура
+
+```
+┌─────────────────┐      ┌──────────────────┐      ┌─────────────┐      ┌──────────────┐
+│  TicketService  │─────▶│ TicketEventPub   │─────▶│  RabbitMQ   │─────▶│ EventConsumer│
+│ AttachmentSvc   │      │   (Producer)     │      │    Queue    │      │  (WebSocket) │
+│ MessageWSCtrl   │      └──────────────────┘      └─────────────┘      └──────┬───────┘
+└─────────────────┘                                                            │
+                                                                               ▼
+                                                                    ┌──────────────────┐
+                                                                    │  Frontend Client │
+                                                                    │   (WebSocket)    │
+                                                                    └──────────────────┘
+```
+
+---
+
 ## Каналы подписки (Subscribe)
 
-| Канал                         | Описание           | Данные                        |
-| ----------------------------- | ------------------ | ----------------------------- |
-| `/topic/ticket/new`           | Новый тикет создан | `TicketResponse`              |
-| `/topic/ticket/{id}`          | Обновление тикета  | `TicketResponse`              |
-| `/topic/ticket/{id}/messages` | Сообщения чата     | `ChatMessage`                 |
-| `/topic/ticket/{id}/typing`   | Индикатор печати   | `TypingIndicator`             |
-| `/topic/ticket/{id}/deleted`  | Тикет удалён       | `{ id: Long, deleted: true }` |
+| Канал                                | Описание                 | Данные                        |
+| ------------------------------------ | ------------------------ | ----------------------------- |
+| `/topic/ticket/new`                  | Новый тикет создан       | `TicketResponse`              |
+| `/topic/ticket/{id}`                 | Обновление тикета        | `TicketResponse`              |
+| `/topic/ticket/{id}/messages`        | Сообщения чата           | `ChatMessage`                 |
+| `/topic/ticket/{id}/typing`          | Индикатор печати         | `TypingIndicator`             |
+| `/topic/ticket/{id}/deleted`         | Тикет удалён             | `{ id: Long, deleted: true }` |
+| `/topic/ticket/{id}/attachments`     | Вложение добавлено       | `AttachmentResponse`          |
+| `/topic/ticket/{id}/internal`        | Внутренний комментарий   | `ChatMessage`                 |
+| `/topic/sla/breach`                  | SLA нарушен              | `TicketResponse`              |
+| `/topic/user/{userId}/notifications` | Уведомления пользователю | `Notification`                |
 
 ---
 
@@ -21,43 +42,77 @@
 
 ---
 
-## Методы, отправляющие события
+## RabbitMQ Events
+
+| Тип события        | Producer                               | Описание               |
+| ------------------ | -------------------------------------- | ---------------------- |
+| `CREATED`          | TicketService.createTicket             | Тикет создан           |
+| `UPDATED`          | TicketService.updateTicket             | Тикет обновлён         |
+| `STATUS_CHANGED`   | TicketService.changeStatus             | Статус изменён         |
+| `ASSIGNED`         | TicketService.takeTicket, assignToLine | Назначение             |
+| `RATED`            | TicketService.rateTicket               | Оценка поставлена      |
+| `DELETED`          | TicketService.deleteTicket             | Тикет удалён           |
+| `MESSAGE_SENT`     | MessageWebSocketController             | Новое сообщение        |
+| `ATTACHMENT_ADDED` | AttachmentService                      | Вложение добавлено     |
+| `INTERNAL_COMMENT` | (reserved)                             | Внутренний комментарий |
+| `SLA_BREACH`       | (reserved)                             | SLA нарушен            |
+
+---
+
+## Методы, публикующие события через RabbitMQ
 
 ### TicketService
 
-| Метод                | Канал                        |
-| -------------------- | ---------------------------- |
-| `createTicket`       | `/topic/ticket/new`          |
-| `updateTicket`       | `/topic/ticket/{id}`         |
-| `changeStatus`       | `/topic/ticket/{id}`         |
-| `takeTicket`         | `/topic/ticket/{id}`         |
-| `assignToLine`       | `/topic/ticket/{id}`         |
-| `assignToSpecialist` | `/topic/ticket/{id}`         |
-| `setUserCategory`    | `/topic/ticket/{id}`         |
-| `setSupportCategory` | `/topic/ticket/{id}`         |
-| `deleteTicket`       | `/topic/ticket/{id}/deleted` |
+| Метод          | Событие RabbitMQ | WebSocket канал              |
+| -------------- | ---------------- | ---------------------------- |
+| `createTicket` | CREATED          | `/topic/ticket/new`          |
+| `updateTicket` | UPDATED          | `/topic/ticket/{id}`         |
+| `changeStatus` | STATUS_CHANGED   | `/topic/ticket/{id}`         |
+| `takeTicket`   | ASSIGNED         | `/topic/ticket/{id}`         |
+| `rateTicket`   | RATED            | `/topic/ticket/{id}`         |
+| `assignToLine` | ASSIGNED         | `/topic/ticket/{id}`         |
+| `deleteTicket` | DELETED          | `/topic/ticket/{id}/deleted` |
 
-### AssignmentService
+### AttachmentService
 
-| Метод              | Канал                |
-| ------------------ | -------------------- |
-| `createAssignment` | `/topic/ticket/{id}` |
-| `acceptAssignment` | `/topic/ticket/{id}` |
-| `rejectAssignment` | `/topic/ticket/{id}` |
+| Метод             | Событие RabbitMQ | WebSocket канал                  |
+| ----------------- | ---------------- | -------------------------------- |
+| `uploadToTicket`  | ATTACHMENT_ADDED | `/topic/ticket/{id}/attachments` |
+| `uploadToMessage` | ATTACHMENT_ADDED | `/topic/ticket/{id}/attachments` |
 
 ### MessageWebSocketController
 
-| Метод                 | Канал                         |
-| --------------------- | ----------------------------- |
-| `sendMessage`         | `/topic/ticket/{id}/messages` |
-| `sendTypingIndicator` | `/topic/ticket/{id}/typing`   |
+| Метод                    | Событие RabbitMQ | WebSocket канал               |
+| ------------------------ | ---------------- | ----------------------------- |
+| `sendMessage` (public)   | MESSAGE_SENT     | `/topic/ticket/{id}/messages` |
+| `sendMessage` (internal) | — (direct WS)    | `/queue/ticket/{id}`          |
+| `sendTypingIndicator`    | — (direct WS)    | `/topic/ticket/{id}/typing`   |
+
+---
+
+## Конфигурация RabbitMQ
+
+```yaml
+# application.yml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+```
+
+| Параметр    | Значение                     |
+| ----------- | ---------------------------- |
+| Exchange    | `servicedesk.events` (Topic) |
+| Queue       | `servicedesk.ticket.events`  |
+| Routing Key | `ticket.#`                   |
 
 ---
 
 ## Пример подписки (JavaScript)
 
 ```javascript
-// STOMP клиент
 import { Client } from "@stomp/stompjs";
 
 const client = new Client({
@@ -81,16 +136,10 @@ const client = new Client({
       console.log("Новое сообщение:", chatMessage);
     });
 
-    // Подписка на индикатор печати
-    client.subscribe("/topic/ticket/123/typing", (message) => {
-      const typing = JSON.parse(message.body);
-      console.log("Печатает:", typing);
-    });
-
-    // Подписка на удаление тикета
-    client.subscribe("/topic/ticket/123/deleted", (message) => {
-      const data = JSON.parse(message.body);
-      console.log("Тикет удалён:", data.id);
+    // Подписка на вложения
+    client.subscribe("/topic/ticket/123/attachments", (message) => {
+      const attachment = JSON.parse(message.body);
+      console.log("Новое вложение:", attachment);
     });
   },
 });

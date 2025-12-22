@@ -1,9 +1,14 @@
 package com.bm.wschat.feature.user.service;
 
+import com.bm.wschat.feature.supportline.repository.SupportLineRepository;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.model.UserActivityStatus;
 import com.bm.wschat.feature.user.model.UserActivityStatusEntity;
 import com.bm.wschat.feature.user.repository.UserActivityStatusRepository;
+import com.bm.wschat.shared.messaging.TicketEvent;
+import com.bm.wschat.shared.messaging.TicketEventPublisher;
+import com.bm.wschat.shared.messaging.TicketEventType;
+
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +33,8 @@ public class UserActivityStatusService {
 
     private final UserActivityStatusRepository statusRepository;
     private final UserActivityLogService activityLogService;
+    private final TicketEventPublisher ticketEventPublisher;
+    private final SupportLineRepository supportLineRepository;
 
     /**
      * Получить текущий статус пользователя.
@@ -109,6 +116,21 @@ public class UserActivityStatusService {
 
         log.info("Статус изменён: userId={}, username={}, {} -> {}",
                 user.getId(), user.getUsername(), oldStatus, newStatus);
+
+        // Публикуем изменение статуса для каждой линии поддержки, к которой принадлежит
+        // специалист
+        var payload = java.util.Map.of(
+                "userId", user.getId(),
+                "username", user.getUsername(),
+                "fio", user.getFio() != null ? user.getFio() : user.getUsername(),
+                "status", newStatus.name(),
+                "oldStatus", oldStatus.name());
+
+        for (var line : supportLineRepository.findBySpecialist(user)) {
+            ticketEventPublisher.publish(TicketEvent.of(
+                    TicketEventType.USER_STATUS_CHANGED,
+                    line.getId(), user.getId(), payload));
+        }
 
         return newStatus;
     }

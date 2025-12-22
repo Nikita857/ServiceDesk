@@ -43,6 +43,7 @@ public class AttachmentService {
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final com.bm.wschat.shared.messaging.TicketEventPublisher ticketEventPublisher;
 
     // Опасные расширения файлов, которые блокируем
     private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
@@ -105,9 +106,10 @@ public class AttachmentService {
 
         AttachmentResponse response = attachmentMapper.toResponse(saved);
 
-        // Send WebSocket notification about new attachment
-        log.debug("Sending WebSocket notification about new attachment: {}", response);
-        messagingTemplate.convertAndSend("/topic/ticket/" + ticketId + "/attachment", response);
+        // Публикуем событие добавления вложения через RabbitMQ
+        ticketEventPublisher.publish(com.bm.wschat.shared.messaging.TicketEvent.of(
+                com.bm.wschat.shared.messaging.TicketEventType.ATTACHMENT_ADDED,
+                ticketId, userId, response));
 
         return response;
     }
@@ -140,11 +142,10 @@ public class AttachmentService {
 
         AttachmentResponse response = attachmentMapper.toResponse(saved);
 
-        // Send WebSocket notification about new attachment
-        // Use message.getTicket() since attachment to message doesn't have direct
-        // ticket link
-        messagingTemplate.convertAndSend("/topic/ticket/" + message.getTicket().getId() + "/attachment", response);
-        log.debug("Sending attachment details on /topic/ticket/{}", message.getTicket().getId());
+        // Публикуем событие добавления вложения через RabbitMQ
+        ticketEventPublisher.publish(com.bm.wschat.shared.messaging.TicketEvent.of(
+                com.bm.wschat.shared.messaging.TicketEventType.ATTACHMENT_ADDED,
+                message.getTicket().getId(), userId, response));
 
         return response;
     }
