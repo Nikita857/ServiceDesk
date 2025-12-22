@@ -3,11 +3,18 @@ package com.bm.wschat.shared.messaging;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 /**
  * Публикатор событий тикетов в RabbitMQ.
- * Централизованный сервис для отправки всех событий.
+ * 
+ * Поддерживает два режима:
+ * 1. Агрегированный (в контексте HTTP-запроса) — события накапливаются и
+ * отправляются после коммита
+ * 2. Немедленный (вне контекста запроса) — события отправляются сразу
+ * 
+ * Используется ObjectProvider для ленивой инъекции RequestScope бина.
  */
 @Slf4j
 @Service
@@ -15,11 +22,38 @@ import org.springframework.stereotype.Service;
 public class TicketEventPublisher {
 
     private final RabbitTemplate rabbitTemplate;
+    private final ObjectProvider<TicketEventAggregator> aggregatorProvider;
+    private final TicketEventFlusher eventFlusher;
 
     /**
      * Опубликовать событие тикета.
+     * В контексте HTTP-запроса — добавляет в агрегатор.
+     * Вне контекста — отправляет немедленно.
      */
     public void publish(TicketEvent event) {
+        try {
+            // Пытаемся получить агрегатор (работает только в RequestScope)
+            TicketEventAggregator aggregator = aggregatorProvider.getIfAvailable();
+            if (aggregator != null) {
+                aggregator.addEvent(event);
+                log.trace("Event added to aggregator: type={}, ticketId={}",
+                        event.type(), event.ticketId());
+            } else {
+                // Вне HTTP-запроса — отправляем сразу
+                publishImmediately(event);
+            }
+        } catch (Exception e) {
+            // Fallback — отправляем сразу если что-то пошло не так
+            log.warn("Failed to aggregate event, publishing immediately: {}", e.getMessage());
+            publishImmediately(event);
+        }
+    }
+
+    /**
+     * Отправить событие немедленно (обход агрегатора).
+     * Используется для критичных событий или вне HTTP-контекста.
+     */
+    public void publishImmediately(TicketEvent event) {
         String routingKey = "ticket." + event.type().name().toLowerCase();
 
         rabbitTemplate.convertAndSend(
@@ -27,55 +61,51 @@ public class TicketEventPublisher {
                 routingKey,
                 event);
 
-        log.debug("Published ticket event: type={}, ticketId={}, routingKey={}",
+        log.debug("Published ticket event immediately: type={}, ticketId={}, routingKey={}",
                 event.type(), event.ticketId(), routingKey);
     }
 
     /**
-     * Опубликовать событие создания тикета.
+     * Принудительно отправить все накопленные события.
+     * Вызывается в конце транзакции через AOP или вручную.
      */
+    public void flush() {
+        try {
+            TicketEventAggregator aggregator = aggregatorProvider.getIfAvailable();
+            if (aggregator != null && aggregator.hasEvents()) {
+                eventFlusher.flush(aggregator);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to flush events: {}", e.getMessage());
+        }
+    }
+
+    // === Convenience methods ===
+
     public void publishCreated(Long ticketId, Long userId, Object payload) {
         publish(TicketEvent.created(ticketId, userId, payload));
     }
 
-    /**
-     * Опубликовать событие обновления тикета.
-     */
     public void publishUpdated(Long ticketId, Long userId, Object payload) {
         publish(TicketEvent.updated(ticketId, userId, payload));
     }
 
-    /**
-     * Опубликовать событие смены статуса.
-     */
     public void publishStatusChanged(Long ticketId, Long userId, Object payload) {
         publish(TicketEvent.statusChanged(ticketId, userId, payload));
     }
 
-    /**
-     * Опубликовать событие назначения.
-     */
     public void publishAssigned(Long ticketId, Long userId, Object payload) {
         publish(TicketEvent.assigned(ticketId, userId, payload));
     }
 
-    /**
-     * Опубликовать событие нового сообщения.
-     */
     public void publishMessageSent(Long ticketId, Long userId, Object payload) {
         publish(TicketEvent.messageSent(ticketId, userId, payload));
     }
 
-    /**
-     * Опубликовать событие оценки.
-     */
     public void publishRated(Long ticketId, Long userId, Object payload) {
         publish(TicketEvent.rated(ticketId, userId, payload));
     }
 
-    /**
-     * Опубликовать событие удаления.
-     */
     public void publishDeleted(Long ticketId, Long userId) {
         publish(TicketEvent.deleted(ticketId, userId));
     }
