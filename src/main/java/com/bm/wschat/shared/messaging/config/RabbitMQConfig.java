@@ -1,4 +1,4 @@
-package com.bm.wschat.shared.messaging;
+package com.bm.wschat.shared.messaging.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -14,10 +14,21 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+
+    /**
+     * Внутренние маршруты для брокера
+     */
     public static final String EXCHANGE_NAME = "servicedesk.events";
     public static final String TICKET_QUEUE = "servicedesk.ticket.events";
     public static final String ROUTING_KEY = "ticket.#";
 
+    /**
+     * Маршруты для отправки уведомлений в Телеграмм
+     */
+    public static final String TELEGRAM_QUEUE = "servicedesk.telegram.notifications";
+    public static final String TELEGRAM_ROUTING_KEY = "ticket.#";
+
+//    ================= Internal queue ================
     @Bean
     public TopicExchange ticketExchange() {
         return new TopicExchange(EXCHANGE_NAME);
@@ -34,6 +45,21 @@ public class RabbitMQConfig {
                 .bind(ticketQueue)
                 .to(ticketExchange)
                 .with(ROUTING_KEY);
+    }
+
+//    ================ TG queue ===============
+
+    @Bean
+    public Queue telegramQueue() {
+        return QueueBuilder.durable(TELEGRAM_QUEUE).build();
+    }
+
+    @Bean
+    public Binding telegramBinding(Queue telegramQueue, TopicExchange ticketExchange) {
+        return BindingBuilder
+                .bind(telegramQueue)
+                .to(ticketExchange)
+                .with(TELEGRAM_ROUTING_KEY);
     }
 
     @Bean

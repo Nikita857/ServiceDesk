@@ -13,6 +13,7 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
+import com.bm.wschat.shared.messaging.event.TicketEvent;
 import com.bm.wschat.shared.service.FileStorageService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -107,7 +108,7 @@ public class AttachmentService {
         AttachmentResponse response = attachmentMapper.toResponse(saved);
 
         // Публикуем событие добавления вложения через RabbitMQ
-        ticketEventPublisher.publish(com.bm.wschat.shared.messaging.TicketEvent.of(
+        ticketEventPublisher.publish(TicketEvent.of(
                 com.bm.wschat.shared.messaging.TicketEventType.ATTACHMENT_ADDED,
                 ticketId, userId, response));
 
@@ -143,7 +144,7 @@ public class AttachmentService {
         AttachmentResponse response = attachmentMapper.toResponse(saved);
 
         // Публикуем событие добавления вложения через RabbitMQ
-        ticketEventPublisher.publish(com.bm.wschat.shared.messaging.TicketEvent.of(
+        ticketEventPublisher.publish(TicketEvent.of(
                 com.bm.wschat.shared.messaging.TicketEventType.ATTACHMENT_ADDED,
                 message.getTicket().getId(), userId, response));
 
