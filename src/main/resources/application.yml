@@ -79,6 +79,14 @@ jwt:
   refresh-token:
     expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
 
+# =========================================================
+# Telegram Bot (уведомления)
+# =========================================================
+telegram:
+  token: ${TELEGRAM_BOT_TOKEN:}
+  bot-username: ${TELEGRAM_BOT_USERNAME:ServiceDeskBot}
+  enabled: ${TELEGRAM_ENABLED:false}
+
 app:
   upload:
     dir: ./uploads

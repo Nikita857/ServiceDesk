@@ -1,6 +1,5 @@
 package com.bm.wschat.feature.auth.service;
 
-
 import com.bm.wschat.feature.auth.model.RefreshToken;
 import com.bm.wschat.feature.auth.repository.RefreshTokenRepository;
 import com.bm.wschat.feature.user.model.User;
@@ -33,37 +32,39 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByToken(token);
     }
 
-//    TODO проверить реализацию удаления токена, миграцию V12, и сущности User и RefreshToken
-
     @Transactional
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Пользователь с не найден: " + userId));
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        // Удаляем старый токен через orphanRemoval
+        if (user.getRefreshToken() != null) {
+            user.setRefreshToken(null);
+            userRepository.flush(); // Применить DELETE до создания нового
+        }
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
         refreshToken.setToken(UUID.randomUUID().toString());
 
-        log.info("Удаляем старый рефреш токен, перед созданием нового");
         user.setRefreshToken(refreshToken);
+        log.debug("Created refresh token for user {}", userId);
 
         return refreshTokenRepository.save(refreshToken);
     }
 
+    @Transactional
     public RefreshToken verifyExpiration(@NotNull RefreshToken token) {
         if (token.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.findByToken(token.getToken())
                     .ifPresent(refreshToken -> {
                         User user = refreshToken.getUser();
-                        // Hibernate удалит токен автоматически через orphanRemoval
-                        user.setRefreshToken(null);
-                        userRepository.save(user);
+                        user.setRefreshToken(null); // orphanRemoval удалит токен
                     });
 
             throw new ExpiredTokenException(
-                    "Рефреш токен просрочен, пожалуйста войдите снова"
-            );
+                    "Рефреш токен просрочен, пожалуйста войдите снова");
         }
         return token;
     }
@@ -75,15 +76,15 @@ public class RefreshTokenService {
                     User user = refreshToken.getUser();
                     user.setRefreshToken(null);
                     userRepository.save(user);
-                }
-        );
+                });
     }
 
     @Transactional
     public void deleteByUserId(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
-//        Передаем null так как установляена связь @OneToOne User - RefreshToken с orphanRemoval и Cascade type ALL
+        // Передаем null так как установляена связь @OneToOne User - RefreshToken с
+        // orphanRemoval и Cascade type ALL
         user.setRefreshToken(null);
         userRepository.save(user);
     }
