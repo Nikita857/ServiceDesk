@@ -26,7 +26,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,7 +48,6 @@ public class TicketService {
     private final NotificationService notificationService;
     private final AssignmentRepository assignmentRepository;
     private final AssignmentMapper assignmentMapper;
-    private final SimpMessagingTemplate messagingTemplate;
     private final TicketTimeTrackingService timeTrackingService;
     private final com.bm.wschat.shared.messaging.TicketEventPublisher ticketEventPublisher;
 
