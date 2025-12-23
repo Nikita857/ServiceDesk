@@ -1,5 +1,6 @@
 package com.bm.wschat.feature.user.model;
 
+import com.bm.wschat.feature.auth.model.RefreshToken;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -14,11 +15,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users", indexes = {
-        @Index(name = "idx_user_username", columnList = "username"),
-        @Index(name = "idx_user_telegram_id", columnList = "telegramId"),
-        @Index(name = "idx_user_domain_account", columnList = "domainAccount")
-})
+@Table(name = "users", indexes = {@Index(name = "idx_user_username", columnList = "username"), @Index(name = "idx_user_telegram_id", columnList = "telegramId"), @Index(name = "idx_user_domain_account", columnList = "domainAccount")})
 
 @Builder
 @Getter
@@ -28,8 +25,15 @@ import java.util.Set;
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
-    @SequenceGenerator(name = "user_seq", sequenceName = "users_id_seq", allocationSize = 1)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "user_seq"
+    )
+    @SequenceGenerator(
+            name = "user_seq",
+            sequenceName = "users_id_seq",
+            allocationSize = 1
+    )
     private Long id;
 
     @NotBlank
@@ -58,10 +62,22 @@ public class User implements UserDetails {
     @Column(name = "refresh_token_expiry_date")
     private Instant refreshTokenExpiryDate;
 
+    @OneToOne(
+            mappedBy = "user",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private RefreshToken refreshToken;
+
     @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), uniqueConstraints = @UniqueConstraint(columnNames = {
-            "user_id", "role" }))
+    @CollectionTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            uniqueConstraints = @UniqueConstraint(
+                    columnNames = {"user_id", "role"}
+            )
+    )
     @Column(name = "role", length = 50, nullable = false)
     private Set<String> roles = new HashSet<>();
 
@@ -90,10 +106,7 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles == null ? Set.of()
-                : roles.stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                        .toList();
+        return roles == null ? Set.of() : roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
     }
 
     @Override
@@ -127,11 +140,7 @@ public class User implements UserDetails {
     }
 
     public boolean isSpecialist() {
-        Set<String> specialistRoles = Set.of(
-                SenderType.SYSADMIN.name(),
-                SenderType.ONE_C_SUPPORT.name(),
-                SenderType.DEV1C.name(),
-                SenderType.DEVELOPER.name());
+        Set<String> specialistRoles = Set.of(SenderType.SYSADMIN.name(), SenderType.ONE_C_SUPPORT.name(), SenderType.DEV1C.name(), SenderType.DEVELOPER.name());
         return specialist || roles.stream().anyMatch(specialistRoles::contains);
     }
 

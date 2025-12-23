@@ -6,9 +6,9 @@ spring:
   # PostgreSQL DataSource
   # =========================================================
   datasource:
-    url: jdbc:postgresql://localhost:5432/servicedesk
-    username: postgres
-    password: 123456789
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/servicedesk}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:2w3a236fdj!}
     driver-class-name: org.postgresql.Driver
 
   # =========================================================
@@ -17,7 +17,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate # Проверяем соответствие схемы Entity
+      ddl-auto: validate # Проверка соответсвия схемы с Entity
     show-sql: false # Чтобы не мусорить в логах
     open-in-view: false
 
@@ -52,8 +52,8 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6739
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       timeout: 2s
       repositories:
         enabled: false
@@ -62,21 +62,22 @@ spring:
 
   # =========================================================
   # RabbitMQ
+  # Run RabbitMQ with Docker - docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
   # =========================================================
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
 # =========================================================
 # JWT Configuration
 # =========================================================
 jwt:
   secret: ${JWT_SECRET:mySecretKeyThatShouldBeChangedInProductionAndMustBeAtLeast256BitsLongForHS512}
-  expiration: 86400000
+  expiration: ${JWT_EXPIRATION:864000}
   refresh-token:
-    expiration-ms: 2592000000
+    expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
 
 app:
   upload:
