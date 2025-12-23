@@ -80,6 +80,9 @@ public class SupportLine {
     @Column(name = "display_order")
     private Integer displayOrder = 100;
 
+    @Column(name = "telegram_chat_id")
+    private Long telegramChatId;
+
     @Column(name = "deleted_at")
     private Instant deletedAt;
 

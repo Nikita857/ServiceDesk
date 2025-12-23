@@ -27,11 +27,14 @@ VALUES
 ('sysadmin3', 'Касьянов М.С.', 'sys3@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true,
  true, NOW(), NOW(), 0),
 -- 1C Support (1CSUPPORT - 4-я линия, выбирается пользователем)
-('1csupport1', 'Козлов К.К.', '1csup1@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true,
+('1csupport1', 'Козлов К.К.', '1csup1@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2',
+ true,
  true, NOW(), NOW(), 0),
-('1csupport2', 'Волков В.В.', '1csup2@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true,
+('1csupport2', 'Волков В.В.', '1csup2@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2',
+ true,
  true, NOW(), NOW(), 0),
-('1csupport3', 'Медведев М.М.', '1csup3@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true,
+('1csupport3', 'Медведев М.М.', '1csup3@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2',
+ true,
  true, NOW(), NOW(), 0),
 -- Regular users
 ('user1', 'Сарипов А.Е.', 'user1@example.com', '$2a$10$MatqCqVMwAnZd5jfxxM9mORJMfMOi9X4vYv5CLiWB0VnIV9c3khl2', true,
@@ -127,11 +130,14 @@ ON CONFLICT (name) DO UPDATE
 -- DEVELOPER  → все линии
 -- ADMIN      → любая линия
 -----------------------------------------------------------
-INSERT INTO support_lines (display_order, name, description, assignment_mode, created_at, updated_at, version)
-VALUES (1, 'Первая линия (SYSADMIN)', 'Техническая поддержка и общие вопросы', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
-       (3, 'Линия 1С (DEV1C)', 'Специалисты по 1С - консультации', 'FIRST_AVAILABLE', NOW(), NOW(), 0),
-       (4, 'Линия разработчиков (DEVELOPER)', 'Сложные, нестандартные или эскалированные обращения', 'LEAST_LOADED', NOW(), NOW(), 0),
-       (2, 'Поддержка 1С (1CSUPPORT)', 'Общая поддержка по 1С - выбирается пользователем', 'FIRST_AVAILABLE', NOW(), NOW(), 0)
+INSERT INTO support_lines (display_order, name, description, assignment_mode, created_at, updated_at, version, telegram_chat_id)
+VALUES (1, 'Первая линия (SYSADMIN)', 'Техническая поддержка и общие вопросы', 'FIRST_AVAILABLE', NOW(), NOW(), 0,
+        -1003515409218),
+       (3, 'Линия 1С (DEV1C)', 'Специалисты по 1С - консультации', 'FIRST_AVAILABLE', NOW(), NOW(), 0, null),
+       (4, 'Линия разработчиков (DEVELOPER)', 'Сложные, нестандартные или эскалированные обращения', 'LEAST_LOADED',
+        NOW(), NOW(), 0, null),
+       (2, 'Поддержка 1С (1CSUPPORT)', 'Общая поддержка по 1С - выбирается пользователем', 'FIRST_AVAILABLE', NOW(),
+        NOW(), 0, -1003426386728)
 ON CONFLICT (name) DO UPDATE
     SET description     = EXCLUDED.description,
         assignment_mode = EXCLUDED.assignment_mode,

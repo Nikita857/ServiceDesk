@@ -1,5 +1,7 @@
-package com.bm.wschat.shared.messaging;
+package com.bm.wschat.shared.messaging.consumer;
 
+import com.bm.wschat.shared.messaging.event.TicketEvent;
+import com.bm.wschat.shared.messaging.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

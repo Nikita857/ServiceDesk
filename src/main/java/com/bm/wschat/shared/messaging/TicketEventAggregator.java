@@ -1,5 +1,6 @@
 package com.bm.wschat.shared.messaging;
 
+import com.bm.wschat.shared.messaging.event.TicketEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,6 @@
-package com.bm.wschat.shared.messaging;
+package com.bm.wschat.shared.messaging.event;
+
+import com.bm.wschat.shared.messaging.TicketEventType;
 
 import java.io.Serializable;
 import java.time.Instant;

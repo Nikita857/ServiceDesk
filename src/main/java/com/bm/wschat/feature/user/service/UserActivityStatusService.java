@@ -5,7 +5,7 @@ import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.model.UserActivityStatus;
 import com.bm.wschat.feature.user.model.UserActivityStatusEntity;
 import com.bm.wschat.feature.user.repository.UserActivityStatusRepository;
-import com.bm.wschat.shared.messaging.TicketEvent;
+import com.bm.wschat.shared.messaging.event.TicketEvent;
 import com.bm.wschat.shared.messaging.TicketEventPublisher;
 import com.bm.wschat.shared.messaging.TicketEventType;
 
