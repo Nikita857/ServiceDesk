@@ -93,12 +93,9 @@ public class TicketEventAggregator {
             return true;
         }
         // Если уже есть DELETED — ничего не заменяем
-        if (existing.type() == TicketEventType.DELETED) {
-            return false;
-        }
+        return existing.type() != TicketEventType.DELETED;
 
         // Для остальных — новое событие всегда актуальнее
         // (оно содержит самый свежий payload)
-        return true;
     }
 }
