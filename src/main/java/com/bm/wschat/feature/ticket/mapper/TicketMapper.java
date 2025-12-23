@@ -13,7 +13,6 @@ import com.bm.wschat.shared.model.Category;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.time.Instant;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
@@ -46,6 +45,8 @@ public interface TicketMapper {
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "createdAt", expression = "java(Instant.now())")
     @Mapping(target = "updatedAt", expression = "java(Instant.now())")
+    @Mapping(target = "unassignedSince", ignore = true)
+    @Mapping(target = "totalUnassignedSeconds", ignore = true)
     Ticket toEntity(CreateTicketRequest request);
 
     @Mapping(target = "messageCount", expression = "java(ticket.getMessages() != null ? ticket.getMessages().size() : 0)")
