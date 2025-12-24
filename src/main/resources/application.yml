@@ -93,6 +93,14 @@ app:
       - application/msword
 
 # =========================================================
+# Telegram Configuration
+# =========================================================
+telegram:
+  token: ${TELEGRAM_BOT_TOKEN:8299441458:AAEpxUkI8h9NQxlGGCYZuewyB26GWLD5iks}
+  bot-username: ${TELEGRAM_BOT_USERNAME:SD_BM_bot}
+  enabled: ${TELEGRAM_ENABLED:true}
+
+# =========================================================
 # Logging
 # =========================================================
 #logging:
