@@ -114,4 +114,25 @@ public class AttachmentController {
                 attachmentService.delete(attachmentId, user.getId());
                 return ResponseEntity.ok(ApiResponse.success("Вложение успешно удалено"));
         }
+
+        // === Wiki Article Attachments ===
+
+        @PostMapping("/wiki/{articleId}/attachments")
+        @Operation(summary = "Загрузить вложение к статье Wiki")
+        public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToWikiArticle(
+                        @PathVariable Long articleId,
+                        @RequestParam("file") MultipartFile file,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Файл загружен",
+                                                attachmentService.uploadToWikiArticle(articleId, file, user.getId())));
+        }
+
+        @GetMapping("/wiki/{articleId}/attachments")
+        @Operation(summary = "Получить список вложений статьи Wiki")
+        public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getWikiArticleAttachments(
+                        @PathVariable Long articleId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                attachmentService.getByWikiArticleId(articleId)));
+        }
 }

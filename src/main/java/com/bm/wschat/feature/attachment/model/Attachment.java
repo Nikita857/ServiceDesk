@@ -4,6 +4,7 @@ import com.bm.wschat.feature.dm.model.DirectMessage;
 import com.bm.wschat.feature.message.model.Message;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.user.model.User;
+import com.bm.wschat.feature.wiki.model.WikiArticle;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -32,7 +33,10 @@ import java.util.Objects;
         @Index(name = "idx_attachment_uploader", columnList = "uploaded_by_id"),
 
         // 6. По типу (фильтр "только фото")
-        @Index(name = "idx_attachment_type", columnList = "type") })
+        @Index(name = "idx_attachment_type", columnList = "type"),
+
+        // 7. По статье Wiki
+        @Index(name = "idx_attachment_wiki", columnList = "wiki_article_id") })
 @SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE attachments SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND version = ?")
 @Getter
@@ -62,7 +66,12 @@ public class Attachment {
     @JoinColumn(name = "direct_message_id")
     private DirectMessage directMessage;
 
-    // ← Ограничение: только один из трёх не null
+    // Статья Wiki
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wiki_article_id")
+    private WikiArticle wikiArticle;
+
+    // ← Ограничение: только один из четырёх не null
     @Transient
     public boolean isValid() {
         int count = 0;
@@ -71,6 +80,8 @@ public class Attachment {
         if (message != null)
             count++;
         if (directMessage != null)
+            count++;
+        if (wikiArticle != null)
             count++;
         return count == 1;
     }
@@ -123,17 +134,26 @@ public class Attachment {
 
     @Override
     public final boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null) return false;
-        Class<?> oEffectiveClass = o instanceof HibernateProxy proxy ? proxy.getHibernateLazyInitializer().getPersistentClass() : o.getClass();
-        Class<?> thisEffectiveClass = this instanceof HibernateProxy proxy ? proxy.getHibernateLazyInitializer().getPersistentClass() : this.getClass();
-        if (thisEffectiveClass != oEffectiveClass) return false;
+        if (this == o)
+            return true;
+        if (o == null)
+            return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass()
+                : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass()
+                : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass)
+            return false;
         Attachment that = (Attachment) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 
     @Override
     public final int hashCode() {
-        return this instanceof HibernateProxy proxy ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+        return this instanceof HibernateProxy proxy
+                ? proxy.getHibernateLazyInitializer().getPersistentClass().hashCode()
+                : getClass().hashCode();
     }
 }

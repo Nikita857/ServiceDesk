@@ -13,6 +13,8 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
+import com.bm.wschat.feature.wiki.model.WikiArticle;
+import com.bm.wschat.feature.wiki.repository.WikiArticleRepository;
 import com.bm.wschat.shared.messaging.TicketEventPublisher;
 import com.bm.wschat.shared.messaging.event.TicketEvent;
 import com.bm.wschat.shared.service.FileStorageService;
@@ -39,6 +41,7 @@ public class AttachmentService {
     private final TicketRepository ticketRepository;
     private final MessageRepository messageRepository;
     private final DirectMessageRepository directMessageRepository;
+    private final WikiArticleRepository wikiArticleRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
@@ -279,5 +282,41 @@ public class AttachmentService {
             case "video" -> AttachmentType.VIDEO;
             default -> AttachmentType.DOCUMENT;
         };
+    }
+
+    // === Wiki Article Attachments ===
+
+    @Transactional
+    public AttachmentResponse uploadToWikiArticle(Long articleId, MultipartFile file, Long userId) {
+        validateFile(file);
+
+        WikiArticle article = wikiArticleRepository.findById(articleId)
+                .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + articleId));
+
+        User uploader = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        String storedFilename = fileStorageService.store(file);
+
+        Attachment attachment = Attachment.builder()
+                .wikiArticle(article)
+                .filename(file.getOriginalFilename())
+                .url(fileStorageService.getUrl(storedFilename))
+                .fileSize(file.getSize())
+                .mimeType(file.getContentType())
+                .type(detectType(file.getContentType()))
+                .uploadedBy(uploader)
+                .createdAt(Instant.now())
+                .build();
+
+        Attachment saved = attachmentRepository.save(attachment);
+        log.info("Вложение прикреплено к статье Wiki {}: {}", articleId, saved.getId());
+
+        return attachmentMapper.toResponse(saved);
+    }
+
+    public List<AttachmentResponse> getByWikiArticleId(Long articleId) {
+        List<Attachment> attachments = attachmentRepository.findByWikiArticleIdOrderByCreatedAtDesc(articleId);
+        return attachmentMapper.toResponses(attachments);
     }
 }
