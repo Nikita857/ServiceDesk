@@ -96,6 +96,26 @@ public class TelegramMessageTemplate {
     }
 
     /**
+     * Назначение на специалиста в чат поддержки
+     */
+    public String buildAssignmentMessageInSupportLineChat(Ticket ticket) {
+        return String.format("""
+                🎫 *Заявка #%d взята в работу*
+
+                📋 *Тема:* %s
+                👤 *Автор:* %s
+                👤 *Исполнитель:* %s
+                %s *Приоритет:* %s
+                """,
+                ticket.getId(),
+                escapeMarkdown(ticket.getTitle()),
+                getUserName(ticket.getCreatedBy()),
+                getUserName(ticket.getAssignedTo()),
+                getPriorityEmoji(ticket.getPriority()),
+                ticket.getPriority());
+    }
+
+    /**
      * Заявка взята в работу — для автора
      */
     public String buildTakenInWorkMessage(Ticket ticket) {

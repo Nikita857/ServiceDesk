@@ -74,16 +74,14 @@ public class TelegramEventConsumer {
     }
 
     /**
-     * Назначение — уведомляем исполнителя и автора
+     * Уведомление что тикет взят в ТГ чат поддержки и автору
      */
     private void handleAssigned(Ticket ticket) {
-        // Уведомить исполнителя
-        if (ticket.getAssignedTo() != null) {
-            notifyUserIfOffline(ticket.getAssignedTo(),
-                    messageTemplate.buildAssignedMessage(ticket));
+        if(ticket.getSupportLine() != null && ticket.getSupportLine().getTelegramChatId() != null) {
+            String msg = messageTemplate.buildAssignmentMessageInSupportLineChat(ticket);
+            telegramProducer.sendMessage(ticket.getSupportLine().getTelegramChatId(), msg);
+            log.debug("Sent ASSIGNED message in support line chat: ticketId={}", ticket.getId());
         }
-
-        // Уведомить автора что заявку взяли
         if (ticket.getCreatedBy() != null &&
                 !Objects.equals(ticket.getCreatedBy().getId(),
                         ticket.getAssignedTo() != null ? ticket.getAssignedTo().getId() : null)) {
