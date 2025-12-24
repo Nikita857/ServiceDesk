@@ -25,5 +25,7 @@ public enum TicketEventType {
     /** SLA нарушен */
     SLA_BREACH,
     /** Статус пользователя изменён */
-    USER_STATUS_CHANGED
+    USER_STATUS_CHANGED,
+    /** Сообщение обновлено */
+    MESSAGE_UPDATED
 }

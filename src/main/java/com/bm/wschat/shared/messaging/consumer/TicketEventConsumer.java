@@ -29,7 +29,7 @@ public class TicketEventConsumer {
         switch (event.type()) {
             case CREATED -> handleCreated(event);
             case UPDATED, STATUS_CHANGED, ASSIGNED, RATED -> handleUpdate(event);
-            case MESSAGE_SENT -> handleMessage(event);
+            case MESSAGE_SENT, MESSAGE_UPDATED -> handleMessage(event);
             case DELETED -> handleDeleted(event);
             case ATTACHMENT_ADDED -> handleAttachment(event);
             case INTERNAL_COMMENT -> handleInternalComment(event);

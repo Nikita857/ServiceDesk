@@ -53,7 +53,7 @@ public class MessageWebSocketController {
             return;
         }
 
-        User user = (User) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal)
+        User user = (User) ((UsernamePasswordAuthenticationToken) principal)
                 .getPrincipal();
 
         Ticket ticket = ticketRepository.findById(ticketId)
