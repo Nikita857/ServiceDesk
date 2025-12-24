@@ -28,8 +28,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,7 +41,6 @@ public class AttachmentService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
-    private final SimpMessagingTemplate messagingTemplate;
     private final com.bm.wschat.shared.messaging.TicketEventPublisher ticketEventPublisher;
 
     // Опасные расширения файлов, которые блокируем
