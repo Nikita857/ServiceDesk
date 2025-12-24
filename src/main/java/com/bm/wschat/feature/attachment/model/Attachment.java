@@ -102,6 +102,10 @@ public class Attachment {
     @Column(name = "mime_type", length = 100)
     private String mimeType;
 
+    // ← Имя бакета MinIO
+    @Column(name = "bucket", length = 100)
+    private String bucket;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
