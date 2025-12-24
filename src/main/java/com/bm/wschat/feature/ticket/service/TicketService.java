@@ -59,6 +59,10 @@ public class TicketService {
         return statusService.takeTicket(ticketId, userId);
     }
 
+    public TicketResponse cancelTicket(Long ticketId, User user, String reason) {
+        return statusService.cancelTicket(ticketId, user, reason);
+    }
+
     // === Assignment ===
 
     public TicketResponse assignToLine(Long id, Long lineId) {

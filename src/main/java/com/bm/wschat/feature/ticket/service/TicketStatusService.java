@@ -63,7 +63,8 @@ public class TicketStatusService {
     private static final Set<TicketStatus> ALLOWED_FROM_CLOSED = Set.of(
             TicketStatus.REOPENED);
     private static final Set<TicketStatus> ALLOWED_FROM_REOPENED = Set.of(
-            TicketStatus.OPEN);
+            TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.PENDING,
+            TicketStatus.ESCALATED, TicketStatus.CANCELLED);
     private static final Set<TicketStatus> ALLOWED_FROM_REJECTED = Set.of();
     private static final Set<TicketStatus> ALLOWED_FROM_CANCELLED = Set.of();
 
@@ -257,5 +258,52 @@ public class TicketStatusService {
                         !ticket.getAssignedTo().getId().equals(ticket.getCreatedBy().getId()))) {
             notificationService.notifyUser(ticket.getAssignedTo().getId(), notification);
         }
+    }
+
+    // === Cancel ticket ===
+
+    /**
+     * Отменить тикет (только создатель может отменить свой тикет).
+     * Переводит в статус CANCELLED и делает soft delete.
+     */
+    @Transactional
+    @CacheEvict(cacheNames = "ticket", key = "#ticketId")
+    public TicketResponse cancelTicket(Long ticketId, User user, String reason) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + ticketId));
+
+        // Только создатель может отменить
+        if (ticket.getCreatedBy() == null || !ticket.getCreatedBy().getId().equals(user.getId())) {
+            throw new AccessDeniedException("Только создатель тикета может его отменить");
+        }
+
+        TicketStatus currentStatus = ticket.getStatus();
+
+        // Нельзя отменить уже закрытый/отменённый тикет
+        if (currentStatus.isFinal()) {
+            throw new IllegalStateException("Нельзя отменить тикет в статусе " + currentStatus);
+        }
+
+        // Записываем смену статуса
+        timeTrackingService.recordStatusChange(ticket, TicketStatus.CANCELLED, user, reason);
+
+        ticket.setStatus(TicketStatus.CANCELLED);
+        ticket.setDeletedAt(Instant.now()); // soft delete
+        ticket.touchUpdated();
+        Ticket updated = ticketRepository.save(ticket);
+
+        log.info("Тикет {} отменён пользователем {}. Причина: {}", ticketId, user.getUsername(), reason);
+
+        // Уведомить назначенного специалиста если есть
+        if (ticket.getAssignedTo() != null) {
+            Notification notification = Notification.statusChange(
+                    ticketId, ticket.getTitle(), currentStatus.name(), TicketStatus.CANCELLED.name());
+            notificationService.notifyUser(ticket.getAssignedTo().getId(), notification);
+        }
+
+        TicketResponse response = ticketMapper.toResponse(updated);
+        ticketEventPublisher.publishStatusChanged(ticketId, user.getId(), response);
+
+        return response;
     }
 }
