@@ -108,10 +108,13 @@ minio:
   port: ${MINIO_PORT:9000}
   username: ${MINIO_USERNAME:admin}
   password: ${MINIO_PASSWORD:password123}
+  chat-bucket: ${MINIO_CHAT_BUCKET:chat-attachments}
+  wiki-bucket: ${MINIO_WIKI_BUCKET:wiki-attachments}
 
-#Run minio with docker: docker run -d --name minio -p 9000:9000 -p 9001:9001 \
-#-e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=password123 \
-#minio/minio server /data --console-address ":9001"
+# Run minio with docker:
+# docker run -d --name minio -p 9000:9000 -p 9001:9001 \
+# -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=password123 \
+# minio/minio server /data --console-address ":9001"
 
 # =========================================================
 # Springdoc configuration (OpenAPI)
