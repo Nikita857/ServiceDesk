@@ -13,6 +13,7 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
+import com.bm.wschat.shared.messaging.TicketEventPublisher;
 import com.bm.wschat.shared.messaging.event.TicketEvent;
 import com.bm.wschat.shared.service.FileStorageService;
 import jakarta.persistence.EntityNotFoundException;
@@ -41,7 +42,7 @@ public class AttachmentService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final AttachmentMapper attachmentMapper;
-    private final com.bm.wschat.shared.messaging.TicketEventPublisher ticketEventPublisher;
+    private final TicketEventPublisher ticketEventPublisher;
 
     // Опасные расширения файлов, которые блокируем
     private static final Set<String> BLOCKED_EXTENSIONS = Set.of(
@@ -237,15 +238,14 @@ public class AttachmentService {
     }
 
     private AttachmentType detectType(String mimeType) {
-        if (mimeType == null)
-            return AttachmentType.DOCUMENT;
-
-        if (mimeType.startsWith("image/")) {
-            return AttachmentType.PHOTO;
-        } else if (mimeType.startsWith("video/")) {
-            return AttachmentType.VIDEO;
-        } else {
+        if (mimeType == null) {
             return AttachmentType.DOCUMENT;
         }
+
+        return switch (mimeType.split("/")[0]) {
+            case "image" -> AttachmentType.PHOTO;
+            case "video" -> AttachmentType.VIDEO;
+            default -> AttachmentType.DOCUMENT;
+        };
     }
 }
