@@ -1,5 +1,6 @@
 package com.bm.wschat.feature.user.model;
 
+import com.bm.wschat.feature.auth.model.RefreshToken;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -14,11 +15,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users", indexes = {
-        @Index(name = "idx_user_username", columnList = "username"),
+@Table(name = "users", indexes = { @Index(name = "idx_user_username", columnList = "username"),
         @Index(name = "idx_user_telegram_id", columnList = "telegramId"),
-        @Index(name = "idx_user_domain_account", columnList = "domainAccount")
-})
+        @Index(name = "idx_user_domain_account", columnList = "domainAccount") })
 
 @Builder
 @Getter
@@ -55,8 +54,8 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean specialist;
 
-    @Column(name = "refresh_token_expiry_date")
-    private Instant refreshTokenExpiryDate;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RefreshToken refreshToken;
 
     @Builder.Default
     @ElementCollection(fetch = FetchType.EAGER)
@@ -91,9 +90,7 @@ public class User implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles == null ? Set.of()
-                : roles.stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                        .toList();
+                : roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
     }
 
     @Override
@@ -127,11 +124,8 @@ public class User implements UserDetails {
     }
 
     public boolean isSpecialist() {
-        Set<String> specialistRoles = Set.of(
-                SenderType.SYSADMIN.name(),
-                SenderType.ONE_C_SUPPORT.name(),
-                SenderType.DEV1C.name(),
-                SenderType.DEVELOPER.name());
+        Set<String> specialistRoles = Set.of(SenderType.SYSADMIN.name(), SenderType.ONE_C_SUPPORT.name(),
+                SenderType.DEV1C.name(), SenderType.DEVELOPER.name());
         return specialist || roles.stream().anyMatch(specialistRoles::contains);
     }
 

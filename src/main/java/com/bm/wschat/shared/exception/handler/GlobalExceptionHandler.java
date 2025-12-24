@@ -149,7 +149,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidRefreshTokenException(
             InvalidRefreshTokenException ex) {
-        log.warn("Некорректный refresh токен: {}", ex.getMessage());
+        log.warn("REFRESH TOKEN WARNING: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(ex.getMessage()));
     }

@@ -24,6 +24,7 @@ public interface SupportLineMapper {
     @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
     @Mapping(target = "updatedAt", expression = "java(java.time.Instant.now())")
     @Mapping(target = "version", ignore = true)
+    @Mapping(target = "telegramChatId", ignore = true)
     SupportLine toEntity(CreateSupportLineRequest request);
 
     @Mapping(target = "specialistCount", expression = "java(line.getSpecialists() != null ? line.getSpecialists().size() : 0)")

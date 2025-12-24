@@ -72,6 +72,17 @@ public class TicketController {
                 return ResponseEntity.ok(ApiResponse.success("Тикет удален"));
         }
 
+        @PostMapping("/{id}/cancel")
+        @Operation(summary = "Отменить тикет", description = "Пользователь отменяет свой тикет. " +
+                        "Доступно только создателю тикета. Тикет будет помечен как отменённый и удалён (soft delete).")
+        public ResponseEntity<ApiResponse<TicketResponse>> cancelTicket(
+                        @PathVariable Long id,
+                        @RequestParam(required = false) String reason,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.ok(ApiResponse.success("Тикет отменён",
+                                ticketService.cancelTicket(id, user, reason)));
+        }
+
         @PatchMapping("/{id}/status")
         @PreAuthorize("hasAnyRole('USER','SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
         @Operation(summary = "Изменить статус тикета", description = "Изменяет статус тикета. Для закрытия требуется двухфакторное подтверждение: "

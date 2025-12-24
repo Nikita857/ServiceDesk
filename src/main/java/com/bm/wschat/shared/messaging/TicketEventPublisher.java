@@ -1,10 +1,13 @@
 package com.bm.wschat.shared.messaging;
 
+import com.bm.wschat.shared.messaging.config.RabbitMQConfig;
+import com.bm.wschat.shared.messaging.event.TicketEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
 
 /**
  * Публикатор событий тикетов в RabbitMQ.
@@ -31,6 +34,12 @@ public class TicketEventPublisher {
      * Вне контекста — отправляет немедленно.
      */
     public void publish(TicketEvent event) {
+
+        if(RequestContextHolder.getRequestAttributes() == null) {
+            publishImmediately(event);
+            return;
+        }
+
         try {
             // Пытаемся получить агрегатор (работает только в RequestScope)
             TicketEventAggregator aggregator = aggregatorProvider.getIfAvailable();

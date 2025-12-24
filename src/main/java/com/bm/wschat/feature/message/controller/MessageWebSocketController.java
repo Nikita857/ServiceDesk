@@ -1,30 +1,21 @@
 package com.bm.wschat.feature.message.controller;
 
 import com.bm.wschat.feature.message.dto.request.SendMessageRequest;
-import com.bm.wschat.feature.message.dto.websocket.ChatMessage;
 import com.bm.wschat.feature.message.dto.websocket.TypingIndicator;
-import com.bm.wschat.feature.message.model.Message;
-import com.bm.wschat.feature.message.repository.MessageRepository;
-import com.bm.wschat.feature.ticket.model.Ticket;
-import com.bm.wschat.feature.ticket.repository.TicketRepository;
-import com.bm.wschat.feature.user.model.SenderType;
+import com.bm.wschat.feature.message.service.MessageService;
 import com.bm.wschat.feature.user.model.User;
-import com.bm.wschat.shared.messaging.TicketEventPublisher;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.time.Instant;
 
 @Slf4j
 @Controller
@@ -33,14 +24,13 @@ import java.time.Instant;
 public class MessageWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final TicketRepository ticketRepository;
-    private final MessageRepository messageRepository;
-    private final TicketEventPublisher ticketEventPublisher;
+    private final MessageService messageService;
 
     /**
-     * Send message to ticket chat
-     * Client sends to: /app/ticket/{ticketId}/send
-     * Broadcast to: /topic/ticket/{ticketId}/messages
+     * Отправка сообщения в чат тикета через WebSocket.
+     * Клиент отправляет на: /app/ticket/{ticketId}/send
+     * Рассылка происходит через MessageService -> RabbitMQ -> TicketEventConsumer
+     * -> /topic/ticket/{ticketId}/messages
      */
     @MessageMapping("/ticket/{ticketId}/send")
     public void sendMessage(
@@ -53,67 +43,17 @@ public class MessageWebSocketController {
             return;
         }
 
-        User user = (User) ((org.springframework.security.authentication.UsernamePasswordAuthenticationToken) principal)
+        User user = (User) ((UsernamePasswordAuthenticationToken) principal)
                 .getPrincipal();
 
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new EntityNotFoundException("Ticket not found: " + ticketId));
-
-        // Only specialists can send internal messages
-        if (request.internal() && !user.isSpecialist()) {
-            throw new AccessDeniedException("Внутренние сообщения могут отправлять только специалисты");
-        }
-
-        // Save message to database
-        Message message = Message.builder()
-                .ticket(ticket)
-                .content(request.content())
-                .sender(user)
-                .senderType(SenderType.findMainRole(user.getRoles()))
-                .internal(request.internal())
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        Message saved = messageRepository.save(message);
-
-        // Create broadcast message
-        ChatMessage chatMessage = ChatMessage.from(
-                saved.getId(),
-                ticketId,
-                saved.getContent(),
-                user.getId(),
-                user.getUsername(),
-                user.getFio(),
-                saved.getSenderType(),
-                saved.isInternal());
-
-        // Broadcast to all subscribers of this ticket
-        String destination = "/topic/ticket/" + ticketId + "/messages";
-
-        if (request.internal()) {
-            // Internal messages - send only to specialists of the ticket's support line
-            if (ticket.getSupportLine() != null) {
-                for (User specialist : ticket.getSupportLine().getSpecialists()) {
-                    messagingTemplate.convertAndSendToUser(
-                            specialist.getUsername(),
-                            "/queue/ticket/" + ticketId,
-                            chatMessage);
-                }
-                log.debug("Internal message sent to {} specialists of ticket {}",
-                        ticket.getSupportLine().getSpecialists().size(), ticketId);
-            }
-        } else {
-            // Public messages - отправляем через RabbitMQ
-            ticketEventPublisher.publishMessageSent(ticketId, user.getId(), chatMessage);
-            log.debug("Message published to RabbitMQ for ticket {}", ticketId);
-        }
+        // Делегируем логику создания сообщения и публикации событий в сервис
+        messageService.sendMessage(ticketId, request, user.getId());
     }
 
     /**
-     * Typing indicator
-     * Client sends to: /app/ticket/{ticketId}/typing
-     * Broadcast to: /topic/ticket/{ticketId}/typing
+     * Индикатор набора текста.
+     * Клиент отправляет на: /app/ticket/{ticketId}/typing
+     * Рассылка на: /topic/ticket/{ticketId}/typing
      */
     @MessageMapping("/ticket/{ticketId}/typing")
     public void sendTypingIndicator(
