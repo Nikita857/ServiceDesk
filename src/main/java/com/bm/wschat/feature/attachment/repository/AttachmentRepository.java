@@ -22,4 +22,9 @@ public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     Long countByMessageId(Long messageId);
 
     Long countByDirectMessageId(Long directMessageId);
+
+    // Wiki article
+    List<Attachment> findByWikiArticleIdOrderByCreatedAtDesc(Long wikiArticleId);
+
+    Long countByWikiArticleId(Long wikiArticleId);
 }

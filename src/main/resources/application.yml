@@ -53,7 +53,7 @@ spring:
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      port: ${REDIS_PORT:6739}
       timeout: 2s
       repositories:
         enabled: false
@@ -79,14 +79,6 @@ jwt:
   refresh-token:
     expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
 
-# =========================================================
-# Telegram Bot (уведомления)
-# =========================================================
-telegram:
-  token: ${TELEGRAM_BOT_TOKEN:}
-  bot-username: ${TELEGRAM_BOT_USERNAME:ServiceDeskBot}
-  enabled: ${TELEGRAM_ENABLED:false}
-
 app:
   upload:
     dir: ./uploads
@@ -109,12 +101,24 @@ telegram:
   enabled: ${TELEGRAM_ENABLED:true}
 
 # =========================================================
-# Logging
+# MinIO Configuration
 # =========================================================
-#logging:
-#  level:
-#    org.hibernate.SQL: debug
-#    org.flywaydb: DEBUG
+minio:
+  host: ${MINIO_HOST:localhost}
+  port: ${MINIO_PORT:9000}
+  username: ${MINIO_USERNAME:admin}
+  password: ${MINIO_PASSWORD:password123}
+  chat-bucket: ${MINIO_CHAT_BUCKET:chat-attachments}
+  wiki-bucket: ${MINIO_WIKI_BUCKET:wiki-attachments}
+
+# Run minio with docker:
+# docker run -d --name minio -p 9000:9000 -p 9001:9001 \
+# -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=password123 \
+# minio/minio server /data --console-address ":9001"
+
+# =========================================================
+# Springdoc configuration (OpenAPI)
+# =========================================================
 springdoc:
   api-docs:
     enabled: true

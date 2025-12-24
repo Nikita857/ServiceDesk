@@ -13,9 +13,13 @@ import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.feature.user.repository.UserRepository;
+import com.bm.wschat.feature.wiki.model.WikiArticle;
+import com.bm.wschat.feature.wiki.repository.WikiArticleRepository;
 import com.bm.wschat.shared.messaging.TicketEventPublisher;
+import com.bm.wschat.shared.messaging.TicketEventType;
 import com.bm.wschat.shared.messaging.event.TicketEvent;
 import com.bm.wschat.shared.service.FileStorageService;
+import com.bm.wschat.feature.message.mapper.MessageMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +33,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 
+import com.bm.wschat.feature.attachment.dto.request.ConfirmUploadRequest;
+import com.bm.wschat.feature.attachment.dto.request.UploadUrlRequest;
+import com.bm.wschat.feature.attachment.dto.response.UploadUrlResponse;
+import com.bm.wschat.shared.storage.MinioStorageService;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -39,9 +48,12 @@ public class AttachmentService {
     private final TicketRepository ticketRepository;
     private final MessageRepository messageRepository;
     private final DirectMessageRepository directMessageRepository;
+    private final WikiArticleRepository wikiArticleRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final MinioStorageService minioStorageService;
     private final AttachmentMapper attachmentMapper;
+    private final MessageMapper messageMapper;
     private final TicketEventPublisher ticketEventPublisher;
 
     // Опасные расширения файлов, которые блокируем
@@ -107,7 +119,7 @@ public class AttachmentService {
 
         // Публикуем событие добавления вложения через RabbitMQ
         ticketEventPublisher.publish(TicketEvent.of(
-                com.bm.wschat.shared.messaging.TicketEventType.ATTACHMENT_ADDED,
+                TicketEventType.ATTACHMENT_ADDED,
                 ticketId, userId, response));
 
         return response;
@@ -143,7 +155,7 @@ public class AttachmentService {
 
         // Публикуем событие добавления вложения через RabbitMQ
         ticketEventPublisher.publish(TicketEvent.of(
-                com.bm.wschat.shared.messaging.TicketEventType.ATTACHMENT_ADDED,
+                TicketEventType.ATTACHMENT_ADDED,
                 message.getTicket().getId(), userId, response));
 
         return response;
@@ -279,5 +291,178 @@ public class AttachmentService {
             case "video" -> AttachmentType.VIDEO;
             default -> AttachmentType.DOCUMENT;
         };
+    }
+
+    // === Wiki Article Attachments ===
+
+    @Transactional
+    public AttachmentResponse uploadToWikiArticle(Long articleId, MultipartFile file, Long userId) {
+        validateFile(file);
+
+        WikiArticle article = wikiArticleRepository.findById(articleId)
+                .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + articleId));
+
+        User uploader = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        String storedFilename = fileStorageService.store(file);
+
+        Attachment attachment = Attachment.builder()
+                .wikiArticle(article)
+                .filename(file.getOriginalFilename())
+                .url(fileStorageService.getUrl(storedFilename))
+                .fileSize(file.getSize())
+                .mimeType(file.getContentType())
+                .type(detectType(file.getContentType()))
+                .uploadedBy(uploader)
+                .createdAt(Instant.now())
+                .build();
+
+        Attachment saved = attachmentRepository.save(attachment);
+        log.info("Вложение прикреплено к статье Wiki {}: {}", articleId, saved.getId());
+
+        return attachmentMapper.toResponse(saved);
+    }
+
+    public List<AttachmentResponse> getByWikiArticleId(Long articleId) {
+        List<Attachment> attachments = attachmentRepository.findByWikiArticleIdOrderByCreatedAtDesc(articleId);
+        return attachmentMapper.toResponses(attachments);
+    }
+
+    // === Presigned URL Methods (MinIO Direct Upload) ===
+
+    /**
+     * Генерирует presigned URL для прямой загрузки файла в MinIO.
+     */
+    public UploadUrlResponse generateUploadUrl(UploadUrlRequest request) {
+        validateFilename(request.filename());
+
+        // Определяем бакет по типу цели
+        MinioStorageService.BucketType bucketType = request.targetType() == UploadUrlRequest.TargetType.WIKI_ARTICLE
+                ? MinioStorageService.BucketType.WIKI
+                : MinioStorageService.BucketType.CHAT;
+
+        var presigned = minioStorageService.generateUploadUrl(
+                request.filename(),
+                request.contentType(),
+                bucketType);
+
+        return new UploadUrlResponse(
+                presigned.uploadUrl(),
+                presigned.fileKey(),
+                presigned.originalFilename(),
+                presigned.bucket());
+    }
+
+    /**
+     * Подтверждает загрузку файла после успешного upload в MinIO.
+     * Создаёт запись в БД.
+     */
+    @Transactional
+    public AttachmentResponse confirmUpload(ConfirmUploadRequest request, Long userId) {
+        // Проверяем что файл действительно загружен в MinIO
+        if (!minioStorageService.fileExists(request.fileKey(), request.bucket())) {
+            throw new IllegalStateException("Файл не найден в хранилище: " + request.fileKey());
+        }
+
+        User uploader = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        Attachment attachment = Attachment.builder()
+                .filename(request.filename())
+                .url(request.fileKey()) // Храним ключ MinIO
+                .bucket(request.bucket()) // Храним имя бакета
+                .fileSize(request.fileSize())
+                .mimeType(request.contentType())
+                .type(detectType(request.contentType()))
+                .uploadedBy(uploader)
+                .createdAt(Instant.now())
+                .build();
+
+        // Привязываем к нужной сущности
+        switch (request.targetType()) {
+            case TICKET -> {
+                Ticket ticket = ticketRepository.findById(request.targetId())
+                        .orElseThrow(() -> new EntityNotFoundException("Тикет не найден: " + request.targetId()));
+                attachment.setTicket(ticket);
+            }
+            case MESSAGE -> {
+                Message message = messageRepository.findById(request.targetId())
+                        .orElseThrow(() -> new EntityNotFoundException("Сообщение не найдено: " + request.targetId()));
+                attachment.setMessage(message);
+                // Обновляем коллекцию, чтобы маппер увидел новое вложение сразу же
+                message.getAttachments().add(attachment);
+            }
+            case DIRECT_MESSAGE -> {
+                DirectMessage dm = findDirectMessageById(request.targetId());
+                attachment.setDirectMessage(dm);
+            }
+            case WIKI_ARTICLE -> {
+                WikiArticle article = wikiArticleRepository.findById(request.targetId())
+                        .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + request.targetId()));
+                attachment.setWikiArticle(article);
+            }
+        }
+
+        Attachment saved = attachmentRepository.save(attachment);
+        log.info("Подтверждена загрузка файла в {}: {} -> {}", request.bucket(), request.fileKey(), saved.getId());
+
+        AttachmentResponse response = attachmentMapper.toResponse(saved);
+
+        // Публикуем событие добавления вложения
+        publishAttachmentEvent(saved, response, userId);
+
+        return response;
+    }
+
+    private void publishAttachmentEvent(Attachment attachment, AttachmentResponse response, Long userId) {
+        if (attachment.getTicket() != null) {
+            ticketEventPublisher.publish(TicketEvent.of(
+                    TicketEventType.ATTACHMENT_ADDED,
+                    attachment.getTicket().getId(), userId, response));
+        } else if (attachment.getMessage() != null) {
+            // 1. Событие о новом вложении в тикете
+            ticketEventPublisher.publish(TicketEvent.of(
+                    TicketEventType.ATTACHMENT_ADDED,
+                    attachment.getMessage().getTicket().getId(), userId, response));
+
+            // 2. Событие об обновлении сообщения (чтобы на фронте появился файл внутри
+            // сообщения)
+            // Важно: нужно загрузить сообщение целиком, чтобы маппер подтянул вложения
+            // В рамках транзакции fetch должен сработать
+            var messageDto = messageMapper.toResponse(attachment.getMessage());
+            ticketEventPublisher.publish(TicketEvent.of(
+                    TicketEventType.MESSAGE_UPDATED,
+                    attachment.getMessage().getTicket().getId(), userId, messageDto));
+        } else if (attachment.getWikiArticle() != null) {
+            // Для вики пока нет WebSocket событий
+        }
+    }
+
+    /**
+     * Генерирует presigned URL для скачивания файла.
+     */
+    public String generateDownloadUrl(Long attachmentId) {
+        Attachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new EntityNotFoundException("Вложение не найдено: " + attachmentId));
+
+        // Используем bucket из записи, или chat-attachments по умолчанию для legacy
+        String bucket = attachment.getBucket() != null
+                ? attachment.getBucket()
+                : minioStorageService.getBucket(MinioStorageService.BucketType.CHAT);
+
+        return minioStorageService.generateDownloadUrl(attachment.getUrl(), bucket, attachment.getFilename());
+    }
+
+    private void validateFilename(String filename) {
+        if (filename == null || filename.isBlank()) {
+            throw new IllegalArgumentException("Имя файла не может быть пустым");
+        }
+        String lowerName = filename.toLowerCase();
+        for (String ext : BLOCKED_EXTENSIONS) {
+            if (lowerName.endsWith(ext)) {
+                throw new IllegalArgumentException("Запрещённый тип файла: " + ext);
+            }
+        }
     }
 }

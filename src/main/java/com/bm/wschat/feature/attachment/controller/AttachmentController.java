@@ -1,11 +1,15 @@
 package com.bm.wschat.feature.attachment.controller;
 
+import com.bm.wschat.feature.attachment.dto.request.ConfirmUploadRequest;
+import com.bm.wschat.feature.attachment.dto.request.UploadUrlRequest;
 import com.bm.wschat.feature.attachment.dto.response.AttachmentResponse;
+import com.bm.wschat.feature.attachment.dto.response.UploadUrlResponse;
 import com.bm.wschat.feature.attachment.service.AttachmentService;
 import com.bm.wschat.feature.user.model.User;
 import com.bm.wschat.shared.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -113,5 +118,54 @@ public class AttachmentController {
                         @AuthenticationPrincipal User user) {
                 attachmentService.delete(attachmentId, user.getId());
                 return ResponseEntity.ok(ApiResponse.success("Вложение успешно удалено"));
+        }
+
+        // === Wiki Article Attachments ===
+
+        @PostMapping("/wiki/{articleId}/attachments")
+        @Operation(summary = "Загрузить вложение к статье Wiki")
+        public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToWikiArticle(
+                        @PathVariable Long articleId,
+                        @RequestParam("file") MultipartFile file,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Файл загружен",
+                                                attachmentService.uploadToWikiArticle(articleId, file, user.getId())));
+        }
+
+        @GetMapping("/wiki/{articleId}/attachments")
+        @Operation(summary = "Получить список вложений статьи Wiki")
+        public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getWikiArticleAttachments(
+                        @PathVariable Long articleId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                attachmentService.getByWikiArticleId(articleId)));
+        }
+
+        // === Presigned URL Endpoints (MinIO Direct Upload) ===
+
+        @PostMapping("/attachments/upload-url")
+        @Operation(summary = "Получить presigned URL для загрузки", description = "Генерирует presigned URL для прямой загрузки файла в MinIO")
+        public ResponseEntity<ApiResponse<UploadUrlResponse>> getUploadUrl(
+                        @Valid @RequestBody UploadUrlRequest request) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                attachmentService.generateUploadUrl(request)));
+        }
+
+        @PostMapping("/attachments/confirm")
+        @Operation(summary = "Подтвердить загрузку", description = "Подтверждает успешную загрузку файла и создаёт запись в БД")
+        public ResponseEntity<ApiResponse<AttachmentResponse>> confirmUpload(
+                        @Valid @RequestBody ConfirmUploadRequest request,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Файл успешно загружен",
+                                                attachmentService.confirmUpload(request, user.getId())));
+        }
+
+        @GetMapping("/attachments/{attachmentId}/url")
+        @Operation(summary = "Получить presigned URL для скачивания", description = "Возвращает временную ссылку для скачивания файла напрямую из MinIO")
+        public ResponseEntity<ApiResponse<Map<String, String>>> getDownloadUrl(
+                        @PathVariable Long attachmentId) {
+                String url = attachmentService.generateDownloadUrl(attachmentId);
+                return ResponseEntity.ok(ApiResponse.success(Map.of("downloadUrl", url)));
         }
 }

@@ -165,6 +165,13 @@ public class TicketStatusService {
                 ticket.getAssignedTo().getId().equals(user.getId());
         boolean isAdmin = user.isAdmin();
 
+        // CANCELLED только для создателя или админа (специалисты не могут отменять)
+        if (newStatus == TicketStatus.CANCELLED) {
+            if (!isCreator && !isAdmin) {
+                throw new AccessDeniedException("Только создатель тикета или админ может отменить тикет");
+            }
+        }
+
         // Проверка прав на смену статуса
         if (newStatus == TicketStatus.PENDING_CLOSURE) {
             if (!isAssignee && !isAdmin) {
@@ -175,7 +182,7 @@ public class TicketStatusService {
                 throw new AccessDeniedException("Только создатель может подтвердить/отклонить закрытие");
             }
         } else {
-            if (!isAssignee && !isAdmin) {
+            if (!isAssignee && !isAdmin && !isCreator) {
                 throw new AccessDeniedException("У вас нет права управлять этим тикетом");
             }
         }
