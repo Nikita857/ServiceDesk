@@ -212,6 +212,38 @@ public class AttachmentService {
         return fileStorageService.load(filename);
     }
 
+    /**
+     * Скачать файл по ID вложения.
+     * Возвращает ресурс и оригинальное имя файла.
+     */
+    public DownloadResult downloadById(Long attachmentId) {
+        Attachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new EntityNotFoundException("Вложение не найдено: " + attachmentId));
+
+        // Извлекаем имя файла из URL (последняя часть пути)
+        String storedFilename = extractFilenameFromUrl(attachment.getUrl());
+        Resource resource = fileStorageService.load(storedFilename);
+
+        return new DownloadResult(
+                resource,
+                attachment.getFilename(), // оригинальное имя
+                attachment.getMimeType());
+    }
+
+    private String extractFilenameFromUrl(String url) {
+        if (url == null)
+            return null;
+        // URL может быть "/uploads/uuid.ext" или "http://...../uuid.ext"
+        int lastSlash = url.lastIndexOf('/');
+        return lastSlash >= 0 ? url.substring(lastSlash + 1) : url;
+    }
+
+    /**
+     * Результат скачивания: ресурс + метаданные для headers.
+     */
+    public record DownloadResult(Resource resource, String originalFilename, String mimeType) {
+    }
+
     @Transactional
     public void delete(Long attachmentId, Long userId) {
         Attachment attachment = attachmentRepository.findById(attachmentId)
