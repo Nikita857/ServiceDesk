@@ -24,74 +24,94 @@ import java.util.List;
 @Tag(name = "Attachments", description = "Управление вложениями")
 public class AttachmentController {
 
-    private final AttachmentService attachmentService;
+        private final AttachmentService attachmentService;
 
-    @PostMapping("/tickets/{ticketId}/attachments")
-    @Operation(summary = "Загрузить вложение к тикету")
-    public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToTicket(
-            @PathVariable Long ticketId,
-            @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("File uploaded successfully",
-                        attachmentService.uploadToTicket(ticketId, file, user.getId())));
-    }
+        @PostMapping("/tickets/{ticketId}/attachments")
+        @Operation(summary = "Загрузить вложение к тикету")
+        public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToTicket(
+                        @PathVariable Long ticketId,
+                        @RequestParam("file") MultipartFile file,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("File uploaded successfully",
+                                                attachmentService.uploadToTicket(ticketId, file, user.getId())));
+        }
 
-    @PostMapping("/messages/{messageId}/attachments")
-    @Operation(summary = "Загрузить вложение к сообщению")
-    public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToMessage(
-            @PathVariable Long messageId,
-            @RequestParam("file") MultipartFile file,
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("File uploaded successfully",
-                        attachmentService.uploadToMessage(messageId, file, user.getId())));
-    }
+        @PostMapping("/messages/{messageId}/attachments")
+        @Operation(summary = "Загрузить вложение к сообщению")
+        public ResponseEntity<ApiResponse<AttachmentResponse>> uploadToMessage(
+                        @PathVariable Long messageId,
+                        @RequestParam("file") MultipartFile file,
+                        @AuthenticationPrincipal User user) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("File uploaded successfully",
+                                                attachmentService.uploadToMessage(messageId, file, user.getId())));
+        }
 
-    @GetMapping("/tickets/{ticketId}/attachments")
-    @Operation(summary = "Получить список вложений тикета")
-    public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getTicketAttachments(
-            @PathVariable Long ticketId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                attachmentService.getByTicketId(ticketId)));
-    }
+        @GetMapping("/tickets/{ticketId}/attachments")
+        @Operation(summary = "Получить список вложений тикета")
+        public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getTicketAttachments(
+                        @PathVariable Long ticketId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                attachmentService.getByTicketId(ticketId)));
+        }
 
-    @GetMapping("/messages/{messageId}/attachments")
-    @Operation(summary = "Получить список вложений сообщения")
-    public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getMessageAttachments(
-            @PathVariable Long messageId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                attachmentService.getByMessageId(messageId)));
-    }
+        @GetMapping("/messages/{messageId}/attachments")
+        @Operation(summary = "Получить список вложений сообщения")
+        public ResponseEntity<ApiResponse<List<AttachmentResponse>>> getMessageAttachments(
+                        @PathVariable Long messageId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                attachmentService.getByMessageId(messageId)));
+        }
 
-    @GetMapping("/attachments/{attachmentId}")
-    @Operation(summary = "Получить информацию о вложении")
-    public ResponseEntity<ApiResponse<AttachmentResponse>> getAttachment(
-            @PathVariable Long attachmentId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                attachmentService.getById(attachmentId)));
-    }
+        @GetMapping("/attachments/{attachmentId}")
+        @Operation(summary = "Получить информацию о вложении")
+        public ResponseEntity<ApiResponse<AttachmentResponse>> getAttachment(
+                        @PathVariable Long attachmentId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                attachmentService.getById(attachmentId)));
+        }
 
-    @GetMapping("/attachments/file/{filename}")
-    @Operation(summary = "Скачать файл вложения")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
-        Resource resource = attachmentService.download(filename);
+        @GetMapping("/attachments/file/{filename}")
+        @Operation(summary = "Скачать файл по имени (legacy)", description = "Устаревший эндпоинт. Используйте /attachments/{id}/download")
+        public ResponseEntity<Resource> downloadFile(@PathVariable String filename) {
+                Resource resource = attachmentService.download(filename);
 
-        String contentType = "application/octet-stream";
+                String contentType = "application/octet-stream";
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "\"")
-                .body(resource);
-    }
+                return ResponseEntity.ok()
+                                .contentType(MediaType.parseMediaType(contentType))
+                                .header(HttpHeaders.CONTENT_DISPOSITION,
+                                                "attachment; filename=\"" + filename + "\"")
+                                .body(resource);
+        }
 
-    @DeleteMapping("/attachments/{attachmentId}")
-    @Operation(summary = "Удалить вложение")
-    public ResponseEntity<ApiResponse<Void>> deleteAttachment(
-            @PathVariable Long attachmentId,
-            @AuthenticationPrincipal User user) {
-        attachmentService.delete(attachmentId, user.getId());
-        return ResponseEntity.ok(ApiResponse.success("Вложение успешно удалено"));
-    }
+        @GetMapping("/attachments/{attachmentId}/download")
+        @Operation(summary = "Скачать файл вложения", description = "Скачивает файл с оригинальным именем")
+        public ResponseEntity<Resource> downloadById(@PathVariable Long attachmentId) {
+                AttachmentService.DownloadResult result = attachmentService.downloadById(attachmentId);
+
+                String mimeType = result.mimeType() != null ? result.mimeType() : "application/octet-stream";
+                String filename = result.originalFilename() != null ? result.originalFilename() : "file";
+
+                // RFC 5987 для поддержки UTF-8 имён файлов
+                String encodedFilename = java.net.URLEncoder.encode(filename, java.nio.charset.StandardCharsets.UTF_8)
+                                .replace("+", "%20");
+
+                return ResponseEntity.ok()
+                                .contentType(MediaType.parseMediaType(mimeType))
+                                .header(HttpHeaders.CONTENT_DISPOSITION,
+                                                "attachment; filename=\"" + filename + "\"; filename*=UTF-8''"
+                                                                + encodedFilename)
+                                .body(result.resource());
+        }
+
+        @DeleteMapping("/attachments/{attachmentId}")
+        @Operation(summary = "Удалить вложение")
+        public ResponseEntity<ApiResponse<Void>> deleteAttachment(
+                        @PathVariable Long attachmentId,
+                        @AuthenticationPrincipal User user) {
+                attachmentService.delete(attachmentId, user.getId());
+                return ResponseEntity.ok(ApiResponse.success("Вложение успешно удалено"));
+        }
 }
