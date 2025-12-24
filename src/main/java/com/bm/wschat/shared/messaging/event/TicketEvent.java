@@ -47,4 +47,12 @@ public record TicketEvent(
     public static TicketEvent deleted(Long ticketId, Long userId) {
         return of(TicketEventType.DELETED, ticketId, userId, null);
     }
+
+    public static TicketEvent internalComment(Long ticketId, Long userId, Object payload) {
+        return of(TicketEventType.INTERNAL_COMMENT, ticketId, userId, payload);
+    }
+
+    public static TicketEvent messageUpdated(Long ticketId, Long userId, Object payload) {
+        return of(TicketEventType.MESSAGE_UPDATED, ticketId, userId, payload);
+    }
 }

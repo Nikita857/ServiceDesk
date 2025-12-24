@@ -25,6 +25,9 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.bm.wschat.shared.messaging.TicketEventPublisher;
+import com.bm.wschat.shared.messaging.event.TicketEvent;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,8 +38,16 @@ public class MessageService {
     private final UserRepository userRepository;
     private final MessageMapper messageMapper;
     private final NotificationService notificationService;
-    private final com.bm.wschat.shared.messaging.TicketEventPublisher ticketEventPublisher;
+    private final TicketEventPublisher ticketEventPublisher;
 
+    /**
+     * Отправка нового сообщения в тикет.
+     *
+     * @param ticketId ID тикета
+     * @param request  Запрос на отправку
+     * @param userId   ID отправителя
+     * @return Ответ с данными созданного сообщения
+     */
     @Transactional
     public MessageResponse sendMessage(Long ticketId, SendMessageRequest request, Long userId) {
         Ticket ticket = ticketRepository.findById(ticketId)
@@ -45,17 +56,17 @@ public class MessageService {
         User sender = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
-        // Моя реализация блокировки отправки отправки сообщений в тикете
-
+        // Проверка статуса тикета
         if (ticket.getStatus().equals(TicketStatus.CLOSED)) {
             throw new AccessDeniedException("Тикет закрыт. Отправка сообщений запрещена");
         }
 
-        // Internal messages only for specialists
+        // Проверка прав на отправку внутренних сообщений
         if (request.internal() && !sender.isSpecialist()) {
             throw new AccessDeniedException("Только специалисты могут отправлять внутренние сообщения");
         }
 
+        // Создание сущности сообщения
         Message message = messageMapper.toEntity(request);
         message.setTicket(ticket);
         message.setSender(sender);
@@ -63,12 +74,17 @@ public class MessageService {
 
         Message saved = messageRepository.save(message);
 
-        // Отправка уведомлений участникам тикета (кроме отправителя)
+        // Отправка уведомлений (email/push) участникам
         sendMessageNotifications(ticket, sender, saved.getContent());
 
-        // Публикуем событие в RabbitMQ (рассылка WebSocket через консьюмер)
+        // Публикация события для WebSocket
         MessageResponse response = messageMapper.toResponse(saved);
-        ticketEventPublisher.publishMessageSent(ticketId, sender.getId(), response);
+
+        if (saved.isInternal()) {
+            ticketEventPublisher.publish(TicketEvent.internalComment(ticketId, sender.getId(), response));
+        } else {
+            ticketEventPublisher.publishMessageSent(ticketId, sender.getId(), response);
+        }
 
         return response;
     }
