@@ -91,4 +91,34 @@ public class ReportController {
         return ResponseEntity.ok(ApiResponse.success(
                 reportService.getSpecialistWorkload()));
     }
+
+    // =====================================================================
+    // TICKET HISTORY
+    // =====================================================================
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/tickets/all")
+    @Operation(summary = "Все тикеты включая удалённые", description = "Возвращает список всех тикетов (включая soft-deleted) для отчётов.")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<TicketReportListResponse>>> getAllTickets(
+            org.springframework.data.domain.Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(
+                reportService.getAllTicketsIncludingDeleted(pageable)));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/tickets/{id}/history")
+    @Operation(summary = "История тикета", description = "Возвращает полную историю тикета с временной статистикой по каждому статусу.")
+    public ResponseEntity<ApiResponse<TicketHistoryResponse>> getTicketHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(
+                reportService.getTicketHistory(id)));
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/tickets/{id}/assignments")
+    @Operation(summary = "История переназначений", description = "Возвращает историю переназначений тикета с ФИО от кого и на кого.")
+    public ResponseEntity<ApiResponse<List<ReassignmentHistoryResponse>>> getReassignmentHistory(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(
+                reportService.getReassignmentHistory(id)));
+    }
 }
