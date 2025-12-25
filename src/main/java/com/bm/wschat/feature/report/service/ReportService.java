@@ -4,6 +4,7 @@ import com.bm.wschat.feature.report.dto.response.*;
 import com.bm.wschat.feature.supportline.model.SupportLine;
 import com.bm.wschat.feature.supportline.repository.SupportLineRepository;
 import com.bm.wschat.feature.ticket.model.TicketStatus;
+import com.bm.wschat.feature.ticket.repository.AssignmentRepository;
 import com.bm.wschat.feature.ticket.repository.TicketRepository;
 import com.bm.wschat.feature.ticket.repository.TicketStatusHistoryRepository;
 import com.bm.wschat.feature.user.model.User;
@@ -30,6 +31,7 @@ public class ReportService {
         private final TicketRepository ticketRepository;
         private final UserRepository userRepository;
         private final SupportLineRepository supportLineRepository;
+        private final AssignmentRepository assignmentRepository;
 
         // =====================================================================
         // TIME REPORTS (теперь на основе TicketStatusHistory)
@@ -216,5 +218,133 @@ public class ReportService {
                                 })
                                 .sorted(Comparator.comparing(SpecialistWorkloadResponse::activeTickets).reversed())
                                 .toList();
+        }
+
+        // =====================================================================
+        // TICKET HISTORY REPORTS
+        // =====================================================================
+
+        /**
+         * Получить все тикеты включая soft-deleted.
+         */
+        public org.springframework.data.domain.Page<TicketReportListResponse> getAllTicketsIncludingDeleted(
+                        org.springframework.data.domain.Pageable pageable) {
+                return ticketRepository.findAllIncludingDeleted(pageable)
+                                .map(this::mapToReportListResponse);
+        }
+
+        /**
+         * Получить полную историю тикета.
+         */
+        public TicketHistoryResponse getTicketHistory(Long ticketId) {
+                var ticket = ticketRepository.findByIdIncludingDeleted(ticketId)
+                                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
+                                                "Тикет не найден: " + ticketId));
+
+                var statusHistory = statusHistoryRepository.findByTicketIdOrderByEnteredAtAsc(ticketId);
+
+                // Маппинг истории статусов
+                List<TicketStatusHistoryResponse> historyResponses = statusHistory.stream()
+                                .map(h -> new TicketStatusHistoryResponse(
+                                                h.getStatus().name(),
+                                                h.getEnteredAt(),
+                                                h.getExitedAt(),
+                                                h.getDurationSeconds(),
+                                                h.getDurationFormatted(),
+                                                h.getChangedBy() != null ? h.getChangedBy().getFio() : null,
+                                                h.getComment()))
+                                .toList();
+
+                // Время первой реакции (NEW -> OPEN)
+                Long firstResponseTime = calculateFirstResponseTime(statusHistory);
+
+                // Время без специалиста
+                Long totalUnassigned = ticket.getTotalUnassignedSecondsWithCurrent();
+
+                // Общее активное время
+                Long totalActive = statusHistoryRepository.getTotalActiveTime(ticketId);
+
+                return new TicketHistoryResponse(
+                                ticket.getId(),
+                                ticket.getTitle(),
+                                ticket.getStatus().name(),
+                                ticket.getPriority().name(),
+                                ticket.getCreatedBy() != null ? ticket.getCreatedBy().getFio() : null,
+                                ticket.getAssignedTo() != null ? ticket.getAssignedTo().getFio() : null,
+                                ticket.getSupportLine() != null ? ticket.getSupportLine().getName() : null,
+                                ticket.getCreatedAt(),
+                                ticket.getResolvedAt(),
+                                ticket.getClosedAt(),
+                                ticket.getDeletedAt(),
+                                firstResponseTime,
+                                totalUnassigned,
+                                totalActive,
+                                historyResponses);
+        }
+
+        /**
+         * Получить историю переназначений тикета.
+         */
+        public List<ReassignmentHistoryResponse> getReassignmentHistory(Long ticketId) {
+                // Проверяем существование тикета
+                ticketRepository.findByIdIncludingDeleted(ticketId)
+                                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
+                                                "Тикет не найден: " + ticketId));
+
+                return assignmentRepository.findByTicketIdOrderByCreatedAtDesc(ticketId).stream()
+                                .map(a -> new ReassignmentHistoryResponse(
+                                                a.getId(),
+                                                a.getFromUser() != null ? a.getFromUser().getFio() : null,
+                                                a.getToUser() != null ? a.getToUser().getFio() : null,
+                                                a.getFromLine() != null ? a.getFromLine().getName() : null,
+                                                a.getToLine() != null ? a.getToLine().getName() : null,
+                                                a.getMode().name(),
+                                                a.getStatus().name(),
+                                                a.getNote(),
+                                                a.getCreatedAt(),
+                                                a.getAcceptedAt(),
+                                                a.getRejectedAt(),
+                                                a.getRejectedReason()))
+                                .toList();
+        }
+
+        // === Private helpers ===
+
+        private TicketReportListResponse mapToReportListResponse(
+                        com.bm.wschat.feature.ticket.model.Ticket ticket) {
+                return new TicketReportListResponse(
+                                ticket.getId(),
+                                ticket.getTitle(),
+                                ticket.getStatus().name(),
+                                ticket.getPriority().name(),
+                                ticket.getCreatedBy() != null ? ticket.getCreatedBy().getFio() : null,
+                                ticket.getAssignedTo() != null ? ticket.getAssignedTo().getFio() : null,
+                                ticket.getSupportLine() != null ? ticket.getSupportLine().getName() : null,
+                                ticket.getCreatedAt(),
+                                ticket.getClosedAt(),
+                                ticket.getDeletedAt(),
+                                ticket.getDeletedAt() != null);
+        }
+
+        private Long calculateFirstResponseTime(
+                        List<com.bm.wschat.feature.ticket.model.TicketStatusHistory> history) {
+                if (history.isEmpty()) {
+                        return null;
+                }
+                java.time.Instant createdAt = null;
+                java.time.Instant firstOpenAt = null;
+                for (var h : history) {
+                        if (h.getStatus() == TicketStatus.NEW && createdAt == null) {
+                                createdAt = h.getEnteredAt();
+                        }
+                        if (h.getStatus() == TicketStatus.OPEN && firstOpenAt == null) {
+                                firstOpenAt = h.getEnteredAt();
+                                break;
+                        }
+                }
+                if (createdAt != null && firstOpenAt != null) {
+                        return java.time.Duration.between(createdAt, firstOpenAt).getSeconds();
+                }
+                return null;
         }
 }

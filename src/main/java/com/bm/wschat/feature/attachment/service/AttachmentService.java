@@ -23,6 +23,8 @@ import com.bm.wschat.feature.message.mapper.MessageMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -63,6 +65,10 @@ public class AttachmentService {
 
     // Максимальный размер файла: 10MB
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    // Максимальное количество вложений к статье Wiki (из application.yml)
+    @Value("${app.upload.wiki-max-attachments:10}")
+    private int maxWikiAttachments;
 
     /**
      * Валидация файла перед загрузкой
@@ -305,6 +311,9 @@ public class AttachmentService {
         User uploader = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
+        // Проверка лимита вложений
+        validateWikiAttachmentLimit(articleId);
+
         String storedFilename = fileStorageService.store(file);
 
         Attachment attachment = Attachment.builder()
@@ -400,6 +409,7 @@ public class AttachmentService {
             case WIKI_ARTICLE -> {
                 WikiArticle article = wikiArticleRepository.findById(request.targetId())
                         .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + request.targetId()));
+                validateWikiAttachmentLimit(request.targetId());
                 attachment.setWikiArticle(article);
             }
         }
@@ -463,6 +473,17 @@ public class AttachmentService {
             if (lowerName.endsWith(ext)) {
                 throw new IllegalArgumentException("Запрещённый тип файла: " + ext);
             }
+        }
+    }
+
+    /**
+     * Проверяет лимит вложений для статьи Wiki.
+     */
+    private void validateWikiAttachmentLimit(Long articleId) {
+        Long currentCount = attachmentRepository.countByWikiArticleId(articleId);
+        if (currentCount != null && currentCount >= maxWikiAttachments) {
+            throw new IllegalStateException(
+                    "Превышен лимит вложений для статьи Wiki. Максимум: " + maxWikiAttachments);
         }
     }
 }
