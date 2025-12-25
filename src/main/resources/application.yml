@@ -43,8 +43,8 @@ spring:
   # =========================================================
   servlet:
     multipart:
-      max-file-size: 30MB
-      max-request-size: 45MB
+      max-file-size: ${MAX_FILE_SIZE:30MB}
+      max-request-size: ${MAX_REQUEST_SIZE:45MB}
 
   # =========================================================
   # Redis
@@ -81,10 +81,10 @@ jwt:
 
 app:
   upload:
-    dir: ./uploads
-    max-file-size-mb: 30
-    wiki-max-attachments: 10
-    avatar-max-size-mb: 10
+    dir: ${UPLOAD_DIR:./uploads}
+    max-file-size-mb: ${UPLOAD_MAX_FILE_SIZE_MB:30}
+    wiki-max-attachments: ${WIKI_MAX_ATTACHMENTS:10}
+    avatar-max-size-mb: ${AVATAR_MAX_SIZE_MB:10}
     allowed-types:
       - image/jpeg
       - image/png
@@ -115,7 +115,7 @@ minio:
 
 # Run minio with docker:
 # docker run -d --name minio -p 9000:9000 -p 9001:9001 \
-# -e MINIO_ROOT_USER=${MINIO_USERNAME} -e MINIO_ROOT_PASSWORD=${MINIO_PASSWORD} \
+# -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=password123 \
 # minio/minio server /data --console-address ":9001"
 
 # =========================================================
