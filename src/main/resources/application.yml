@@ -83,6 +83,7 @@ app:
   upload:
     dir: ./uploads
     max-file-size-mb: 30
+    wiki-max-attachments: 10
     allowed-types:
       - image/jpeg
       - image/png
