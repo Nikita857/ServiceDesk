@@ -51,6 +51,9 @@ public class User implements UserDetails {
     @Column(name = "domain_account")
     private String domainAccount;
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(nullable = false)
     private boolean specialist;
 
