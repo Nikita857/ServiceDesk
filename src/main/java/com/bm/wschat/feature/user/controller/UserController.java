@@ -13,6 +13,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.time.Instant;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -135,7 +138,7 @@ public class UserController {
                 UserStatusResponse response = new UserStatusResponse(
                                 newStatus,
                                 newStatus.isAvailableForAssignment(),
-                                java.time.Instant.now());
+                                Instant.now());
 
                 return ResponseEntity.ok(ApiResponse.success("Статус обновлён на: " + newStatus, response));
         }

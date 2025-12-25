@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -33,7 +32,8 @@ public interface WikiArticleRepository extends JpaRepository<WikiArticle, Long> 
     Set<String> findTagsByArticleId(@Param("id") Long id);
 
     // Получаем список тегов по списку id статей List<ID> -> query -> List<Tag>
-    //Избегаем JOIN FETCH тегов через EntityGraph поскольку это ломает SQL пагинацию
+    // Избегаем JOIN FETCH тегов через EntityGraph поскольку это ломает SQL
+    // пагинацию
     @Query("SELECT a.id, t FROM WikiArticle a LEFT JOIN a.tagSet t WHERE a.id IN :ids")
     List<Object[]> findTagsByArticleIds(@Param("ids") List<Long> ids);
 

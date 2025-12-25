@@ -6,9 +6,9 @@ spring:
   # PostgreSQL DataSource
   # =========================================================
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/servicedesk}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:123456789}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   # =========================================================
@@ -43,8 +43,8 @@ spring:
   # =========================================================
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 15MB
+      max-file-size: 30MB
+      max-request-size: 45MB
 
   # =========================================================
   # Redis
@@ -52,8 +52,8 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6739}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
       timeout: 2s
       repositories:
         enabled: false
@@ -65,19 +65,19 @@ spring:
   # Run RabbitMQ with Docker - docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
   # =========================================================
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
 # =========================================================
 # JWT Configuration
 # =========================================================
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyThatShouldBeChangedInProductionAndMustBeAtLeast256BitsLongForHS512}
-  expiration: ${JWT_EXPIRATION:864000}
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
   refresh-token:
-    expiration-ms: ${JWT_REFRESH_EXPIRATION:2592000000}
+    expiration-ms: ${JWT_REFRESH_EXPIRATION}
 
 app:
   upload:
@@ -98,24 +98,24 @@ app:
 # Telegram Configuration
 # =========================================================
 telegram:
-  token: ${TELEGRAM_BOT_TOKEN:8299441458:AAEpxUkI8h9NQxlGGCYZuewyB26GWLD5iks}
-  bot-username: ${TELEGRAM_BOT_USERNAME:SD_BM_bot}
-  enabled: ${TELEGRAM_ENABLED:true}
+  token: ${TELEGRAM_BOT_TOKEN}
+  bot-username: ${TELEGRAM_BOT_USERNAME}
+  enabled: ${TELEGRAM_ENABLED}
 
 # =========================================================
 # MinIO Configuration
 # =========================================================
 minio:
-  host: ${MINIO_HOST:localhost}
-  port: ${MINIO_PORT:9000}
-  username: ${MINIO_USERNAME:admin}
-  password: ${MINIO_PASSWORD:password123}
-  chat-bucket: ${MINIO_CHAT_BUCKET:chat-attachments}
-  wiki-bucket: ${MINIO_WIKI_BUCKET:wiki-attachments}
+  host: ${MINIO_HOST}
+  port: ${MINIO_PORT}
+  username: ${MINIO_USERNAME}
+  password: ${MINIO_PASSWORD}
+  chat-bucket: ${MINIO_CHAT_BUCKET}
+  wiki-bucket: ${MINIO_WIKI_BUCKET}
 
 # Run minio with docker:
 # docker run -d --name minio -p 9000:9000 -p 9001:9001 \
-# -e MINIO_ROOT_USER=admin -e MINIO_ROOT_PASSWORD=password123 \
+# -e MINIO_ROOT_USER=${MINIO_USERNAME} -e MINIO_ROOT_PASSWORD=${MINIO_PASSWORD} \
 # minio/minio server /data --console-address ":9001"
 
 # =========================================================
