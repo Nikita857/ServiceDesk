@@ -33,22 +33,17 @@ public class UserManagementController {
             @RequestParam(required = false) String fio,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Set<String> roles,
-            @RequestParam(defaultValue = "true") Boolean active
-    ) {
+            @RequestParam(defaultValue = "true") Boolean active) {
         User user = userManagementService.createUser(username, password, fio, email, roles, active);
-        UserAuthResponse response = new UserAuthResponse(
-                user.getId(), user.getFio(), user.getUsername(),
-                user.getTelegramId(), user.isSpecialist(), user.getRoles(),
-                user.isActive());
-        return ResponseEntity.ok(ApiResponse.success("Пользователь создан", response));
+        return ResponseEntity.ok(ApiResponse.success("Пользователь создан",
+                authMapper.toAuthResponse(user)));
     }
 
     @PutMapping("/{id}/password")
     @Operation(summary = "Изменить пароль пользователя", description = "Изменяет пароль для указанного пользователя.")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @PathVariable Long id,
-            @RequestParam @NotNull String newPassword
-    ) {
+            @RequestParam @NotNull String newPassword) {
         userManagementService.changePassword(id, newPassword);
         return ResponseEntity.ok(ApiResponse.success("Пароль изменен"));
     }

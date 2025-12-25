@@ -70,7 +70,8 @@ public class DirectMessageService {
             Long unread = dmRepository.countUnreadFrom(partner.getId(), userId);
 
             return new ConversationResponse(
-                    new UserShortResponse(partner.getId(), partner.getUsername(), partner.getFio()),
+                    new UserShortResponse(partner.getId(), partner.getUsername(), partner.getFio(),
+                            partner.getAvatarUrl()),
                     truncate(dm.getContent(), 100),
                     dm.getCreatedAt(),
                     unread);

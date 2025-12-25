@@ -160,7 +160,8 @@ public class FriendshipService {
                             : f.getRequester();
                     return new FriendResponse(
                             f.getId(),
-                            new UserShortResponse(friend.getId(), friend.getUsername(), friend.getFio()));
+                            new UserShortResponse(friend.getId(), friend.getUsername(), friend.getFio(),
+                                    friend.getAvatarUrl()));
                 })
                 .toList();
     }
@@ -208,9 +209,9 @@ public class FriendshipService {
         return new FriendshipResponse(
                 f.getId(),
                 new UserShortResponse(f.getRequester().getId(), f.getRequester().getUsername(),
-                        f.getRequester().getFio()),
+                        f.getRequester().getFio(), f.getRequester().getAvatarUrl()),
                 new UserShortResponse(f.getAddressee().getId(), f.getAddressee().getUsername(),
-                        f.getAddressee().getFio()),
+                        f.getAddressee().getFio(), f.getAddressee().getAvatarUrl()),
                 f.getStatus(),
                 f.getRequestedAt(),
                 f.getRespondedAt());

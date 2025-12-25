@@ -152,7 +152,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
        /**
         * Получить среднюю оценку и количество оценённых тикетов для специалиста.
+        * Возвращает список с одной строкой: [0] = AVG, [1] = COUNT
         */
        @Query("SELECT AVG(t.rating), COUNT(t) FROM Ticket t WHERE t.assignedTo.id = :userId AND t.rating IS NOT NULL")
-       Object[] getAverageRatingBySpecialist(@Param("userId") Long userId);
+       List<Object[]> getAverageRatingBySpecialist(@Param("userId") Long userId);
 }

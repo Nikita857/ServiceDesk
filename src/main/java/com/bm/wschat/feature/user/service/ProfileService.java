@@ -11,8 +11,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,8 +38,7 @@ public class ProfileService {
     private final MinioStorageService minioStorageService;
 
     private static final Set<String> ALLOWED_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
-    @Value("${app.upload.avatar-max-size-mb}")
-    private long maxAvatarSize;
+    private static final long MAX_AVATAR_SIZE = 10 * 1024 * 1024; // 10MB в байтах
 
     /**
      * Получить профиль пользователя.
@@ -53,11 +52,23 @@ public class ProfileService {
         Long ratedTicketsCount = null;
 
         if (user.isSpecialist()) {
-            Object[] ratingData = ticketRepository.getAverageRatingBySpecialist(userId);
-            if (ratingData != null && ratingData[0] != null) {
-                averageRating = ((Number) ratingData[0]).doubleValue();
-                ratedTicketsCount = ((Number) ratingData[1]).longValue();
+            var ratingResult = ticketRepository.getAverageRatingBySpecialist(userId);
+            if (ratingResult != null && !ratingResult.isEmpty()) {
+                Object[] row = ratingResult.get(0);
+                if (row[0] != null) {
+                    averageRating = ((Number) row[0]).doubleValue();
+                    ratedTicketsCount = ((Number) row[1]).longValue();
+                }
             }
+        }
+
+        // Генерируем полный URL для аватара
+        String avatarUrl = null;
+        if (user.getAvatarUrl() != null) {
+            avatarUrl = minioStorageService.generateDownloadUrl(
+                    user.getAvatarUrl(),
+                    minioStorageService.getBucket(MinioStorageService.BucketType.CHAT),
+                    user.getAvatarUrl()); // используем fileKey как имя файла
         }
 
         return new ProfileResponse(
@@ -66,7 +77,7 @@ public class ProfileService {
                 user.getFio(),
                 user.getEmail(),
                 user.getTelegramId(),
-                user.getAvatarUrl(),
+                avatarUrl,
                 user.getRoles(),
                 user.isSpecialist(),
                 averageRating,
@@ -212,8 +223,8 @@ public class ProfileService {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Файл не выбран");
         }
-        if (file.getSize() > maxAvatarSize) {
-            throw new IllegalArgumentException("Максимальный размер аватара — 5 МБ");
+        if (file.getSize() > MAX_AVATAR_SIZE) {
+            throw new IllegalArgumentException("Максимальный размер аватара — 10 МБ");
         }
         if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("Разрешены только изображения (JPEG, PNG, GIF, WebP)");
