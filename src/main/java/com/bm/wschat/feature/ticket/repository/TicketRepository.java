@@ -145,4 +145,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
         */
        @Query(value = "SELECT * FROM tickets WHERE id = :id", nativeQuery = true)
        Optional<Ticket> findByIdIncludingDeleted(@Param("id") Long id);
+
+       // =====================================================================
+       // SPECIALIST RATING
+       // =====================================================================
+
+       /**
+        * Получить среднюю оценку и количество оценённых тикетов для специалиста.
+        */
+       @Query("SELECT AVG(t.rating), COUNT(t) FROM Ticket t WHERE t.assignedTo.id = :userId AND t.rating IS NOT NULL")
+       Object[] getAverageRatingBySpecialist(@Param("userId") Long userId);
 }

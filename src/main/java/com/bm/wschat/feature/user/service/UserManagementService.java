@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasRole('ADMIN')")
 public class UserManagementService {
 
     private final UserRepository userRepository;
@@ -29,7 +31,7 @@ public class UserManagementService {
     @Transactional
     @CacheEvict(cacheNames = "users", allEntries = true)
     public User createUser(@NotNull String username, @NotNull String password,
-                          String fio, String email, Set<String> roles, boolean active) {
+            String fio, String email, Set<String> roles, boolean active) {
         // Validate password
         if (!passwordValidator.isValid(password)) {
             throw new IllegalArgumentException(passwordValidator.getValidationMessage());
@@ -63,10 +65,14 @@ public class UserManagementService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
-        if (fio != null) user.setFio(fio);
-        if (email != null) user.setEmail(email);
-        if (roles != null) user.setRoles(roles);
-        if (active != null) user.setActive(active);
+        if (fio != null)
+            user.setFio(fio);
+        if (email != null)
+            user.setEmail(email);
+        if (roles != null)
+            user.setRoles(roles);
+        if (active != null)
+            user.setActive(active);
 
         user.setUpdatedAt(Instant.now());
 
@@ -90,7 +96,7 @@ public class UserManagementService {
         user.setUpdatedAt(Instant.now());
 
         userRepository.save(user);
-        log.info("Пароль измене для пользователя: {}", user.getUsername());
+        log.info("Пароль изменен для пользователя: {}", user.getUsername());
     }
 
     @Transactional
@@ -99,7 +105,7 @@ public class UserManagementService {
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("Пользователь не найден: " + userId);
         }
-        
+
         userRepository.deleteById(userId);
         log.info("Удален пользователь: {}", userId);
     }

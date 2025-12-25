@@ -14,21 +14,31 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByUsernameIgnoreCase(String username);
+        Optional<User> findByUsernameIgnoreCase(String username);
 
-    Optional<User> findByUsername(String username);
+        Optional<User> findByUsername(String username);
 
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r = :role")
-    List<User> findByRole(@Param("role") String role);
+        @Query("SELECT u FROM User u JOIN u.roles r WHERE r = :role")
+        List<User> findByRole(@Param("role") String role);
 
-    /**
-     * Поиск пользователей по ФИО или username (без учёта регистра)
-     */
-    @Query("SELECT u FROM User u WHERE u.id <> :excludeUserId AND " +
-            "(LOWER(u.fio) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')))")
-    Page<User> searchByFioOrUsername(
-            @Param("query") String query,
-            @Param("excludeUserId") Long excludeUserId,
-            Pageable pageable);
+        /**
+         * Поиск пользователей по ФИО или username (без учёта регистра)
+         */
+        @Query("SELECT u FROM User u WHERE u.id <> :excludeUserId AND " +
+                        "(LOWER(u.fio) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+                        "LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')))")
+        Page<User> searchByFioOrUsername(
+                        @Param("query") String query,
+                        @Param("excludeUserId") Long excludeUserId,
+                        Pageable pageable);
+
+        /**
+         * Проверяет, существует ли пользователь с таким email (исключая текущего).
+         */
+        boolean existsByEmailAndIdNot(String email, Long id);
+
+        /**
+         * Проверяет, существует ли пользователь с таким telegramId (исключая текущего).
+         */
+        boolean existsByTelegramIdAndIdNot(Long telegramId, Long id);
 }
