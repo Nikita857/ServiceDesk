@@ -1,7 +1,7 @@
 package com.bm.wschat.shared.storage;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,11 +24,20 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class MinioStorageService {
 
     private final MinioClient minioClient;
+    private final MinioClient publicMinioClient;
     private final MinioProperties minioProperties;
+
+    public MinioStorageService(
+            MinioClient minioClient,
+            @Qualifier("publicMinioClient") MinioClient publicMinioClient,
+            MinioProperties minioProperties) {
+        this.minioClient = minioClient;
+        this.publicMinioClient = publicMinioClient;
+        this.minioProperties = minioProperties;
+    }
 
     // Время жизни presigned URL для загрузки (минуты)
     private static final int UPLOAD_URL_EXPIRY_MINUTES = 15;
@@ -46,22 +55,20 @@ public class MinioStorageService {
 
     /**
      * Генерирует presigned URL для загрузки файла напрямую в MinIO.
+     * Использует publicMinioClient для корректной подписи с публичным endpoint.
      */
     public PresignedUploadUrl generateUploadUrl(String originalFilename, String contentType, BucketType bucketType) {
         String fileKey = generateFileKey(originalFilename);
         String bucket = getBucket(bucketType);
 
         try {
-            String uploadUrl = minioClient.getPresignedObjectUrl(
+            String uploadUrl = publicMinioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.PUT)
                             .bucket(bucket)
                             .object(fileKey)
                             .expiry(UPLOAD_URL_EXPIRY_MINUTES, TimeUnit.MINUTES)
                             .build());
-
-            // Заменяем внутренний URL на публичный для внешнего доступа
-            uploadUrl = replaceWithPublicUrl(uploadUrl);
 
             log.info("Сгенерирован presigned URL для загрузки в {}: {}", bucket, fileKey);
             return new PresignedUploadUrl(uploadUrl, fileKey, originalFilename, bucket);
@@ -74,6 +81,7 @@ public class MinioStorageService {
 
     /**
      * Генерирует presigned URL для скачивания файла.
+     * Использует publicMinioClient для корректной подписи с публичным endpoint.
      */
     public String generateDownloadUrl(String fileKey, String bucket, String originalFilename) {
         try {
@@ -83,7 +91,7 @@ public class MinioStorageService {
                     "response-content-disposition",
                     "attachment; filename=\"" + originalFilename + "\"; filename*=UTF-8''" + encodedFilename);
 
-            String downloadUrl = minioClient.getPresignedObjectUrl(
+            return publicMinioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
@@ -91,26 +99,10 @@ public class MinioStorageService {
                             .expiry(DOWNLOAD_URL_EXPIRY_MINUTES, TimeUnit.MINUTES)
                             .extraQueryParams(extraParams)
                             .build());
-
-            // Заменяем внутренний URL на публичный для внешнего доступа
-            return replaceWithPublicUrl(downloadUrl);
         } catch (Exception e) {
             log.error("Ошибка генерации download URL: {}", e.getMessage());
             throw new StorageException("Не удалось сгенерировать URL для скачивания", e);
         }
-    }
-
-    /**
-     * Заменяет внутренний endpoint MinIO на публичный для внешнего доступа.
-     */
-    private String replaceWithPublicUrl(String url) {
-        String internalEndpoint = minioProperties.getEndpoint();
-        String publicEndpoint = minioProperties.getPublicEndpoint();
-
-        if (!internalEndpoint.equals(publicEndpoint)) {
-            return url.replace(internalEndpoint, publicEndpoint);
-        }
-        return url;
     }
 
     /**

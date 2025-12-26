@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import com.bm.wschat.shared.storage.MinioProperties;
 
@@ -21,7 +22,12 @@ public class MinioConfig {
 
     private final MinioProperties minioProperties;
 
+    /**
+     * Основной MinioClient для операций с файлами (upload, delete, check).
+     * Использует внутренний endpoint (Docker hostname или localhost).
+     */
     @Bean
+    @Primary
     public MinioClient minioClient() {
         MinioClient client = MinioClient.builder()
                 .endpoint(minioProperties.getEndpoint())
@@ -34,6 +40,21 @@ public class MinioConfig {
         }
 
         return client;
+    }
+
+    /**
+     * MinioClient для генерации публичных presigned URLs.
+     * Использует публичный endpoint (IP или домен, доступный из браузера).
+     */
+    @Bean
+    public MinioClient publicMinioClient() {
+        String publicEndpoint = minioProperties.getPublicEndpoint();
+        log.info("Создаётся publicMinioClient с endpoint: {}", publicEndpoint);
+
+        return MinioClient.builder()
+                .endpoint(publicEndpoint)
+                .credentials(minioProperties.getUsername(), minioProperties.getPassword())
+                .build();
     }
 
     private void createBucketIfNotExists(MinioClient client, String bucketName) {
