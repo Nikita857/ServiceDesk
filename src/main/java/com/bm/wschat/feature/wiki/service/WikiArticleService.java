@@ -56,6 +56,18 @@ public class WikiArticleService {
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 
+    // Карта транслитерации кириллицы в латиницу
+    private static final Map<Character, String> TRANSLITERATION_MAP = Map.ofEntries(
+            Map.entry('а', "a"), Map.entry('б', "b"), Map.entry('в', "v"), Map.entry('г', "g"),
+            Map.entry('д', "d"), Map.entry('е', "e"), Map.entry('ё', "yo"), Map.entry('ж', "zh"),
+            Map.entry('з', "z"), Map.entry('и', "i"), Map.entry('й', "y"), Map.entry('к', "k"),
+            Map.entry('л', "l"), Map.entry('м', "m"), Map.entry('н', "n"), Map.entry('о', "o"),
+            Map.entry('п', "p"), Map.entry('р', "r"), Map.entry('с', "s"), Map.entry('т', "t"),
+            Map.entry('у', "u"), Map.entry('ф', "f"), Map.entry('х', "kh"), Map.entry('ц', "ts"),
+            Map.entry('ч', "ch"), Map.entry('ш', "sh"), Map.entry('щ', "shch"), Map.entry('ъ', ""),
+            Map.entry('ы', "y"), Map.entry('ь', ""), Map.entry('э', "e"), Map.entry('ю', "yu"),
+            Map.entry('я', "ya"));
+
     /**
      * Создать статью
      */
@@ -347,12 +359,26 @@ public class WikiArticleService {
     }
 
     private String generateSlug(String title) {
-        String slug = Normalizer.normalize(title, Normalizer.Form.NFD);
+        // 1. Приводим к нижнему регистру
+        String lowerTitle = title.toLowerCase(Locale.ROOT);
+
+        // 2. Транслитерация кириллицы
+        StringBuilder transliterated = new StringBuilder();
+        for (char c : lowerTitle.toCharArray()) {
+            if (TRANSLITERATION_MAP.containsKey(c)) {
+                transliterated.append(TRANSLITERATION_MAP.get(c));
+            } else {
+                transliterated.append(c);
+            }
+        }
+
+        // 3. Нормализация и очистка
+        String slug = Normalizer.normalize(transliterated.toString(), Normalizer.Form.NFD);
         slug = WHITESPACE.matcher(slug).replaceAll("-");
         slug = NONLATIN.matcher(slug).replaceAll("");
-        slug = slug.toLowerCase(Locale.ENGLISH).replaceAll("-{2,}", "-").replaceAll("^-|-$", "");
+        slug = slug.replaceAll("-{2,}", "-").replaceAll("^-|-$", "");
 
-        // Уникальность
+        // 4. Уникальность
         String baseSlug = slug;
         int counter = 1;
         while (wikiArticleRepository.existsBySlug(slug)) {
