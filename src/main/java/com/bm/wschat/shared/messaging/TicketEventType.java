@@ -12,6 +12,8 @@ public enum TicketEventType {
     STATUS_CHANGED,
     /** Назначен исполнитель */
     ASSIGNED,
+    /** Назначение создано */
+    ASSIGNMENT_CREATED,
     /** Новое сообщение */
     MESSAGE_SENT,
     /** Оценка поставлена */

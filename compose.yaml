@@ -1,6 +1,7 @@
-version: "3.9"
-
 services:
+  # =========================================================
+  # Backend Application
+  # =========================================================
   backend:
     build:
       context: .
@@ -9,66 +10,57 @@ services:
     container_name: servicedesk-backend
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      # ========= Spring =========
-      SPRING_APPLICATION_NAME: servicedesk
-
-      # ========= PostgreSQL =========
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/servicedesk
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: 2w3a236fdj!
-
-      # ========= JPA =========
-      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_JPA_OPEN_IN_VIEW: "false"
-
-      # ========= Flyway =========
-      SPRING_FLYWAY_ENABLED: "true"
-      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_MIXED: "true"
-
-      # ========= Redis =========
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_TIMEOUT: 2s
-      SPRING_DATA_REDIS_REPOSITORIES_ENABLED: "false"
-
-      # ========= JWT =========
-      JWT_SECRET: mySecretKeyThatShouldBeChangedInProductionAndMustBeAtLeast256BitsLongForHS512
-
+      # Override для Docker-сетей (хосты сервисов)
+      DB_URL: jdbc:postgresql://postgres:5432/servicedesk
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      MINIO_HOST: minio
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     volumes:
       - uploads:/app/uploads
     networks:
       - servicedesk-net
+    restart: unless-stopped
 
-
+  # =========================================================
+  # PostgreSQL Database
+  # =========================================================
   postgres:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: servicedesk-postgres
     environment:
       POSTGRES_DB: servicedesk
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 2w3a236fdj!
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - servicedesk-net
+    restart: unless-stopped
 
-
+  # =========================================================
+  # Redis Cache
+  # =========================================================
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: servicedesk-redis
     ports:
       - "6379:6379"
@@ -82,14 +74,69 @@ services:
       retries: 5
     networks:
       - servicedesk-net
+    restart: unless-stopped
 
+  # =========================================================
+  # RabbitMQ Message Broker
+  # =========================================================
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: servicedesk-rabbitmq
+    ports:
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - servicedesk-net
+    restart: unless-stopped
 
+  # =========================================================
+  # MinIO Object Storage
+  # =========================================================
+  minio:
+    image: minio/minio:latest
+    container_name: servicedesk-minio
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USERNAME}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - servicedesk-net
+    restart: unless-stopped
+
+# =========================================================
+# Volumes
+# =========================================================
 volumes:
   pgdata:
   redisdata:
+  rabbitmqdata:
+  miniodata:
   uploads:
 
-
+# =========================================================
+# Networks
+# =========================================================
 networks:
   servicedesk-net:
     driver: bridge

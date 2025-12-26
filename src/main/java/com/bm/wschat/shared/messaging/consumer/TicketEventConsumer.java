@@ -35,6 +35,7 @@ public class TicketEventConsumer {
             case INTERNAL_COMMENT -> handleInternalComment(event);
             case SLA_BREACH -> handleSlaBreach(event);
             case USER_STATUS_CHANGED -> handleUserStatusChanged(event);
+            case ASSIGNMENT_CREATED -> handleAssignmentCreated(event);
         }
     }
 
@@ -96,6 +97,17 @@ public class TicketEventConsumer {
         String destination = "/topic/line/" + event.ticketId() + "/status";
         sendToTopic(destination, event.payload());
         log.info("Broadcasted user status change: userId={}, lineId={}", event.userId(), event.ticketId());
+    }
+
+    private void handleAssignmentCreated(TicketEvent event) {
+        // Broadcast assignment created to user
+        String destination = "/queue/assignments";
+        messagingTemplate.convertAndSendToUser(
+                event.userId().toString(),
+                destination,
+                event.payload());
+        log.info("Sent assignment notification to user: userId={}, ticketId={}",
+                event.userId(), event.ticketId());
     }
 
     /**

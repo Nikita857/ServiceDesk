@@ -36,6 +36,10 @@ public record TicketEvent(
         return of(TicketEventType.ASSIGNED, ticketId, userId, payload);
     }
 
+    public static TicketEvent assignmentCreated(Long ticketId, Long userId, Object payload) {
+        return of(TicketEventType.ASSIGNMENT_CREATED, ticketId, userId, payload);
+    }
+
     public static TicketEvent messageSent(Long ticketId, Long userId, Object payload) {
         return of(TicketEventType.MESSAGE_SENT, ticketId, userId, payload);
     }

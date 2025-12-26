@@ -35,7 +35,7 @@ public class TicketEventPublisher {
      */
     public void publish(TicketEvent event) {
 
-        if(RequestContextHolder.getRequestAttributes() == null) {
+        if (RequestContextHolder.getRequestAttributes() == null) {
             publishImmediately(event);
             return;
         }
@@ -117,5 +117,13 @@ public class TicketEventPublisher {
 
     public void publishDeleted(Long ticketId, Long userId) {
         publish(TicketEvent.deleted(ticketId, userId));
+    }
+
+    /**
+     * Публикует событие о создании назначения для получателя.
+     * Отправляется персонально назначенному пользователю.
+     */
+    public void publishAssignmentCreated(Long ticketId, Long toUserId, Object payload) {
+        publish(TicketEvent.assignmentCreated(ticketId, toUserId, payload));
     }
 }

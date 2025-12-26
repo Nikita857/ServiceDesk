@@ -143,8 +143,23 @@ public class AssignmentService {
                 ticket.getId(), toLine.getName(),
                 saved.getToUser() != null ? saved.getToUser().getUsername() : "auto");
 
-        // RabbitMQ: уведомляем об обновлении тикета
+        // RabbitMQ: уведомляем об обновлении тикета (для подписчиков тикета)
         ticketEventPublisher.publishAssigned(ticket.getId(), assignedById, ticketMapper.toResponse(ticket));
+
+        // RabbitMQ: персональное уведомление получателю назначения
+        if (saved.getToUser() != null) {
+            // Прямое назначение конкретному специалисту
+            ticketEventPublisher.publishAssignmentCreated(
+                    ticket.getId(),
+                    saved.getToUser().getId(),
+                    assignmentMapper.toResponse(saved));
+        } else {
+            // Назначение на линию - уведомляем всех специалистов линии
+            toLine.getSpecialists().forEach(specialist -> ticketEventPublisher.publishAssignmentCreated(
+                    ticket.getId(),
+                    specialist.getId(),
+                    assignmentMapper.toResponse(saved)));
+        }
 
         return assignmentMapper.toResponse(saved);
     }
