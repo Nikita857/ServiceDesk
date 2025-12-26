@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,15 @@ public class UserManagementService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordValidator passwordValidator;
+
+    @Transactional(readOnly = true)
+    public Page<User> findAllUsers(Pageable pageable, String search) {
+        if (search != null && !search.isBlank()) {
+            return userRepository.findByUsernameContainingIgnoreCaseOrFioContainingIgnoreCase(
+                    search.trim(), search.trim(), pageable);
+        }
+        return userRepository.findAll(pageable);
+    }
 
     @Transactional
     @CacheEvict(cacheNames = "users", allEntries = true)
@@ -78,6 +89,48 @@ public class UserManagementService {
 
         User updatedUser = userRepository.save(user);
         log.info("Обновлен пользователь: {}", user.getUsername());
+        return updatedUser;
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
+    public User updateFio(Long userId, String fio) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        user.setFio(fio);
+        user.setUpdatedAt(Instant.now());
+
+        User updatedUser = userRepository.save(user);
+        log.info("Обновлено ФИО пользователя {}: {}", user.getUsername(), fio);
+        return updatedUser;
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
+    public User updateRoles(Long userId, Set<String> roles) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        user.setRoles(roles);
+        user.setUpdatedAt(Instant.now());
+
+        User updatedUser = userRepository.save(user);
+        log.info("Обновлены роли пользователя {}: {}", user.getUsername(), roles);
+        return updatedUser;
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = "users", allEntries = true)
+    public User setActive(Long userId, Boolean active) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
+
+        user.setActive(active);
+        user.setUpdatedAt(Instant.now());
+
+        User updatedUser = userRepository.save(user);
+        log.info("Изменён статус активности пользователя {}: {}", user.getUsername(), active);
         return updatedUser;
     }
 

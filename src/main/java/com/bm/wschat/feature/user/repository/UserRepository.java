@@ -40,4 +40,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
          * Проверяет, существует ли пользователь с таким telegramId (исключая текущего).
          */
         boolean existsByTelegramIdAndIdNot(Long telegramId, Long id);
+
+        /**
+         * Поиск пользователей по username или ФИО (для админ-панели)
+         */
+        Page<User> findByUsernameContainingIgnoreCaseOrFioContainingIgnoreCase(
+                        String username, String fio, Pageable pageable);
 }
