@@ -93,6 +93,7 @@ app:
       - application/pdf
       - text/plain
       - application/msword
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
 
 # =========================================================
 # Telegram Configuration

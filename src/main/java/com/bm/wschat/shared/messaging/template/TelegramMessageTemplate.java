@@ -3,6 +3,7 @@ package com.bm.wschat.shared.messaging.template;
 import com.bm.wschat.feature.ticket.model.Ticket;
 import com.bm.wschat.feature.ticket.model.TicketPriority;
 import com.bm.wschat.feature.user.model.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,6 +16,9 @@ public class TelegramMessageTemplate {
     private static final String PRIORITY_HIGH = "🔴";
     private static final String PRIORITY_MEDIUM = "🟡";
     private static final String PRIORITY_LOW = "🟢";
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
 
     /**
      * Новая заявка создана — для канала линии поддержки
@@ -29,6 +33,8 @@ public class TelegramMessageTemplate {
                 %s *Приоритет:* %s
 
                 📝 _%s_
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 escapeMarkdown(ticket.getTitle()),
@@ -36,7 +42,8 @@ public class TelegramMessageTemplate {
                 getUserName(ticket.getCreatedBy()),
                 getPriorityEmoji(ticket.getPriority()),
                 ticket.getPriority(),
-                truncate(escapeMarkdown(ticket.getDescription()), 200));
+                truncate(escapeMarkdown(ticket.getDescription()), 200),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -50,10 +57,13 @@ public class TelegramMessageTemplate {
                 👨‍💻 *Специалист:* %s
 
                 _Спасибо за обращение! Пожалуйста, оцените работу специалиста._
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 escapeMarkdown(ticket.getTitle()),
-                ticket.getAssignedTo() != null ? getUserName(ticket.getAssignedTo()) : "Не назначен");
+                ticket.getAssignedTo() != null ? getUserName(ticket.getAssignedTo()) : "Не назначен",
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -68,13 +78,16 @@ public class TelegramMessageTemplate {
 
                 %s (%d/5)
                 💬 *Отзыв:* %s
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 stars,
                 rating,
                 ticket.getFeedback() != null && !ticket.getFeedback().isBlank()
                         ? escapeMarkdown(ticket.getFeedback())
-                        : "_Без комментария_");
+                        : "_Без комментария_",
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -87,12 +100,15 @@ public class TelegramMessageTemplate {
                 📋 *Тема:* %s
                 👤 *Автор:* %s
                 %s *Приоритет:* %s
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 escapeMarkdown(ticket.getTitle()),
                 getUserName(ticket.getCreatedBy()),
                 getPriorityEmoji(ticket.getPriority()),
-                ticket.getPriority());
+                ticket.getPriority(),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -106,13 +122,16 @@ public class TelegramMessageTemplate {
                 👤 *Автор:* %s
                 👤 *Исполнитель:* %s
                 %s *Приоритет:* %s
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 escapeMarkdown(ticket.getTitle()),
                 getUserName(ticket.getCreatedBy()),
                 getUserName(ticket.getAssignedTo()),
                 getPriorityEmoji(ticket.getPriority()),
-                ticket.getPriority());
+                ticket.getPriority(),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -125,9 +144,12 @@ public class TelegramMessageTemplate {
                 👨‍💻 *Специалист:* %s
 
                 _Ожидайте ответа, специалист уже работает над вашей заявкой._
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
-                getUserName(ticket.getAssignedTo()));
+                getUserName(ticket.getAssignedTo()),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -148,10 +170,13 @@ public class TelegramMessageTemplate {
                 %s *Статус заявки #%d изменён*
 
                 Новый статус: *%s*
+
+                🔗 [Открыть заявку](%s)
                 """,
                 statusEmoji,
                 ticket.getId(),
-                ticket.getStatus());
+                ticket.getStatus(),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -163,10 +188,13 @@ public class TelegramMessageTemplate {
 
                 📋 Заявка #%d: %s
                 👨‍💻 Специалист: %s
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 escapeMarkdown(ticket.getTitle()),
-                getUserName(ticket.getAssignedTo()));
+                getUserName(ticket.getAssignedTo()),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -178,10 +206,13 @@ public class TelegramMessageTemplate {
 
                 📋 Заявка #%d: %s
                 👤 Автор: %s
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
                 escapeMarkdown(ticket.getTitle()),
-                getUserName(ticket.getCreatedBy()));
+                getUserName(ticket.getCreatedBy()),
+                buildTicketUrl(ticket.getId()));
     }
 
     /**
@@ -192,12 +223,19 @@ public class TelegramMessageTemplate {
                 💬 *Новое сообщение в заявке*
 
                 📋 Заявка #%d: %s
+
+                🔗 [Открыть заявку](%s)
                 """,
                 ticket.getId(),
-                escapeMarkdown(ticket.getTitle()));
+                escapeMarkdown(ticket.getTitle()),
+                buildTicketUrl(ticket.getId()));
     }
 
     // === Helper methods ===
+
+    private String buildTicketUrl(Long ticketId) {
+        return frontendUrl + "/tickets/" + ticketId;
+    }
 
     private String getUserName(User user) {
         if (user == null)
