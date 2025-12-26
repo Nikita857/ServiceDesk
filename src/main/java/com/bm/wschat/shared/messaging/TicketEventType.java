@@ -14,6 +14,8 @@ public enum TicketEventType {
     ASSIGNED,
     /** Назначение создано */
     ASSIGNMENT_CREATED,
+    /** Назначение отклонено */
+    ASSIGNMENT_REJECTED,
     /** Новое сообщение */
     MESSAGE_SENT,
     /** Оценка поставлена */

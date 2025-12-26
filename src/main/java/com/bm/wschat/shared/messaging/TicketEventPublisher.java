@@ -126,4 +126,12 @@ public class TicketEventPublisher {
     public void publishAssignmentCreated(Long ticketId, Long toUserId, Object payload) {
         publish(TicketEvent.assignmentCreated(ticketId, toUserId, payload));
     }
+
+    /**
+     * Публикует событие об отклонении назначения.
+     * Отправляется пользователю, создавшему назначение (fromUser).
+     */
+    public void publishAssignmentRejected(Long ticketId, Long fromUserId, Object payload) {
+        publish(TicketEvent.assignmentRejected(ticketId, fromUserId, payload));
+    }
 }

@@ -36,6 +36,7 @@ public class TicketEventConsumer {
             case SLA_BREACH -> handleSlaBreach(event);
             case USER_STATUS_CHANGED -> handleUserStatusChanged(event);
             case ASSIGNMENT_CREATED -> handleAssignmentCreated(event);
+            case ASSIGNMENT_REJECTED -> handleAssignmentRejected(event);
         }
     }
 
@@ -107,6 +108,17 @@ public class TicketEventConsumer {
                 destination,
                 event.payload());
         log.info("Sent assignment notification to user: userId={}, ticketId={}",
+                event.userId(), event.ticketId());
+    }
+
+    private void handleAssignmentRejected(TicketEvent event) {
+        // Уведомление отправителю назначения об отклонении
+        String destination = "/queue/assignments/rejected";
+        messagingTemplate.convertAndSendToUser(
+                event.userId().toString(),
+                destination,
+                event.payload());
+        log.info("Sent assignment rejection to user: userId={}, ticketId={}",
                 event.userId(), event.ticketId());
     }
 

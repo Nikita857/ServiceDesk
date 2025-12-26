@@ -268,6 +268,14 @@ public class AssignmentService {
         // RabbitMQ: уведомляем об обновлении тикета
         ticketEventPublisher.publishUpdated(ticket.getId(), userId, ticketMapper.toResponse(ticket));
 
+        // RabbitMQ: персональное уведомление отправителю назначения об отклонении
+        if (assignment.getFromUser() != null) {
+            ticketEventPublisher.publishAssignmentRejected(
+                    ticket.getId(),
+                    assignment.getFromUser().getId(),
+                    assignmentMapper.toResponse(saved));
+        }
+
         return assignmentMapper.toResponse(saved);
     }
 
