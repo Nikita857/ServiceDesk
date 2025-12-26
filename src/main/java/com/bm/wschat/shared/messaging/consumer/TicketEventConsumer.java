@@ -101,23 +101,17 @@ public class TicketEventConsumer {
     }
 
     private void handleAssignmentCreated(TicketEvent event) {
-        // Broadcast assignment created to user
-        String destination = "/queue/assignments";
-        messagingTemplate.convertAndSendToUser(
-                event.userId().toString(),
-                destination,
-                event.payload());
+        // Broadcast assignment created to user via topic
+        String destination = "/topic/user/" + event.userId() + "/assignments";
+        sendToTopic(destination, event.payload());
         log.info("Sent assignment notification to user: userId={}, ticketId={}",
                 event.userId(), event.ticketId());
     }
 
     private void handleAssignmentRejected(TicketEvent event) {
-        // Уведомление отправителю назначения об отклонении
-        String destination = "/queue/assignments/rejected";
-        messagingTemplate.convertAndSendToUser(
-                event.userId().toString(),
-                destination,
-                event.payload());
+        // Уведомление отправителю назначения об отклонении via topic
+        String destination = "/topic/user/" + event.userId() + "/assignments/rejected";
+        sendToTopic(destination, event.payload());
         log.info("Sent assignment rejection to user: userId={}, ticketId={}",
                 event.userId(), event.ticketId());
     }
