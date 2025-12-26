@@ -117,12 +117,12 @@ public class WikiArticleController {
         }
 
         @DeleteMapping("/{id}")
-        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER')")
+        @PreAuthorize("hasAnyRole('SYSADMIN','1CSUPPORT','DEV1C','DEVELOPER','ADMIN')")
         @Operation(summary = "Удалить статью Wiki", description = "Удаляет статью базы знаний по ее ID (логическое удаление).")
         public ResponseEntity<ApiResponse<Void>> deleteArticle(
                         @PathVariable Long id,
                         @AuthenticationPrincipal User user) {
-                wikiArticleService.deleteArticle(id, user.getId());
+                wikiArticleService.deleteArticle(id, user);
                 return ResponseEntity.ok(
                                 ApiResponse.success("Статья удалена"));
         }

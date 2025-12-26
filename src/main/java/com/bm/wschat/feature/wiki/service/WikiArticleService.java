@@ -231,7 +231,7 @@ public class WikiArticleService {
                 .orElseThrow(() -> new EntityNotFoundException("Пользователь не найден: " + userId));
 
         // Проверка прав
-        if (!canModify(article, userId)) {
+        if (!canModify(article, editor)) {
             throw new AccessDeniedException("У вас нет прав для редактирования этой статьи");
         }
 
@@ -275,11 +275,11 @@ public class WikiArticleService {
      * Удалить статью
      */
     @Transactional
-    public void deleteArticle(Long id, Long userId) {
+    public void deleteArticle(Long id, User user) {
         WikiArticle article = wikiArticleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Статья не найдена: " + id));
 
-        if (!canModify(article, userId)) {
+        if (!canModify(article, user)) {
             throw new AccessDeniedException("У вас нет прав удалять эту статью");
         }
 
@@ -346,16 +346,16 @@ public class WikiArticleService {
         }
     }
 
-    private boolean canModify(WikiArticle article, Long userId) {
+    private boolean canModify(WikiArticle article, User user) {
         // Автор или специалист/админ
-        if (article.getCreatedBy().getId().equals(userId)) {
-            if (article.getCreatedBy().getRoles().contains(SenderType.ADMIN.name())) {
+        if (user.isAdmin()) {
+            return true;
+        } else {
+            if (article.getCreatedBy().getId().equals(user.getId()) && user.isSpecialist()) {
                 return true;
             }
-            return true;
         }
-        User user = userRepository.findById(userId).orElse(null);
-        return user != null && (user.isAdmin() || user.isSpecialist());
+        return false;
     }
 
     private String generateSlug(String title) {
