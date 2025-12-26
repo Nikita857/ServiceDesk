@@ -21,13 +21,31 @@ public class MinioProperties {
     private String password = "password123";
     private boolean secure = false; // использовать HTTPS
 
+    // Публичный URL для клиентов (если отличается от внутреннего)
+    // Например: http://192.168.1.100:9000 или https://minio.example.com
+    private String publicUrl;
+
     // Бакеты для разных типов вложений
     private String chatBucket = "chat-attachments";
     private String wikiBucket = "wiki-attachments";
 
+    /**
+     * Внутренний endpoint для подключения MinioClient (для серверной части).
+     */
     public String getEndpoint() {
         String protocol = secure ? "https" : "http";
         return protocol + "://" + host + ":" + port;
+    }
+
+    /**
+     * Публичный endpoint для клиентов (presigned URLs).
+     * Если publicUrl не задан, использует обычный endpoint.
+     */
+    public String getPublicEndpoint() {
+        if (publicUrl != null && !publicUrl.isBlank()) {
+            return publicUrl;
+        }
+        return getEndpoint();
     }
 
     public List<String> getAllBuckets() {

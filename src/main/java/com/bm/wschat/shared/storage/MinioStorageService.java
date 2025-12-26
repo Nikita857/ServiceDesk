@@ -60,6 +60,9 @@ public class MinioStorageService {
                             .expiry(UPLOAD_URL_EXPIRY_MINUTES, TimeUnit.MINUTES)
                             .build());
 
+            // Заменяем внутренний URL на публичный для внешнего доступа
+            uploadUrl = replaceWithPublicUrl(uploadUrl);
+
             log.info("Сгенерирован presigned URL для загрузки в {}: {}", bucket, fileKey);
             return new PresignedUploadUrl(uploadUrl, fileKey, originalFilename, bucket);
 
@@ -72,9 +75,6 @@ public class MinioStorageService {
     /**
      * Генерирует presigned URL для скачивания файла.
      */
-    /**
-     * Генерирует presigned URL для скачивания файла.
-     */
     public String generateDownloadUrl(String fileKey, String bucket, String originalFilename) {
         try {
             // Формируем заголовок Content-Disposition
@@ -83,7 +83,7 @@ public class MinioStorageService {
                     "response-content-disposition",
                     "attachment; filename=\"" + originalFilename + "\"; filename*=UTF-8''" + encodedFilename);
 
-            return minioClient.getPresignedObjectUrl(
+            String downloadUrl = minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucket)
@@ -91,10 +91,26 @@ public class MinioStorageService {
                             .expiry(DOWNLOAD_URL_EXPIRY_MINUTES, TimeUnit.MINUTES)
                             .extraQueryParams(extraParams)
                             .build());
+
+            // Заменяем внутренний URL на публичный для внешнего доступа
+            return replaceWithPublicUrl(downloadUrl);
         } catch (Exception e) {
             log.error("Ошибка генерации download URL: {}", e.getMessage());
             throw new StorageException("Не удалось сгенерировать URL для скачивания", e);
         }
+    }
+
+    /**
+     * Заменяет внутренний endpoint MinIO на публичный для внешнего доступа.
+     */
+    private String replaceWithPublicUrl(String url) {
+        String internalEndpoint = minioProperties.getEndpoint();
+        String publicEndpoint = minioProperties.getPublicEndpoint();
+
+        if (!internalEndpoint.equals(publicEndpoint)) {
+            return url.replace(internalEndpoint, publicEndpoint);
+        }
+        return url;
     }
 
     /**
