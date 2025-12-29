@@ -29,6 +29,10 @@ services:
         condition: service_healthy
     volumes:
       - uploads:/app/uploads
+    extra_hosts:
+      # Позволяет publicMinioClient обращаться к MinIO по публичному IP
+      # 192.168.0.13 -> хост-машина -> MinIO на порту 9000
+      - "192.168.0.13:host-gateway"
     networks:
       - servicedesk-net
     restart: unless-stopped

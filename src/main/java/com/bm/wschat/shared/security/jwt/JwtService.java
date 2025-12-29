@@ -59,7 +59,7 @@ public class JwtService {
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION))
+                .expiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION * 1000))
                 .signWith(getSignInKey())
                 .compact();
     }

@@ -24,7 +24,7 @@ public class MinioConfig {
 
     /**
      * Основной MinioClient для операций с файлами (upload, delete, check).
-     * Использует внутренний endpoint (Docker hostname или localhost).
+     * Использует внутренний endpoint (Docker hostname).
      */
     @Bean
     @Primary
@@ -39,17 +39,21 @@ public class MinioConfig {
             createBucketIfNotExists(client, bucket);
         }
 
+        log.info("MinIO клиент инициализирован с endpoint: {}", minioProperties.getEndpoint());
         return client;
     }
 
     /**
      * MinioClient для генерации публичных presigned URLs.
      * Использует публичный endpoint (IP или домен, доступный из браузера).
+     * 
+     * ВАЖНО: Публичный endpoint должен быть доступен из контейнера.
+     * Для этого в docker-compose добавлен extra_hosts с host.docker.internal.
      */
     @Bean
     public MinioClient publicMinioClient() {
         String publicEndpoint = minioProperties.getPublicEndpoint();
-        log.info("Создаётся publicMinioClient с endpoint: {}", publicEndpoint);
+        log.info("PublicMinioClient с endpoint: {}", publicEndpoint);
 
         return MinioClient.builder()
                 .endpoint(publicEndpoint)

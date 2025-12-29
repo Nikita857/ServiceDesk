@@ -79,6 +79,11 @@ public class TicketEventPublisher {
      * Вызывается в конце транзакции через AOP или вручную.
      */
     public void flush() {
+        // Проверяем наличие RequestScope — без него агрегатор недоступен
+        if (RequestContextHolder.getRequestAttributes() == null) {
+            return;
+        }
+
         try {
             TicketEventAggregator aggregator = aggregatorProvider.getIfAvailable();
             if (aggregator != null && aggregator.hasEvents()) {
